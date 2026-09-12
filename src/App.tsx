@@ -1,0 +1,36 @@
+import { BrowserRouter, Route, Routes } from 'react-router-dom'
+import { AppLayout } from './components/layout/AppLayout'
+import { SessionProvider } from './features/auth/SessionProvider'
+import { ReviewRequestDetailPage } from './features/events/pages/ReviewRequestDetailPage'
+import { ReviewRequestsPage } from './features/events/pages/ReviewRequestsPage'
+import { SubmitEventRequestPage } from './features/events/pages/SubmitEventRequestPage'
+import { HomePage } from './pages/HomePage'
+import { LandingPage } from './pages/LandingPage'
+import { NotFoundPage } from './pages/NotFoundPage'
+
+/**
+ * Routes are declared here rather than scattered across features, so the sitemap is one
+ * file. Each feature contributes pages; the route table stays readable as the other 28
+ * stories add to it.
+ */
+export default function App() {
+  return (
+    <SessionProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route element={<AppLayout />}>
+            <Route path="/" element={<HomePage />} />
+            {/* The landing page at a fixed URL, so it can be reviewed without signing out. */}
+            <Route path="/welcome" element={<LandingPage />} />
+            <Route path="/events/new" element={<SubmitEventRequestPage />} />
+            {/* One route for both roles: RLS decides whether it lists everyone's requests
+                or only your own, so there is no privileged route to protect. */}
+            <Route path="/requests" element={<ReviewRequestsPage />} />
+            <Route path="/requests/:id" element={<ReviewRequestDetailPage />} />
+            <Route path="*" element={<NotFoundPage />} />
+          </Route>
+        </Routes>
+      </BrowserRouter>
+    </SessionProvider>
+  )
+}

@@ -1,0 +1,77 @@
+import type { UserRole } from '../auth/types'
+import type { EventStatus } from './types'
+
+/**
+ * PURE MODULE — no React, no Supabase, no I/O.
+ *
+ * Mirrors is_valid_status_transition and enforce_event_status_transition in
+ * 0004_review.sql. The database is the control; this exists so the UI can offer only the
+ * buttons that will actually work, instead of showing an action and reporting a failure
+ * after the round trip. Same defence-in-depth split as validation.ts.
+ *
+ * If you change one, change the other — statusRules.test.ts states the pairing.
+ */
+export const STATUS_TRANSITIONS: Record<EventStatus, readonly EventStatus[]> = {
+  draft: ['submitted', 'cancelled'],
+  submitted: ['under_review', 'cancelled'],
+  // Back to submitted is a coordinator asking for more detail — a normal review outcome.
+  under_review: ['approved', 'rejected', 'submitted', 'cancelled'],
+  approved: ['planning', 'cancelled'],
+  planning: ['confirmed', 'cancelled'],
+  confirmed: ['completed', 'cancelled'],
+  // Terminal. Coming back from one of these is a new request, which keeps the trail honest.
+  completed: [],
+  cancelled: [],
+  rejected: [],
+}
+
+export function canTransition(from: EventStatus, to: EventStatus): boolean {
+  return STATUS_TRANSITIONS[from].includes(to)
+}
+
+interface ActorContext {
+  role: UserRole
+  isOwner: boolean
+}
+
+/** Role AND relationship: being a coordinator does not let you submit someone's draft. */
+export function canActorTransition(
+  actor: ActorContext,
+  from: EventStatus,
+  to: EventStatus,
+): boolean {
+  if (!canTransition(from, to)) return false
+
+  if (actor.role === 'coordinator') {
+    // Reviewing is theirs; filing a request on an organiser's behalf is not.
+    return !(from === 'draft' && to === 'submitted')
+  }
+
+  if (actor.isOwner) {
+    // An organiser submits and may withdraw. Approval is not theirs to grant — that is
+    // the entire reason a review step exists.
+    return to === 'submitted' || to === 'cancelled'
+  }
+
+  return false
+}
+
+export interface ReviewAction {
+  to: EventStatus
+  label: string
+  tone: 'primary' | 'danger' | 'neutral'
+}
+
+/** The actions a coordinator should see for a request in this status, in priority order. */
+const REVIEW_ACTIONS: readonly ReviewAction[] = [
+  { to: 'under_review', label: 'Start review', tone: 'primary' },
+  { to: 'approved', label: 'Approve', tone: 'primary' },
+  { to: 'submitted', label: 'Return for more detail', tone: 'neutral' },
+  { to: 'rejected', label: 'Reject', tone: 'danger' },
+]
+
+export function reviewActionsFor(status: EventStatus): ReviewAction[] {
+  return REVIEW_ACTIONS.filter((action) =>
+    canActorTransition({ role: 'coordinator', isOwner: false }, status, action.to),
+  )
+}

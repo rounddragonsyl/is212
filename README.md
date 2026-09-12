@@ -1,1 +1,163 @@
-# is212
+# ConnectSphere — Event Planning and Venue Booking
+
+SMU IS212 team project. React + TypeScript front end on Supabase (PostgreSQL, Auth, Row
+Level Security).
+
+Implemented so far: **US-005 — submit an event request**.
+
+## Prerequisites
+
+- Node.js 22+
+- A Supabase project (free tier is enough)
+- Optional: the [Supabase CLI](https://supabase.com/docs/guides/cli) for applying
+  migrations from the command line
+
+## Setup
+
+```bash
+npm install
+cp .env.example .env    # Windows: copy .env.example .env
+```
+
+Fill in `.env` from **Supabase dashboard → Project Settings → API**:
+
+| Variable | Where to find it |
+| --- | --- |
+| `VITE_SUPABASE_URL` | Project URL |
+| `VITE_SUPABASE_ANON_KEY` | Project API keys → `anon` `public` |
+
+`.env` is gitignored. Never put the `service_role` key in it — anything prefixed `VITE_`
+is compiled into the browser bundle.
+
+## Applying the migration
+
+**Option A — dashboard (no CLI).** Open SQL Editor in your Supabase project, paste the
+contents of [`supabase/migrations/0001_events.sql`](supabase/migrations/0001_events.sql)
+and run it. The script is idempotent, so re-running it is safe.
+
+**Option B — Supabase CLI.**
+
+```bash
+supabase link --project-ref <your-project-ref>
+supabase db push
+```
+
+Apply migrations **in order** — `0001`, `0002`, then `0003`.
+
+## Roles
+
+Roles live in `public.profiles.role`, never in `auth.users` — Supabase owns that table and
+it cannot take extra columns. Valid values are constrained by `profiles_role_valid`:
+`organiser`, `coordinator`, `venue_staff`, `tech_support`, `attendee`.
+
+**Roles are assigned, not chosen.** `prevent_role_self_assignment` blocks a signed-in user
+from updating their own role, and `profiles_insert_own` only permits self-created profiles
+with the `organiser` role. An administrator assigns roles from the SQL editor, where
+statements run without a JWT:
+
+```sql
+update public.profiles set role = 'coordinator'
+where id = (select id from auth.users where email = 'someone@example.com');
+```
+
+Policies read the caller's role through `public.current_user_role()`. That function is
+`SECURITY DEFINER` for a reason worth knowing: a policy on `profiles` that queries
+`profiles` re-enters itself and Postgres fails with *infinite recursion detected in policy*.
+Running as the owner with RLS bypassed breaks the cycle.
+
+During development, the **Dev · act as** switcher changes your own role so one test account
+can exercise stories written for all five. It calls `dev_set_my_role()`, which deliberately
+reopens the escalation the trigger prevents. Before release:
+
+```sql
+drop function if exists public.dev_set_my_role(text);
+```
+
+and delete `DevAuthPanel` and `DevRoleSwitcher`.
+
+### Seed a test organiser
+
+US-005 needs a signed-in organiser; the real login screen is US-002. Until then the app
+shows a **development sign-in panel**, visible only under `npm run dev` and never in a
+production build.
+
+1. Supabase dashboard → **Authentication → Users → Add user**.
+2. Enter an email and password, and tick **Auto Confirm User** — without it Supabase
+   waits for an email confirmation that never arrives on a local project.
+3. Run `npm run dev`, enter those credentials in the development sign-in panel.
+
+The panel creates the matching `profiles` row for you on first sign-in, because
+`events.organiser_id` references it.
+
+> **Note for the oral exam:** that self-service profile creation is scaffolding, not a
+> design we would ship — letting a user assert their own role is a privilege escalation.
+> In production a profile is created by an administrator or by a database trigger on
+> `auth.users`, with the role assigned server-side. US-002 replaces it. See the comment on
+> `ensureOrganiserProfile` in [`authService.ts`](src/features/auth/authService.ts).
+
+## Running
+
+```bash
+npm run dev        # Vite dev server
+npm run test       # Vitest, once
+npm run test:watch # Vitest, watch mode
+npm run coverage   # coverage report for src/features
+npm run typecheck  # tsc --noEmit
+npm run lint       # ESLint
+npm run build      # typecheck + production build
+```
+
+## Project structure
+
+```
+src/
+├── lib/supabase.ts              single Supabase client
+├── components/ui/               shared presentational components
+├── components/layout/           app shell, navigation, footer
+└── features/
+    ├── auth/                    session plumbing (US-002 owns the real story)
+    └── events/                  one folder per backlog component
+        ├── types.ts
+        ├── validation.ts        PURE functions — no React, no Supabase, no I/O
+        ├── eventService.ts      the only file that calls Supabase about events
+        ├── components/
+        └── __tests__/
+supabase/migrations/             database schema, RLS, triggers
+```
+
+Future features (`venues`, `bookings`, `equipment`, `registration`, `notifications`)
+become sibling folders under `src/features/`. The folder name is simultaneously a backlog
+component, a C4 component and a directory, so tracing a requirement to its implementation
+is one step.
+
+See [CLAUDE.md](CLAUDE.md) for the architecture rules the whole team follows.
+
+## Acceptance criteria → tests (US-005)
+
+| AC | Covered by |
+| --- | --- |
+| AC-005.1 — capture preliminary information | `validation.test.ts` (`AC-005.1: …`), `EventRequestForm.test.tsx` |
+| AC-005.2 — cannot submit with missing/invalid required fields | `validation.test.ts` (`AC-005.2: …`), `EventRequestForm.test.tsx` |
+| AC-005.3 — informed on success | `EventRequestForm.test.tsx`, `eventService.test.ts` |
+| AC-005.4 — informed on failure, with a reason | `eventService.test.ts` (`AC-005.4: …`), `EventRequestForm.test.tsx` |
+| AC-005.5 — unique reference, status Submitted | `eventService.test.ts` (`AC-005.5: …`), `0001_events.sql` trigger |
+
+Every test name begins with the acceptance criterion it covers, so
+`npm run test -- --reporter=verbose` prints the traceability matrix.
+
+## Design decisions worth knowing
+
+- **Validation lives in two places on purpose.** `validation.ts` exists for the error
+  message; the database CHECK constraints exist for integrity when something bypasses the
+  UI. Defence in depth, not accidental duplication.
+- **Business rules run in the client and in Postgres, with no middle tier.** That is the
+  Supabase model. The trade-off — no server-side application layer to hold logic that
+  cannot be expressed in SQL — is recorded in the C4 documentation rather than left to
+  look accidental. If a rule ever needs a server, it becomes one Edge Function.
+- **Required fields are not `NOT NULL` columns.** US-004 lets organisers save incomplete
+  drafts, so the requirement is enforced by a CHECK keyed on `status` instead.
+- **References come from a database trigger**, not the client, so two simultaneous
+  submissions cannot mint the same number. The sequence is global, so reference numbers do
+  not restart each January.
+- **Statuses are stored lowercase** (`submitted`) and rendered from `EVENT_STATUS_LABELS`
+  (`Submitted`).

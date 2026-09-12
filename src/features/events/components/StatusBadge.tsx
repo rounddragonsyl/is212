@@ -1,0 +1,26 @@
+import { EVENT_STATUS_LABELS } from '../types'
+import type { EventStatus } from '../types'
+
+// Colour carries meaning here, so the label is always present too — a badge that is only
+// "red" is unreadable to a screen reader and to anyone who cannot distinguish the hues.
+const TONES: Record<EventStatus, string> = {
+  draft: 'bg-slate-100 text-slate-600',
+  submitted: 'bg-blue-50 text-blue-700',
+  under_review: 'bg-amber-50 text-amber-800',
+  approved: 'bg-emerald-50 text-emerald-700',
+  planning: 'bg-indigo-50 text-indigo-700',
+  confirmed: 'bg-indigo-100 text-indigo-800',
+  completed: 'bg-slate-100 text-slate-700',
+  cancelled: 'bg-slate-100 text-slate-500',
+  rejected: 'bg-red-50 text-red-700',
+}
+
+export function StatusBadge({ status }: { status: EventStatus }) {
+  return (
+    <span
+      className={`inline-flex shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ${TONES[status]}`}
+    >
+      {EVENT_STATUS_LABELS[status]}
+    </span>
+  )
+}

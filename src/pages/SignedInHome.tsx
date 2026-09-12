@@ -1,0 +1,127 @@
+import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { USER_ROLE_LABELS } from '../features/auth/types'
+import type { UserProfile } from '../features/auth/types'
+import { listEventRequests } from '../features/events/eventReviewService'
+import { StatusBadge } from '../features/events/components/StatusBadge'
+import { formatDateTime, orDash } from '../features/events/formatters'
+import type { EventRequestSummary } from '../features/events/types'
+
+const primaryButton =
+  'inline-flex items-center justify-center rounded-lg bg-indigo-600 px-5 py-2.5 text-sm ' +
+  'font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus-visible:outline ' +
+  'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600'
+
+/**
+ * A landing page that answers "what should I do now?" for the person looking at it, rather
+ * than describing the product to someone who has already signed in.
+ */
+export function SignedInHome({ profile }: { profile: UserProfile }) {
+  const [requests, setRequests] = useState<EventRequestSummary[] | null>(null)
+
+  useEffect(() => {
+    let active = true
+    listEventRequests().then((result) => {
+      if (active) setRequests(result.ok ? result.requests : [])
+    })
+    return () => {
+      active = false
+    }
+  }, [])
+
+  const isCoordinator = profile.role === 'coordinator'
+  const isOrganiser = profile.role === 'organiser'
+  const awaiting = requests?.filter((request) => request.status === 'submitted') ?? []
+  const recent = requests?.slice(0, 3) ?? []
+
+  return (
+    <div className="space-y-12">
+      <section>
+        <h1 className="text-3xl font-bold tracking-tight text-slate-900">
+          Welcome back, {profile.fullName}
+        </h1>
+        <p className="mt-2 text-sm text-slate-600">
+          Signed in as {USER_ROLE_LABELS[profile.role]}.
+        </p>
+
+        <div className="mt-6 flex flex-wrap items-center gap-4">
+          {isOrganiser && (
+            <Link to="/events/new" className={primaryButton}>
+              Start a new request
+            </Link>
+          )}
+          {isCoordinator && (
+            <Link to="/requests" className={primaryButton}>
+              {awaiting.length > 0
+                ? `Review ${awaiting.length} new ${awaiting.length === 1 ? 'request' : 'requests'}`
+                : 'View all requests'}
+            </Link>
+          )}
+          {(isOrganiser || isCoordinator) && (
+            <Link
+              to="/requests"
+              className="text-sm font-medium text-indigo-700 underline-offset-4 hover:underline"
+            >
+              {isCoordinator ? 'See everything' : 'See my requests'}
+            </Link>
+          )}
+        </div>
+
+        {!isOrganiser && !isCoordinator && (
+          <p className="mt-6 max-w-xl text-sm leading-relaxed text-slate-600">
+            There is nothing for you to action here right now. Your coordinator will be in
+            touch when an event needs you.
+          </p>
+        )}
+      </section>
+
+      {(isOrganiser || isCoordinator) && (
+        <section aria-labelledby="recent-heading" className="border-t border-slate-200 pt-10">
+          <div className="flex items-baseline justify-between gap-4">
+            <h2 id="recent-heading" className="text-lg font-semibold text-slate-900">
+              {isCoordinator ? 'Latest requests' : 'Your recent requests'}
+            </h2>
+            <Link
+              to="/requests"
+              className="text-sm font-medium text-indigo-700 underline-offset-4 hover:underline"
+            >
+              View all
+            </Link>
+          </div>
+
+          {requests === null ? (
+            <p className="mt-6 text-sm text-slate-500">Loading…</p>
+          ) : recent.length === 0 ? (
+            <p className="mt-6 max-w-xl text-sm leading-relaxed text-slate-600">
+              {isCoordinator
+                ? 'No requests have come in yet. They will appear here as soon as an organiser submits one.'
+                : 'You have not submitted a request yet. Starting one takes about two minutes.'}
+            </p>
+          ) : (
+            <ul className="mt-6 divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white">
+              {recent.map((request) => (
+                <li key={request.id}>
+                  <Link
+                    to={`/requests/${request.id}`}
+                    className="flex flex-wrap items-center justify-between gap-3 px-5 py-4
+                      transition hover:bg-slate-50 focus:outline-none focus-visible:bg-slate-50"
+                  >
+                    <span className="min-w-0">
+                      <span className="block truncate text-sm font-medium text-slate-900">
+                        {orDash(request.name ?? request.purpose)}
+                      </span>
+                      <span className="mt-0.5 block text-xs text-slate-500">
+                        {orDash(request.reference)} · {formatDateTime(request.proposedStart)}
+                      </span>
+                    </span>
+                    <StatusBadge status={request.status} />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
+    </div>
+  )
+}
