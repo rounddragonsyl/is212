@@ -50,7 +50,8 @@ export function LandingHero() {
 
           <div className="mt-10 flex flex-wrap items-center gap-4">
             <Link
-              to="/events/new"
+              to="/signin"
+              state={{ from: '/events/new' }}
               className="inline-flex items-center justify-center rounded-lg bg-white px-6 py-3
                 text-sm font-semibold text-slate-900 shadow-lg shadow-indigo-950/40 transition
                 hover:bg-slate-100 focus-visible:outline focus-visible:outline-2

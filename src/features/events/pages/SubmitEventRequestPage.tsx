@@ -1,7 +1,6 @@
 import { Link } from 'react-router-dom'
 import { Card } from '../../../components/ui/Card'
 import { PageContainer } from '../../../components/layout/PageContainer'
-import { DevAuthPanel } from '../../auth/components/DevAuthPanel'
 import { useCurrentUser } from '../../auth/sessionContext'
 import { USER_ROLE_LABELS } from '../../auth/types'
 import type { UserProfile } from '../../auth/types'
@@ -66,13 +65,21 @@ export function SubmitEventRequestPage() {
 }
 
 function SignedOutNotice() {
-  if (import.meta.env.DEV) return <DevAuthPanel />
-
   return (
     <Card title="Sign in to continue">
       <p className="text-sm text-slate-600">
         You need to be signed in as an event organiser to submit a request.
       </p>
+      {/* `from` so signing in returns them here, rather than dropping them on the home
+          page to find their way back. */}
+      <Link
+        to="/signin"
+        state={{ from: '/events/new' }}
+        className="mt-5 inline-flex items-center justify-center rounded-lg bg-indigo-600 px-5
+          py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700"
+      >
+        Sign in
+      </Link>
     </Card>
   )
 }

@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { signOut } from '../authService'
 import { USER_ROLE_LABELS } from '../types'
 import type { AppSession, UserProfile } from '../types'
@@ -14,12 +15,18 @@ export function SessionBadge({ session, profile, loading }: SessionBadgeProps) {
     return <span className="text-xs text-slate-400">Checking session…</span>
   }
 
+  // "Not signed in" states a fact but offers no way out of it. A signed-out header should
+  // be a door, not a status label.
   if (!session) {
     return (
-      <span className="flex items-center gap-2 text-xs text-slate-500">
-        <span aria-hidden="true" className="h-2 w-2 rounded-full bg-amber-400" />
-        Not signed in
-      </span>
+      <Link
+        to="/signin"
+        className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white
+          transition hover:bg-slate-700 focus-visible:outline focus-visible:outline-2
+          focus-visible:outline-offset-2 focus-visible:outline-slate-900"
+      >
+        Sign in
+      </Link>
     )
   }
 
