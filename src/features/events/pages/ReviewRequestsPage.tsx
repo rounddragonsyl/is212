@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useCallback } from 'react'
 import { Card } from '../../../components/ui/Card'
 import { PageContainer } from '../../../components/layout/PageContainer'
 import { useCurrentUser } from '../../auth/sessionContext'
 import { RequestListItem } from '../components/RequestListItem'
 import { listEventRequests } from '../eventReviewService'
-import type { EventRequestSummary } from '../types'
+import { useRequestResource } from '../status/useRequestResource'
 
 /**
  * A coordinator's queue of incoming requests.
@@ -15,24 +15,15 @@ import type { EventRequestSummary } from '../types'
  */
 export function ReviewRequestsPage() {
   const { profile, loading: userLoading } = useCurrentUser()
-  const [requests, setRequests] = useState<EventRequestSummary[]>([])
-  const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    let active = true
-
-    listEventRequests().then((result) => {
-      if (!active) return
-      if (result.ok) setRequests(result.requests)
-      else setError(result.reason)
-      setLoading(false)
-    })
-
-    return () => {
-      active = false
-    }
-  }, [])
+  const read = useCallback(async () => {
+    if (userLoading) return { ok: true as const, value: [] }
+    const result = await listEventRequests(profile?.role === 'organiser')
+    return result.ok ? { ok: true as const, value: result.requests } : result
+  }, [profile?.role, userLoading])
+  const { value, error, loading, refresh } = useRequestResource(
+    `${profile?.id}:${profile?.role}:${userLoading}`, read,
+  )
+  const requests = value ?? []
 
   const isCoordinator = profile?.role === 'coordinator'
 
@@ -48,9 +39,11 @@ export function ReviewRequestsPage() {
         <p className="mt-3 text-sm leading-relaxed text-slate-600">
           {isCoordinator
             ? 'Every submitted request, newest first. Open one to see the full details and decide.'
-            : 'The event requests you have submitted.'}
+            : 'Your event requests, including drafts. Status updates automatically every 30 seconds.'}
         </p>
       </div>
+
+      <button type="button" onClick={refresh} className="mb-4 text-sm font-medium text-indigo-700 hover:underline">Refresh requests</button>
 
       {userLoading || loading ? (
         <p className="text-sm text-slate-500">Loading requests…</p>
@@ -66,7 +59,7 @@ export function ReviewRequestsPage() {
           <p className="text-sm text-slate-600">
             {isCoordinator
               ? 'No requests have been submitted yet. They appear here the moment an organiser submits one.'
-              : 'You have not submitted any event requests yet.'}
+              : 'You have not created any event requests yet.'}
           </p>
         </Card>
       ) : (

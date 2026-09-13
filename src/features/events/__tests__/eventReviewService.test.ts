@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 import {
   REVIEW_MESSAGES,
+  getEventRequest,
   listEventRequests,
   transitionEventStatus,
 } from '../eventReviewService'
@@ -206,5 +207,27 @@ describe('reviewing a request', () => {
     expect(result.ok).toBe(false)
     if (result.ok) return
     expect(result.reason).toBe(REVIEW_MESSAGES.illegalTransition)
+  })
+})
+
+
+describe('SCRUM-24 organiser reads', () => {
+  test('AC-24.1: includes drafts when listing organiser requests', async () => {
+    const order = vi.fn().mockResolvedValue({ data: [], error: null })
+    const neq = vi.fn()
+    mocks.from.mockReturnValue({ select: vi.fn().mockReturnValue({ order, neq }) })
+    expect(await listEventRequests(true)).toEqual({ ok: true, requests: [] })
+    expect(neq).not.toHaveBeenCalled()
+  })
+
+  test('AC-24.6: forbidden and missing requests share the same response', async () => {
+    const maybeSingle = vi.fn().mockResolvedValue({ data: null, error: null })
+    const eq = vi.fn().mockReturnValue({ maybeSingle })
+    const select = vi.fn().mockReturnValue({ eq })
+    mocks.from.mockReturnValue({ select })
+    expect(await getEventRequest(EVENT_ID)).toEqual({ ok: false, reason: REVIEW_MESSAGES.notFound })
+    expect(eq).toHaveBeenCalledWith('id', EVENT_ID)
+    expect(select.mock.calls[0][0]).not.toContain('reviewed_by')
+    expect(select.mock.calls[0][0]).not.toContain('*')
   })
 })

@@ -1,43 +1,26 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Card } from '../../../components/ui/Card'
 import { PageContainer } from '../../../components/layout/PageContainer'
 import { useCurrentUser } from '../../auth/sessionContext'
 import { RequestDetails } from '../components/RequestDetails'
 import { ReviewActions } from '../components/ReviewActions'
-import { StatusBadge } from '../components/StatusBadge'
+import { RequestStatusPanel } from '../status/RequestStatusPanel'
+import { useRequestResource } from '../status/useRequestResource'
 import { getEventRequest } from '../eventReviewService'
 import { orDash } from '../formatters'
-import type { EventRequestDetail, EventStatus } from '../types'
 
 export function ReviewRequestDetailPage() {
   const { id = '' } = useParams()
-  const { profile } = useCurrentUser()
-  const [request, setRequest] = useState<EventRequestDetail | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(true)
-
-  const load = useCallback(async () => {
-    setLoading(true)
+  const { profile, loading: userLoading } = useCurrentUser()
+  const read = useCallback(async () => {
+    if (userLoading) return { ok: true as const, value: null }
     const result = await getEventRequest(id)
-    if (result.ok) {
-      setRequest(result.request)
-      setError(null)
-    } else {
-      setError(result.reason)
-    }
-    setLoading(false)
-  }, [id])
-
-  useEffect(() => {
-    void load()
-  }, [load])
-
-  // Applied locally so the page reflects the decision immediately, rather than making the
-  // coordinator wait on a refetch to see that their click worked.
-  const handleReviewed = (status: EventStatus) => {
-    setRequest((current) => (current ? { ...current, status } : current))
-  }
+    return result.ok ? { ok: true as const, value: result.request } : result
+  }, [id, userLoading])
+  const { value: request, error, loading, refresh } = useRequestResource(
+    `${id}:${profile?.id}:${profile?.role}:${userLoading}`, read,
+  )
 
   return (
     <PageContainer>
@@ -52,7 +35,8 @@ export function ReviewRequestDetailPage() {
         <span className="text-slate-700">{request ? orDash(request.reference) : 'Request'}</span>
       </nav>
 
-      {loading ? (
+      <button type="button" onClick={refresh} className="mb-4 text-sm font-medium text-indigo-700 hover:underline">Refresh status</button>
+      {loading || userLoading ? (
         <p className="text-sm text-slate-500">Loading request…</p>
       ) : error || !request ? (
         <Card title="Request unavailable">
@@ -73,8 +57,11 @@ export function ReviewRequestDetailPage() {
                 {orDash(request.name ?? request.purpose)}
               </h1>
             </div>
-            <StatusBadge status={request.status} />
+
           </header>
+
+          <RequestStatusPanel request={request} />
+          <p className="text-xs text-slate-500">Status updates automatically every 30 seconds.</p>
 
           <Card title="Request details">
             <RequestDetails request={request} />
@@ -88,7 +75,7 @@ export function ReviewRequestDetailPage() {
               <ReviewActions
                 eventId={request.id}
                 status={request.status}
-                onReviewed={handleReviewed}
+                onReviewed={refresh}
               />
             </Card>
           )}

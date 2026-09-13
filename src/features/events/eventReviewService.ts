@@ -77,12 +77,11 @@ export type ListResult =
   | { ok: true; requests: EventRequestSummary[] }
   | { ok: false; reason: string }
 
-/** Drafts are excluded: an unsubmitted draft is the organiser's private working copy. */
-export async function listEventRequests(): Promise<ListResult> {
-  const { data, error } = await supabase
-    .from('events')
-    .select(SUMMARY_COLUMNS)
-    .neq('status', 'draft')
+/** Organisers may include their drafts; coordinator queues keep the default filter. */
+export async function listEventRequests(includeDrafts = false): Promise<ListResult> {
+  let query = supabase.from('events').select(SUMMARY_COLUMNS)
+  if (!includeDrafts) query = query.neq('status', 'draft')
+  const { data, error } = await query
     .order('submitted_at', { ascending: false, nullsFirst: false })
 
   if (error) return { ok: false, reason: reportUnexpected('listEventRequests', error) }

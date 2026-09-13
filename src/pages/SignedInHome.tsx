@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { USER_ROLE_LABELS } from '../features/auth/types'
 import type { UserProfile } from '../features/auth/types'
 import { listEventRequests } from '../features/events/eventReviewService'
 import { StatusBadge } from '../features/events/components/StatusBadge'
 import { formatDateTime, orDash } from '../features/events/formatters'
-import type { EventRequestSummary } from '../features/events/types'
+import { useRequestResource } from '../features/events/status/useRequestResource'
 
 const primaryButton =
   'inline-flex items-center justify-center rounded-lg bg-indigo-600 px-5 py-2.5 text-sm ' +
@@ -17,17 +17,13 @@ const primaryButton =
  * than describing the product to someone who has already signed in.
  */
 export function SignedInHome({ profile }: { profile: UserProfile }) {
-  const [requests, setRequests] = useState<EventRequestSummary[] | null>(null)
-
-  useEffect(() => {
-    let active = true
-    listEventRequests().then((result) => {
-      if (active) setRequests(result.ok ? result.requests : [])
-    })
-    return () => {
-      active = false
-    }
-  }, [])
+  const read = useCallback(async () => {
+    const result = await listEventRequests(profile.role === 'organiser')
+    return result.ok ? { ok: true as const, value: result.requests } : result
+  }, [profile.role])
+  const { value: requests, error, refresh } = useRequestResource(
+    `${profile.id}:${profile.role}`, read,
+  )
 
   const isCoordinator = profile.role === 'coordinator'
   const isOrganiser = profile.role === 'organiser'
@@ -89,7 +85,11 @@ export function SignedInHome({ profile }: { profile: UserProfile }) {
             </Link>
           </div>
 
-          {requests === null ? (
+          {error ? (
+            <div role="alert" className="mt-6 text-sm text-red-700">
+              {error} <button type="button" onClick={refresh} className="underline">Try again</button>
+            </div>
+          ) : requests === null ? (
             <p className="mt-6 text-sm text-slate-500">Loading…</p>
           ) : recent.length === 0 ? (
             <p className="mt-6 max-w-xl text-sm leading-relaxed text-slate-600">
