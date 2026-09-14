@@ -42,7 +42,7 @@ supabase link --project-ref <your-project-ref>
 supabase db push
 ```
 
-Apply migrations **in order** — `0001`, `0002`, then `0003`.
+Apply migrations **in order**, `0001` through `0005`.
 
 ## Roles
 
@@ -51,8 +51,9 @@ it cannot take extra columns. Valid values are constrained by `profiles_role_val
 `organiser`, `coordinator`, `venue_staff`, `tech_support`, `attendee`.
 
 **Roles are assigned, not chosen.** `prevent_role_self_assignment` blocks a signed-in user
-from updating their own role, and `profiles_insert_own` only permits self-created profiles
-with the `organiser` role. An administrator assigns roles from the SQL editor, where
+from updating their own role, and no client may insert a profile at all: the
+`handle_new_user` trigger (`0005`) creates it in the same transaction as the account, with
+the role decided server-side. An administrator assigns roles from the SQL editor, where
 statements run without a JWT:
 
 ```sql
@@ -86,14 +87,14 @@ production build.
    waits for an email confirmation that never arrives on a local project.
 3. Run `npm run dev`, enter those credentials in the development sign-in panel.
 
-The panel creates the matching `profiles` row for you on first sign-in, because
-`events.organiser_id` references it.
+Adding the user creates their `organiser` profile automatically, through the
+`on_auth_user_created` trigger in `0005`.
 
-> **Note for the oral exam:** that self-service profile creation is scaffolding, not a
-> design we would ship — letting a user assert their own role is a privilege escalation.
-> In production a profile is created by an administrator or by a database trigger on
-> `auth.users`, with the role assigned server-side. US-002 replaces it. See the comment on
-> `ensureOrganiserProfile` in [`authService.ts`](src/features/auth/authService.ts).
+> **Note for the oral exam:** the profile used to be created by the browser after first
+> sign-in. That raced the session lookup — a new user saw *No organiser profile* until they
+> reloaded — and let the client take part in choosing its own role. Creating it in a trigger
+> on `auth.users` fixes both: the row exists before any session can, and the client never
+> inserts into `profiles`. See [`0005_profile_on_signup.sql`](supabase/migrations/0005_profile_on_signup.sql).
 
 ## Running
 

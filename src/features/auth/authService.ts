@@ -12,7 +12,6 @@ import type { AppSession, AuthResult, UserProfile, UserRole } from './types'
 
 export const AUTH_MESSAGES = {
   signInFailed: 'That email and password combination was not recognised.',
-  profileFailed: 'Signed in, but your organiser profile could not be created.',
   unknownRole: 'Your profile has a role this version of the app does not recognise.',
 } as const
 
@@ -45,36 +44,6 @@ export async function signUp(email: string, password: string): Promise<AuthResul
 
 export async function signOut(): Promise<void> {
   await supabase.auth.signOut()
-}
-
-/**
- * events.organiser_id references profiles, so a signed-in user with no profile row gets a
- * foreign-key error on their first submission. This creates the missing row.
- *
- * DEVELOPMENT SCAFFOLDING. Letting a user assert their own role is a privilege escalation
- * we would never ship: in production a profile should be created by an administrator, or
- * by a database trigger on auth.users with the role assigned server-side. US-002 must
- * replace this. The RLS policy still constrains it to the caller's own id.
- */
-export async function ensureOrganiserProfile(session: AppSession): Promise<AuthResult> {
-  const { data, error: selectError } = await supabase
-    .from('profiles')
-    .select('id')
-    .eq('id', session.userId)
-    .maybeSingle()
-
-  if (selectError) return { ok: false, reason: selectError.message }
-  if (data) return { ok: true }
-
-  const { error: insertError } = await supabase.from('profiles').insert({
-    id: session.userId,
-    full_name: session.email?.split('@')[0] ?? 'Organiser',
-    role: 'organiser',
-  })
-
-  return insertError
-    ? { ok: false, reason: insertError.message || AUTH_MESSAGES.profileFailed }
-    : { ok: true }
 }
 
 /**

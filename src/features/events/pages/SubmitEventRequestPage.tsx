@@ -45,9 +45,8 @@ export function SubmitEventRequestPage() {
       ) : !profile ? (
         <Card title="No organiser profile">
           <p className="text-sm text-slate-600">
-            You are signed in, but no profile row exists for your account, so there is nothing
-            to file a request against. Sign out and back in, or ask a coordinator to create
-            your profile.
+            You are signed in, but your account has no usable profile, so there is nothing to
+            file a request against. Ask an administrator to check your profile and role.
           </p>
         </Card>
       ) : profile.role !== 'organiser' ? (
