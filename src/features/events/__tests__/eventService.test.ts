@@ -172,6 +172,19 @@ describe('AC-005.4 — failed submission reports a specific reason', () => {
     expect(result.reason).not.toContain('submitted_requires_core_fields')
   })
 
+  test('AC-005.4: a unique-reference collision is reported so the organiser can retry', async () => {
+    mockInsert({
+      data: null,
+      error: { code: '23505', message: 'duplicate key value violates unique constraint' },
+    })
+
+    const result = await submitEventRequest(validInput)
+
+    expect(result.ok).toBe(false)
+    if (result.ok) return
+    expect(result.reason).toBe(SERVICE_MESSAGES.duplicateReference)
+  })
+
   test('AC-005.4: a missing organiser profile is reported as a profile problem', async () => {
     mockInsert({ data: null, error: { code: '23503', message: 'foreign key violation' } })
 
@@ -207,5 +220,11 @@ describe('AC-005.4 — failed submission reports a specific reason', () => {
     expect(result.ok).toBe(false)
     if (result.ok) return
     expect(result.reason).toBe(SERVICE_MESSAGES.missingReference)
+  })
+
+  test('submitEventRequest never throws, even given a malformed payload', async () => {
+    await expect(
+      submitEventRequest({ purpose: null, proposedStart: null } as unknown as EventRequestInput),
+    ).resolves.toMatchObject({ ok: false })
   })
 })
