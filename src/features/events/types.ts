@@ -96,6 +96,16 @@ export type DraftValidationResult =
   | { ok: true; value: SaveableEventDraft }
   | { ok: false; issues: ValidationIssue[] }
 
+export interface SavedEventDraft {
+  id: string
+  status: 'draft'
+  updatedAt: string
+}
+
+export type SaveEventDraftResult =
+  | { ok: true; draft: SavedEventDraft }
+  | { ok: false; reason: string; issues: ValidationIssue[] }
+
 /** What the caller of the service gets back on a successful submission. */
 export interface SubmittedEvent {
   id: string

@@ -50,7 +50,7 @@ const draftSchema = z.object({
   // Old drafts can still be saved. Submission validation checks for future dates.
 })
 
-/** SCRUM-8: validate unfinished form data without submitting or contacting Supabase. */
+/** Save Draft Event Request: validate unfinished form data without submitting or contacting Supabase. */
 export function validateEventDraft(input: EventRequestInput): DraftValidationResult {
   const result = draftSchema.safeParse(input)
   if (result.success) {

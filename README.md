@@ -5,8 +5,9 @@ Level Security).
 
 Implemented so far: **US-005 — submit an event request**.
 
-In progress: **SCRUM-8 — save draft event request**. Draft validation and its unit
-tests are implemented; saving, listing, reopening and submitting drafts are not yet wired up.
+In progress: **Save Draft Event Request**. Draft validation and the save/update
+service are implemented with unit tests. The UI, listing, reopening and explicit draft
+submission are not yet wired up; live database tests remain pending.
 
 ## Prerequisites
 
@@ -124,7 +125,8 @@ src/
         ├── types.ts
         ├── validation.ts        PURE functions — no React, no Supabase, no I/O
         ├── draftValidation.ts   incomplete draft validation, separate from submission
-        ├── eventService.ts      the only file that calls Supabase about events
+        ├── eventService.ts      submits new event requests to Supabase
+        ├── eventDraftService.ts saves new drafts and updates existing owned drafts
         ├── components/
         └── __tests__/
 supabase/migrations/             database schema, RLS, triggers
@@ -150,31 +152,40 @@ See [CLAUDE.md](CLAUDE.md) for the architecture rules the whole team follows.
 Every test name begins with the acceptance criterion it covers, so
 `npm run test -- --reporter=verbose` prints the traceability matrix.
 
-## Acceptance criteria → tests (SCRUM-8, in progress)
+## Acceptance criteria → tests (Save Draft Event Request, in progress)
 
-The AC numbers below refer to the ordered criteria in the SCRUM-8 Jira story.
+The AC numbers below refer to the ordered criteria in the Save Draft Event Request Jira story.
 Automated tests live in
-[`draftValidation.test.ts`](src/features/events/__tests__/draftValidation.test.ts).
-These are unit tests of validation only; they do not connect to Supabase or prove the
-complete user flow works.
+[`draftValidation.test.ts`](src/features/events/__tests__/draftValidation.test.ts) and
+[`eventDraftService.test.ts`](src/features/events/__tests__/eventDraftService.test.ts).
+These unit tests check validation and service behaviour with mocked Supabase responses.
+They do not connect to Supabase or prove the complete user flow or RLS enforcement works.
 
 | AC / supporting rule | Current evidence | Remaining checks |
 | --- | --- | --- |
 | AC 2 — allow incomplete required fields | Unit tests accept empty drafts, blank fields and a single supplied date | Save incomplete data to Supabase and reopen it |
 | Supplied values respect database constraints | Unit tests reject invalid dates, unordered date ranges, and invalid attendance; include boundary values | Verify constraints against live Supabase |
 | AC 6 — explicit submission | Unit regression check keeps draft and submission validation separate | Verify that only the Submit action changes status |
-| AC 1, 3, 4, 5 — save, identify, reopen/edit, and avoid submission during saving/editing | Not yet covered by the draft implementation | Service, UI and live database tests |
+| AC 1, 4, 5 — save/edit without submission | Service tests check draft inserts, guarded updates, field mapping and failure handling | UI, reopening and live database tests |
+| AC 3 — identifiable Draft | Service returns Draft status | Verify Draft indicator in the UI |
 
 Run the draft checks with:
 
 ```bash
-npm run test -- src/features/events/__tests__/draftValidation.test.ts
+npm run test -- src/features/events/__tests__/draftValidation.test.ts src/features/events/__tests__/eventDraftService.test.ts
 ```
 
 Drafts use the existing `events` table. Empty text, dates and attendance become `null`.
 Supplied attendance must be a positive PostgreSQL integer, and an end date must follow
 the start when both are supplied. Past dates may remain in drafts; submission still
 requires a future start. These validation rules do not save data or change status.
+
+`saveEventDraft(input, draftId?)` accepts the complete form snapshot. Omit the ID for
+a new draft; reuse the returned `draft.id` for later saves. Updates filter by ID,
+signed-in owner and current Draft status, and never set workflow fields such as status
+or reference. Missing input fields clear their stored values, so this is not a partial
+patch API. A missing/stale draft returns a failure rather than inserting a replacement.
+Network failures are reported without automatically retrying a potentially successful save.
 
 Before completing the story, verify owner access and coordinator draft restrictions
 with authenticated users. The inspected live coordinator policies currently do not
