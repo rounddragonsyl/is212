@@ -81,6 +81,21 @@ export interface SubmittableEventRequest {
   specialArrangements: string | null
 }
 
+/** A validated draft keeps submission-only required fields nullable. */
+export type SaveableEventDraft = Omit<
+  SubmittableEventRequest,
+  'purpose' | 'proposedStart' | 'proposedEnd' | 'expectedAttendance'
+> & {
+  purpose: string | null
+  proposedStart: Date | null
+  proposedEnd: Date | null
+  expectedAttendance: number | null
+}
+
+export type DraftValidationResult =
+  | { ok: true; value: SaveableEventDraft }
+  | { ok: false; issues: ValidationIssue[] }
+
 /** What the caller of the service gets back on a successful submission. */
 export interface SubmittedEvent {
   id: string
