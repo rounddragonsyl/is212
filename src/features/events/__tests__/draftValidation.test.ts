@@ -2,7 +2,7 @@ import { describe, expect, test } from 'vitest'
 import { validateEventDraft } from '../draftValidation'
 import { validateEventRequest, VALIDATION_MESSAGES } from '../validation'
 
-describe('SCRUM-8 — incomplete drafts', () => {
+describe('Save Draft Event Request — incomplete drafts', () => {
   test('AC 2: accepts an empty draft and normalises missing fields', () => {
     expect(validateEventDraft({})).toEqual({ ok: true, value: {
       name: null, purpose: null, eventType: null, description: null,
