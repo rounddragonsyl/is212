@@ -5,6 +5,9 @@ Level Security).
 
 Implemented so far: **US-005 — submit an event request**.
 
+In progress: **SCRUM-8 — save draft event request**. Draft validation and its unit
+tests are implemented; saving, listing, reopening and submitting drafts are not yet wired up.
+
 ## Prerequisites
 
 - Node.js 22+
@@ -120,6 +123,7 @@ src/
     └── events/                  one folder per backlog component
         ├── types.ts
         ├── validation.ts        PURE functions — no React, no Supabase, no I/O
+        ├── draftValidation.ts   incomplete draft validation, separate from submission
         ├── eventService.ts      the only file that calls Supabase about events
         ├── components/
         └── __tests__/
@@ -145,6 +149,38 @@ See [CLAUDE.md](CLAUDE.md) for the architecture rules the whole team follows.
 
 Every test name begins with the acceptance criterion it covers, so
 `npm run test -- --reporter=verbose` prints the traceability matrix.
+
+## Acceptance criteria → tests (SCRUM-8, in progress)
+
+The AC numbers below refer to the ordered criteria in the SCRUM-8 Jira story.
+Automated tests live in
+[`draftValidation.test.ts`](src/features/events/__tests__/draftValidation.test.ts).
+These are unit tests of validation only; they do not connect to Supabase or prove the
+complete user flow works.
+
+| AC / supporting rule | Current evidence | Remaining checks |
+| --- | --- | --- |
+| AC 2 — allow incomplete required fields | Unit tests accept empty drafts, blank fields and a single supplied date | Save incomplete data to Supabase and reopen it |
+| Supplied values respect database constraints | Unit tests reject invalid dates, unordered date ranges, and invalid attendance; include boundary values | Verify constraints against live Supabase |
+| AC 6 — explicit submission | Unit regression check keeps draft and submission validation separate | Verify that only the Submit action changes status |
+| AC 1, 3, 4, 5 — save, identify, reopen/edit, and avoid submission during saving/editing | Not yet covered by the draft implementation | Service, UI and live database tests |
+
+Run the draft checks with:
+
+```bash
+npm run test -- src/features/events/__tests__/draftValidation.test.ts
+```
+
+Drafts use the existing `events` table. Empty text, dates and attendance become `null`.
+Supplied attendance must be a positive PostgreSQL integer, and an end date must follow
+the start when both are supplied. Past dates may remain in drafts; submission still
+requires a future start. These validation rules do not save data or change status.
+
+Before completing the story, verify owner access and coordinator draft restrictions
+with authenticated users. The inspected live coordinator policies currently do not
+exclude drafts; coordinate the policy change with the request-status work. Record live
+test results and review evidence in the team's Jira/test tracker, without treating unit
+test success as completion of the story.
 
 ## Design decisions worth knowing
 
