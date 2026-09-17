@@ -4,7 +4,8 @@ import type { FieldErrors, Resolver } from 'react-hook-form'
 import { submitEventRequest, SERVICE_MESSAGES } from './eventService'
 import { saveEventDraft, DRAFT_MESSAGES } from './eventDraftService'
 import { validateEventRequest } from './validation'
-import type { EventRequestFormValues, SubmitEventRequestResult, SaveEventDraftResult } from './types'
+import { draftFormValues } from './draftFormValues'
+import type { EventRequestFormValues, SubmitEventRequestResult, SaveEventDraftResult, LoadedEventDraft } from './types'
 
 const emptyForm: EventRequestFormValues = {
   name: '',
@@ -38,10 +39,10 @@ const resolver: Resolver<EventRequestFormValues> = (values) => {
   return { values: {}, errors }
 }
 
-export function useEventRequestForm() {
+export function useEventRequestForm(initialDraft?: LoadedEventDraft) {
   const [result, setResult] = useState<SubmitEventRequestResult | null>(null)
   const [draftResult, setDraftResult] = useState<SaveEventDraftResult | null>(null)
-  const [draftId, setDraftId] = useState<string>()
+  const [draftId, setDraftId] = useState<string | undefined>(initialDraft?.id)
   const [isSaving, setIsSaving] = useState(false)
   const busy = useRef(false)
   const resultRef = useRef<HTMLDivElement>(null)
@@ -53,7 +54,7 @@ export function useEventRequestForm() {
     handleSubmit,
     reset,
     formState: { errors, isSubmitting },
-  } = useForm<EventRequestFormValues>({ defaultValues: emptyForm, resolver })
+  } = useForm<EventRequestFormValues>({ defaultValues: initialDraft ? draftFormValues(initialDraft) : emptyForm, resolver })
 
   // AC-005.2 keeps this handler from ever running with invalid values; the service
   // revalidates anyway, because it is callable from places that are not this form.

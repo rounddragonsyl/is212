@@ -27,6 +27,7 @@ function navItemsFor(role: UserRole | null): NavItem[] {
       return [
         home,
         { label: 'New request', to: '/events/new' },
+        { label: 'My Drafts', to: '/drafts' },
         { label: 'My requests', to: '/requests' },
       ]
     case 'coordinator':

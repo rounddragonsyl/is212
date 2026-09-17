@@ -5,12 +5,15 @@ import { OptionalRequirementsFields } from './OptionalRequirementsFields'
 import { SubmissionResult } from './SubmissionResult'
 import { DraftSaveResult } from './DraftSaveResult'
 import { StatusBadge } from './StatusBadge'
+import type { LoadedEventDraft } from '../types'
 
-export function EventRequestForm() {
+export function EventRequestForm({ initialDraft }: { initialDraft?: LoadedEventDraft }) {
   const {
     register, errors, result, draftResult, draftId, resultRef,
     onSubmit, onSaveDraft, onChange, isSaving, isSubmitting, disabled,
-  } = useEventRequestForm()
+  } = useEventRequestForm(initialDraft)
+
+  if (initialDraft && result?.ok) return <SubmissionResult result={result} />
 
   return (
     <form onSubmit={onSubmit} onChange={onChange} noValidate className="space-y-6">
@@ -61,6 +64,7 @@ export function EventRequestForm() {
             <TextInput
               id="proposedStart"
               type="datetime-local"
+              step="any"
               aria-invalid={Boolean(errors.proposedStart)}
               {...register('proposedStart')}
             />
@@ -75,6 +79,7 @@ export function EventRequestForm() {
             <TextInput
               id="proposedEnd"
               type="datetime-local"
+              step="any"
               aria-invalid={Boolean(errors.proposedEnd)}
               {...register('proposedEnd')}
             />

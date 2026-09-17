@@ -27,6 +27,7 @@ export function SubmitEventRequestPage() {
         <p className="text-xs font-semibold uppercase tracking-wider text-indigo-600">
           Event organiser
         </p>
+        <Link to="/drafts" className="mt-2 inline-block text-sm text-indigo-700 underline">My Drafts</Link>
         <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">
           Submit an event request
         </h1>

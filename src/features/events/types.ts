@@ -115,6 +115,15 @@ export type LoadEventDraftResult =
   | { ok: true; draft: LoadedEventDraft }
   | { ok: false; reason: string }
 
+export interface EventDraftSummary extends SavedEventDraft {
+  name: string | null
+  purpose: string | null
+}
+
+export type ListEventDraftsResult =
+  | { ok: true; drafts: EventDraftSummary[] }
+  | { ok: false; reason: string }
+
 /** What the caller of the service gets back on a successful submission. */
 export interface SubmittedEvent {
   id: string

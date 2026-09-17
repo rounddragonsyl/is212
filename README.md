@@ -7,8 +7,9 @@ Implemented so far: **US-005 — submit an event request**.
 
 In progress: **Save Draft Event Request**. Draft validation and the save/update
 service are connected to Save Draft on the event form. Repeated saves reuse the draft ID,
-and explicit submission updates that same request. The draft-loading service is implemented, but listing and the resume editor are not yet
-connected. Live database tests remain pending.
+and explicit submission updates that same request. My Drafts lists saved drafts and
+opens them in the existing form for editing. Automated tests use mocks; browser/live
+database verification and draft access-policy work remain pending.
 
 ## Prerequisites
 
@@ -128,7 +129,7 @@ src/
         ├── useEventRequestForm.ts form state and separate save/submit actions
         ├── draftValidation.ts   incomplete draft validation, separate from submission
         ├── eventService.ts      submits new event requests to Supabase
-        ├── eventDraftQueryService.ts reads a signed-in organiser’s draft
+        ├── eventDraftQueryService.ts lists and loads a signed-in organiser’s drafts
         ├── eventDraftService.ts saves new drafts and updates existing owned drafts
         ├── components/
         └── __tests__/
@@ -162,6 +163,8 @@ Automated tests live in
 [`draftValidation.test.ts`](src/features/events/__tests__/draftValidation.test.ts) and
 [`eventDraftService.test.ts`](src/features/events/__tests__/eventDraftService.test.ts),
 with form tests in `EventRequestForm.test.tsx` and draft-submission tests in `eventService.test.ts`.
+`eventDraftQueryService.test.ts`, `draftFormValues.test.ts` and `DraftPages.test.tsx`
+cover listing, restored values and the list-to-editor workflow.
 Tests check validation, services with mocked Supabase responses, and the form with mocked services.
 They do not connect to Supabase or prove the complete user flow or RLS enforcement works.
 
@@ -170,13 +173,13 @@ They do not connect to Supabase or prove the complete user flow or RLS enforceme
 | AC 2 — allow incomplete required fields | Unit tests accept empty drafts, blank fields and a single supplied date | Save incomplete data to Supabase and reopen it |
 | Supplied values respect database constraints | Unit tests reject invalid dates, unordered date ranges, and invalid attendance; include boundary values | Verify constraints against live Supabase |
 | AC 6 — explicit submission | Form and service tests verify submission uses the saved draft ID and full validation | Verify transition and reference trigger against live Supabase |
-| AC 1, 4, 5 — save/edit without submission | Service and form tests check draft saves, repeated edits, guarded updates and failures | Reopening and live database tests |
-| AC 3 — identifiable Draft | Form test verifies Draft indicator after saving | Browser and live database verification |
+| AC 1, 4, 5 — save/edit without submission | Service and form tests check draft saves, repeated edits, guarded updates and failures | Live database tests |
+| AC 3 — identifiable Draft | Form and page tests verify Draft indicators after saving and in the list | Browser and live database verification |
 
 Run the draft checks with:
 
 ```bash
-npm run test -- src/features/events/__tests__/draftValidation.test.ts src/features/events/__tests__/eventDraftService.test.ts
+npm run test -- src/features/events/__tests__
 ```
 
 Drafts use the existing `events` table. Empty text, dates and attendance become `null`.
@@ -197,8 +200,9 @@ badge and clears outdated success messages when values change. `useEventRequestF
 keeps this state separate from the form markup. Switching accounts remounts the form.
 `submitEventRequest(input, draftId?)` validates all submission fields, then updates the
 owned draft's latest details and status together; a stale ID never falls back to an insert.
-The draft ID is not yet restored after navigation or refresh; use the upcoming resume
-flow before considering the complete draft workflow delivered.
+Saved drafts can be reopened through `/drafts` or directly at `/drafts/:id`, including
+after refreshing that editor URL. The new-request page does not restore unsaved changes;
+use My Drafts to find a request saved before leaving that page.
 
 Before completing the story, verify owner access and coordinator draft restrictions
 with authenticated users. The inspected live coordinator policies currently do not
@@ -233,4 +237,22 @@ share one unavailable message.
 
 `eventDraftQueryService.test.ts` covers loading, incomplete data, filters and failures
 using mocked Supabase responses. These checks do not prove live RLS enforcement.
-The loading service is not yet connected to a resume page or My Drafts list.
+`listEventDrafts()` retrieves owned drafts ordered by most recently saved. My Drafts
+(`/drafts`) is linked from organiser navigation, home and the new-request page. It shows
+Draft badges, last-saved times and an Untitled draft fallback for unnamed requests.
+The resume page (`/drafts/:id`) loads an existing draft into `EventRequestForm`; subsequent
+saves and explicit submission retain its ID. Loading never writes or submits anything.
+After successful submission, the resume page shows confirmation rather than offering
+another save of the same draft. Returning to My Drafts reloads the list.
+
+Both pages provide loading, empty/error and retry states as appropriate. Their access
+guard waits for a signed-in organiser and resets loaded state on account changes. Stale
+responses from a previous account or draft cannot replace the current editor.
+`draftFormValues.ts` restores attendance as text and converts stored date timestamps
+for datetime-local inputs, matching the existing submission parser's browser timezone.
+This does not enforce Singapore time for users outside Singapore; a consistent
+application-wide timezone policy still needs coordination with the submission feature.
+
+The page tests use mocked services and the query tests use mocked Supabase. They do not
+prove live persistence, RLS, or trigger behaviour. No fake database is shipped in the app.
+There is no autosave: users must save changes before navigating away.

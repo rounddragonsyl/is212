@@ -50,6 +50,11 @@ export function SignedInHome({ profile }: { profile: UserProfile }) {
               Start a new request
             </Link>
           )}
+          {isOrganiser && (
+            <Link to="/drafts" className="text-sm font-medium text-indigo-700 hover:underline">
+              My Drafts
+            </Link>
+          )}
           {isCoordinator && (
             <Link to="/requests" className={primaryButton}>
               {awaiting.length > 0
