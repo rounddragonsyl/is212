@@ -8,7 +8,7 @@ import type {
 } from './types'
 
 /**
- * The only module that talks to Supabase about events. Components call this; they never
+ * Submission persistence for events. Components call this; they never
  * import the Supabase client, so swapping persistence or stubbing it in a test touches
  * exactly one file.
  */
@@ -36,6 +36,7 @@ export const SERVICE_MESSAGES = {
     'The request was saved but no reference was assigned. Please contact a coordinator.',
   network: 'The request could not be submitted because the service is unreachable.',
   unexpected: 'Something went wrong submitting your request. Please try again.',
+  draftUnavailable: 'This draft is unavailable or has already been submitted. Refresh before continuing.',
 } as const
 
 function toEventRow(request: SubmittableEventRequest, organiserId: string) {
@@ -86,6 +87,7 @@ function describeDatabaseError(error: { code?: string; message?: string }): stri
  */
 export async function submitEventRequest(
   input: EventRequestInput,
+  draftId?: string,
 ): Promise<SubmitEventRequestResult> {
   const validation = validateEventRequest(input)
   if (!validation.ok) {
@@ -96,17 +98,29 @@ export async function submitEventRequest(
     }
   }
 
+  if (draftId !== undefined && !draftId.trim()) {
+    return { ok: false, reason: SERVICE_MESSAGES.draftUnavailable, issues: [] }
+  }
+
   const { data: sessionData, error: sessionError } = await supabase.auth.getUser()
   const userId = sessionData?.user?.id
   if (sessionError || !userId) {
     return { ok: false, reason: SERVICE_MESSAGES.notSignedIn, issues: [] }
   }
 
-  const { data, error } = await supabase
-    .from('events')
-    .insert(toEventRow(validation.value, userId))
-    .select('id, reference, status, submitted_at')
-    .single()
+  // Save the latest details and submit the SAME row in one operation. The database
+  // transition trigger still enforces the workflow and assigns its reference.
+  const row = toEventRow(validation.value, userId)
+  const response = draftId === undefined
+    ? await supabase.from('events').insert(row)
+      .select('id, reference, status, submitted_at').single()
+    : await supabase.from('events').update(row)
+      .eq('id', draftId).eq('organiser_id', userId).eq('status', 'draft')
+      .select('id, reference, status, submitted_at').maybeSingle()
+  const { data, error } = response
+  if (!error && !data && draftId !== undefined) {
+    return { ok: false, reason: SERVICE_MESSAGES.draftUnavailable, issues: [] }
+  }
 
   if (error) {
     return { ok: false, reason: describeDatabaseError(error), issues: [] }

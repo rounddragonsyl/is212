@@ -6,8 +6,9 @@ Level Security).
 Implemented so far: **US-005 — submit an event request**.
 
 In progress: **Save Draft Event Request**. Draft validation and the save/update
-service are implemented with unit tests. The UI, listing, reopening and explicit draft
-submission are not yet wired up; live database tests remain pending.
+service are connected to Save Draft on the event form. Repeated saves reuse the draft ID,
+and explicit submission updates that same request. Listing and reopening drafts after
+leaving the form are not yet implemented; live database tests remain pending.
 
 ## Prerequisites
 
@@ -124,6 +125,7 @@ src/
     └── events/                  one folder per backlog component
         ├── types.ts
         ├── validation.ts        PURE functions — no React, no Supabase, no I/O
+        ├── useEventRequestForm.ts form state and separate save/submit actions
         ├── draftValidation.ts   incomplete draft validation, separate from submission
         ├── eventService.ts      submits new event requests to Supabase
         ├── eventDraftService.ts saves new drafts and updates existing owned drafts
@@ -157,17 +159,18 @@ Every test name begins with the acceptance criterion it covers, so
 The AC numbers below refer to the ordered criteria in the Save Draft Event Request Jira story.
 Automated tests live in
 [`draftValidation.test.ts`](src/features/events/__tests__/draftValidation.test.ts) and
-[`eventDraftService.test.ts`](src/features/events/__tests__/eventDraftService.test.ts).
-These unit tests check validation and service behaviour with mocked Supabase responses.
+[`eventDraftService.test.ts`](src/features/events/__tests__/eventDraftService.test.ts),
+with form tests in `EventRequestForm.test.tsx` and draft-submission tests in `eventService.test.ts`.
+Tests check validation, services with mocked Supabase responses, and the form with mocked services.
 They do not connect to Supabase or prove the complete user flow or RLS enforcement works.
 
 | AC / supporting rule | Current evidence | Remaining checks |
 | --- | --- | --- |
 | AC 2 — allow incomplete required fields | Unit tests accept empty drafts, blank fields and a single supplied date | Save incomplete data to Supabase and reopen it |
 | Supplied values respect database constraints | Unit tests reject invalid dates, unordered date ranges, and invalid attendance; include boundary values | Verify constraints against live Supabase |
-| AC 6 — explicit submission | Unit regression check keeps draft and submission validation separate | Verify that only the Submit action changes status |
-| AC 1, 4, 5 — save/edit without submission | Service tests check draft inserts, guarded updates, field mapping and failure handling | UI, reopening and live database tests |
-| AC 3 — identifiable Draft | Service returns Draft status | Verify Draft indicator in the UI |
+| AC 6 — explicit submission | Form and service tests verify submission uses the saved draft ID and full validation | Verify transition and reference trigger against live Supabase |
+| AC 1, 4, 5 — save/edit without submission | Service and form tests check draft saves, repeated edits, guarded updates and failures | Reopening and live database tests |
+| AC 3 — identifiable Draft | Form test verifies Draft indicator after saving | Browser and live database verification |
 
 Run the draft checks with:
 
@@ -186,6 +189,15 @@ signed-in owner and current Draft status, and never set workflow fields such as 
 or reference. Missing input fields clear their stored values, so this is not a partial
 patch API. A missing/stale draft returns a failure rather than inserting a replacement.
 Network failures are reported without automatically retrying a potentially successful save.
+
+The form keeps its draft ID during the current visit, preserves fields after saves/errors,
+and disables editing and both actions while saving/submitting. It uses the shared Draft
+badge and clears outdated success messages when values change. `useEventRequestForm`
+keeps this state separate from the form markup. Switching accounts remounts the form.
+`submitEventRequest(input, draftId?)` validates all submission fields, then updates the
+owned draft's latest details and status together; a stale ID never falls back to an insert.
+The draft ID is not yet restored after navigation or refresh; use the upcoming resume
+flow before considering the complete draft workflow delivered.
 
 Before completing the story, verify owner access and coordinator draft restrictions
 with authenticated users. The inspected live coordinator policies currently do not
