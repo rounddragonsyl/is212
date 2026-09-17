@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest'
-import { DRAFT_LOAD_MESSAGES, getEventDraft } from '../eventDraftQueryService'
+import { DRAFT_LOAD_MESSAGES, getEventDraft, listEventDrafts } from '../eventDraftQueryService'
 
 const mocks = vi.hoisted(() => ({ getUser: vi.fn(), from: vi.fn() }))
 vi.mock('../../../lib/supabase', () => ({
@@ -103,5 +103,52 @@ describe('Save Draft Event Request — load a draft (mocked Supabase)', () => {
     mocks.getUser.mockRejectedValue(new Error('Offline'))
     await expect(getEventDraft('draft-1')).resolves.toMatchObject({ ok: false })
     expect(mocks.from).not.toHaveBeenCalled()
+  })
+})
+
+
+describe('Save Draft Event Request — list drafts', () => {
+  function mockList(data: Record<string, unknown>[] | null, error: object | null = null) {
+    const query = {
+      select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(),
+      order: vi.fn().mockResolvedValue({ data, error }),
+    }
+    mocks.from.mockReturnValue(query)
+    return query
+  }
+
+  test('AC 3/4: requests only owned drafts ordered by most recently saved', async () => {
+    const query = mockList([row])
+    expect(await listEventDrafts()).toEqual({ ok: true, drafts: [{
+      id: row.id, status: 'draft', updatedAt: row.updated_at, name: row.name, purpose: row.purpose,
+    }] })
+    expect(query.eq.mock.calls).toEqual([['organiser_id', 'organiser-1'], ['status', 'draft']])
+    expect(query.order).toHaveBeenCalledWith('updated_at', { ascending: false })
+  })
+
+  test('AC 3/4: filters mismatched rows without exposing them', async () => {
+    mockList([{ ...row, organiser_id: 'other' }, { ...row, status: 'submitted' }])
+    expect(await listEventDrafts()).toEqual({ ok: true, drafts: [] })
+  })
+
+  test('AC 4: an empty list is successful rather than an error', async () => {
+    mockList([])
+    expect(await listEventDrafts()).toEqual({ ok: true, drafts: [] })
+  })
+
+  test('AC 4: signed-out users cannot query drafts', async () => {
+    mocks.getUser.mockResolvedValue({ data: { user: null }, error: null })
+    expect(await listEventDrafts()).toMatchObject({ ok: false, reason: DRAFT_LOAD_MESSAGES.notSignedIn })
+    expect(mocks.from).not.toHaveBeenCalled()
+  })
+
+  test('AC 4: reports a failed query without pretending the list is empty', async () => {
+    mockList(null, { message: 'Internal details' })
+    expect(await listEventDrafts()).toEqual({ ok: false, reason: DRAFT_LOAD_MESSAGES.listFailed })
+  })
+
+  test('AC 4: handles connection exceptions', async () => {
+    mockList([]).order.mockRejectedValue(new Error('Offline'))
+    await expect(listEventDrafts()).resolves.toMatchObject({ ok: false })
   })
 })
