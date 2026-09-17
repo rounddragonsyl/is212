@@ -7,8 +7,8 @@ Implemented so far: **US-005 — submit an event request**.
 
 In progress: **Save Draft Event Request**. Draft validation and the save/update
 service are connected to Save Draft on the event form. Repeated saves reuse the draft ID,
-and explicit submission updates that same request. Listing and reopening drafts after
-leaving the form are not yet implemented; live database tests remain pending.
+and explicit submission updates that same request. The draft-loading service is implemented, but listing and the resume editor are not yet
+connected. Live database tests remain pending.
 
 ## Prerequisites
 
@@ -128,6 +128,7 @@ src/
         ├── useEventRequestForm.ts form state and separate save/submit actions
         ├── draftValidation.ts   incomplete draft validation, separate from submission
         ├── eventService.ts      submits new event requests to Supabase
+        ├── eventDraftQueryService.ts reads a signed-in organiser’s draft
         ├── eventDraftService.ts saves new drafts and updates existing owned drafts
         ├── components/
         └── __tests__/
@@ -221,3 +222,15 @@ test success as completion of the story.
   not restart each January.
 - **Statuses are stored lowercase** (`submitted`) and rendered from `EVENT_STATUS_LABELS`
   (`Submitted`).
+
+### Loading a saved draft
+
+`getEventDraft(id)` in `eventDraftQueryService.ts` reads one draft using ID, signed-in
+owner and Draft status filters. It restores existing field names, converts missing
+values to empty inputs, and keeps stored date timestamps unchanged for the editor to
+format. Opening a draft performs no write. Missing, inaccessible and submitted requests
+share one unavailable message.
+
+`eventDraftQueryService.test.ts` covers loading, incomplete data, filters and failures
+using mocked Supabase responses. These checks do not prove live RLS enforcement.
+The loading service is not yet connected to a resume page or My Drafts list.
