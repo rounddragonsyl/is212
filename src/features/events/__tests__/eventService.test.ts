@@ -64,50 +64,63 @@ beforeEach(() => {
   mocks.getUser.mockResolvedValue({ data: { user: { id: ORGANISER_ID } }, error: null })
 })
 
-describe('AC-005.3 / AC-005.5 — successful submission', () => {
-  test('AC-005.5: a successful submission returns a unique reference in EVT-YYYY-NNNN form', async () => {
-    mockInsert({ data: submittedRow, error: null })
+function mockDraftUpdate(data: InsertedRow | null, error: PostgrestError | null = null) {
+  const query = {
+    update: vi.fn().mockReturnThis(),
+    eq: vi.fn().mockReturnThis(),
+    select: vi.fn().mockReturnThis(),
+    maybeSingle: vi.fn().mockResolvedValue({ data, error }),
+    insert: vi.fn(),
+  }
+  mocks.from.mockReturnValue(query)
+  return query
+}
 
-    const result = await submitEventRequest(validInput)
-
+describe('AC-001.6', () => {
+  test("AC-001.6-05: submits the existing owned draft with its latest details in one update", async () => {
+    const query = mockDraftUpdate(submittedRow)
+    const result = await submitEventRequest(validInput, submittedRow.id)
     expect(result.ok).toBe(true)
-    if (!result.ok) return
-    expect(result.event.reference).toMatch(/^EVT-\d{4}-\d{4}$/)
-  })
-
-  test('AC-005.5: a successful submission is stored with status "Submitted"', async () => {
-    mockInsert({ data: submittedRow, error: null })
-
-    const result = await submitEventRequest(validInput)
-
-    expect(result.ok).toBe(true)
-    if (!result.ok) return
-    expect(result.event.status).toBe('submitted')
-    expect(EVENT_STATUS_LABELS[result.event.status]).toBe('Submitted')
-    expect(result.event.submittedAt).toBe('2026-01-05T02:11:00.000Z')
-  })
-
-  test('AC-005.5: the client sends status submitted but never a reference of its own', async () => {
-    const { insert } = mockInsert({ data: submittedRow, error: null })
-
-    await submitEventRequest(validInput)
-
-    const payload = insert.mock.calls[0][0]
-    expect(payload.status).toBe('submitted')
+    expect(query.insert).not.toHaveBeenCalled()
+    expect(query.eq.mock.calls).toEqual([
+      ['id', submittedRow.id], ['organiser_id', ORGANISER_ID], ['status', 'draft'],
+    ])
+    const payload = query.update.mock.calls[0][0]
+    expect(payload).toMatchObject({ status: 'submitted', expected_attendance: 120, purpose: validInput.purpose })
     expect(payload).not.toHaveProperty('reference')
     expect(payload).not.toHaveProperty('submitted_at')
   })
 
-  test('AC-005.5: the request is filed against the signed-in organiser', async () => {
-    const { insert } = mockInsert({ data: submittedRow, error: null })
-
-    await submitEventRequest(validInput)
-
-    const payload = insert.mock.calls[0][0]
-    expect(payload.organiser_id).toBe(ORGANISER_ID)
-    expect(mocks.from).toHaveBeenCalledWith('events')
+  test("AC-001.6-06: refuses a missing, inaccessible or already submitted draft without inserting", async () => {
+    const query = mockDraftUpdate(null)
+    expect(await submitEventRequest(validInput, submittedRow.id)).toMatchObject({
+      ok: false, reason: SERVICE_MESSAGES.draftUnavailable,
+    })
+    expect(query.insert).not.toHaveBeenCalled()
   })
 
+  test("AC-001.6-07: revalidates incomplete drafts before attempting submission", async () => {
+    const query = mockDraftUpdate(null)
+    expect((await submitEventRequest({}, submittedRow.id)).ok).toBe(false)
+    expect(query.update).not.toHaveBeenCalled()
+  })
+
+  test("AC-001.6-08: reports a database refusal during draft submission", async () => {
+    mockDraftUpdate(null, { code: '42501' })
+    expect(await submitEventRequest(validInput, submittedRow.id)).toMatchObject({
+      ok: false, reason: SERVICE_MESSAGES.rlsDenied,
+    })
+  })
+
+  test("AC-001.6-09: a blank draft ID cannot fall back to creating a second request", async () => {
+    const query = mockDraftUpdate(null)
+    expect((await submitEventRequest(validInput, '')).ok).toBe(false)
+    expect(query.insert).not.toHaveBeenCalled()
+    expect(query.update).not.toHaveBeenCalled()
+  })
+})
+
+describe('AC-005.1', () => {
   test('AC-005.1: optional details the organiser omitted are stored as null, not empty strings', async () => {
     const { insert } = mockInsert({ data: submittedRow, error: null })
 
@@ -120,7 +133,7 @@ describe('AC-005.3 / AC-005.5 — successful submission', () => {
   })
 })
 
-describe('AC-005.4 — failed submission reports a specific reason', () => {
+describe('AC-005.4', () => {
   test('AC-005.4: an invalid request is rejected with the failing rule, not a generic message', async () => {
     const { insert } = mockInsert({ data: null, error: null })
 
@@ -211,6 +224,51 @@ describe('AC-005.4 — failed submission reports a specific reason', () => {
     // Still recorded where a developer will find it.
     expect(console.error).toHaveBeenCalled()
   })
+})
+
+describe('AC-005.5', () => {
+  test('AC-005.5: a successful submission returns a unique reference in EVT-YYYY-NNNN form', async () => {
+    mockInsert({ data: submittedRow, error: null })
+
+    const result = await submitEventRequest(validInput)
+
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    expect(result.event.reference).toMatch(/^EVT-\d{4}-\d{4}$/)
+  })
+
+  test('AC-005.5: a successful submission is stored with status "Submitted"', async () => {
+    mockInsert({ data: submittedRow, error: null })
+
+    const result = await submitEventRequest(validInput)
+
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    expect(result.event.status).toBe('submitted')
+    expect(EVENT_STATUS_LABELS[result.event.status]).toBe('Submitted')
+    expect(result.event.submittedAt).toBe('2026-01-05T02:11:00.000Z')
+  })
+
+  test('AC-005.5: the client sends status submitted but never a reference of its own', async () => {
+    const { insert } = mockInsert({ data: submittedRow, error: null })
+
+    await submitEventRequest(validInput)
+
+    const payload = insert.mock.calls[0][0]
+    expect(payload.status).toBe('submitted')
+    expect(payload).not.toHaveProperty('reference')
+    expect(payload).not.toHaveProperty('submitted_at')
+  })
+
+  test('AC-005.5: the request is filed against the signed-in organiser', async () => {
+    const { insert } = mockInsert({ data: submittedRow, error: null })
+
+    await submitEventRequest(validInput)
+
+    const payload = insert.mock.calls[0][0]
+    expect(payload.organiser_id).toBe(ORGANISER_ID)
+    expect(mocks.from).toHaveBeenCalledWith('events')
+  })
 
   test('AC-005.5: a saved row that came back without a reference is treated as a failure', async () => {
     mockInsert({ data: { ...submittedRow, reference: null }, error: null })
@@ -221,66 +279,12 @@ describe('AC-005.4 — failed submission reports a specific reason', () => {
     if (result.ok) return
     expect(result.reason).toBe(SERVICE_MESSAGES.missingReference)
   })
+})
 
+describe('Additional regression checks', () => {
   test('submitEventRequest never throws, even given a malformed payload', async () => {
     await expect(
       submitEventRequest({ purpose: null, proposedStart: null } as unknown as EventRequestInput),
     ).resolves.toMatchObject({ ok: false })
-  })
-})
-
-describe('Save Draft Event Request — explicit submission', () => {
-  function mockDraftUpdate(data: InsertedRow | null, error: PostgrestError | null = null) {
-    const query = {
-      update: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-      select: vi.fn().mockReturnThis(),
-      maybeSingle: vi.fn().mockResolvedValue({ data, error }),
-      insert: vi.fn(),
-    }
-    mocks.from.mockReturnValue(query)
-    return query
-  }
-
-  test('AC 6: submits the existing owned draft with its latest details in one update', async () => {
-    const query = mockDraftUpdate(submittedRow)
-    const result = await submitEventRequest(validInput, submittedRow.id)
-    expect(result.ok).toBe(true)
-    expect(query.insert).not.toHaveBeenCalled()
-    expect(query.eq.mock.calls).toEqual([
-      ['id', submittedRow.id], ['organiser_id', ORGANISER_ID], ['status', 'draft'],
-    ])
-    const payload = query.update.mock.calls[0][0]
-    expect(payload).toMatchObject({ status: 'submitted', expected_attendance: 120, purpose: validInput.purpose })
-    expect(payload).not.toHaveProperty('reference')
-    expect(payload).not.toHaveProperty('submitted_at')
-  })
-
-  test('AC 6: refuses a missing, inaccessible or already submitted draft without inserting', async () => {
-    const query = mockDraftUpdate(null)
-    expect(await submitEventRequest(validInput, submittedRow.id)).toMatchObject({
-      ok: false, reason: SERVICE_MESSAGES.draftUnavailable,
-    })
-    expect(query.insert).not.toHaveBeenCalled()
-  })
-
-  test('AC 6: revalidates incomplete drafts before attempting submission', async () => {
-    const query = mockDraftUpdate(null)
-    expect((await submitEventRequest({}, submittedRow.id)).ok).toBe(false)
-    expect(query.update).not.toHaveBeenCalled()
-  })
-
-  test('AC 6: reports a database refusal during draft submission', async () => {
-    mockDraftUpdate(null, { code: '42501' })
-    expect(await submitEventRequest(validInput, submittedRow.id)).toMatchObject({
-      ok: false, reason: SERVICE_MESSAGES.rlsDenied,
-    })
-  })
-
-  test('AC 6: a blank draft ID cannot fall back to creating a second request', async () => {
-    const query = mockDraftUpdate(null)
-    expect((await submitEventRequest(validInput, '')).ok).toBe(false)
-    expect(query.insert).not.toHaveBeenCalled()
-    expect(query.update).not.toHaveBeenCalled()
   })
 })
