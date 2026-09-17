@@ -228,3 +228,59 @@ describe('AC-005.4 — failed submission reports a specific reason', () => {
     ).resolves.toMatchObject({ ok: false })
   })
 })
+
+describe('Save Draft Event Request — explicit submission', () => {
+  function mockDraftUpdate(data: InsertedRow | null, error: PostgrestError | null = null) {
+    const query = {
+      update: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({ data, error }),
+      insert: vi.fn(),
+    }
+    mocks.from.mockReturnValue(query)
+    return query
+  }
+
+  test('AC 6: submits the existing owned draft with its latest details in one update', async () => {
+    const query = mockDraftUpdate(submittedRow)
+    const result = await submitEventRequest(validInput, submittedRow.id)
+    expect(result.ok).toBe(true)
+    expect(query.insert).not.toHaveBeenCalled()
+    expect(query.eq.mock.calls).toEqual([
+      ['id', submittedRow.id], ['organiser_id', ORGANISER_ID], ['status', 'draft'],
+    ])
+    const payload = query.update.mock.calls[0][0]
+    expect(payload).toMatchObject({ status: 'submitted', expected_attendance: 120, purpose: validInput.purpose })
+    expect(payload).not.toHaveProperty('reference')
+    expect(payload).not.toHaveProperty('submitted_at')
+  })
+
+  test('AC 6: refuses a missing, inaccessible or already submitted draft without inserting', async () => {
+    const query = mockDraftUpdate(null)
+    expect(await submitEventRequest(validInput, submittedRow.id)).toMatchObject({
+      ok: false, reason: SERVICE_MESSAGES.draftUnavailable,
+    })
+    expect(query.insert).not.toHaveBeenCalled()
+  })
+
+  test('AC 6: revalidates incomplete drafts before attempting submission', async () => {
+    const query = mockDraftUpdate(null)
+    expect((await submitEventRequest({}, submittedRow.id)).ok).toBe(false)
+    expect(query.update).not.toHaveBeenCalled()
+  })
+
+  test('AC 6: reports a database refusal during draft submission', async () => {
+    mockDraftUpdate(null, { code: '42501' })
+    expect(await submitEventRequest(validInput, submittedRow.id)).toMatchObject({
+      ok: false, reason: SERVICE_MESSAGES.rlsDenied,
+    })
+  })
+
+  test('AC 6: a blank draft ID cannot fall back to creating a second request', async () => {
+    const query = mockDraftUpdate(null)
+    expect((await submitEventRequest(validInput, '')).ok).toBe(false)
+    expect(query.insert).not.toHaveBeenCalled()
+    expect(query.update).not.toHaveBeenCalled()
+  })
+})

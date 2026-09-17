@@ -39,8 +39,10 @@ Supabase (PostgreSQL + Auth + RLS) · Vitest + React Testing Library · GitHub A
 
 ## Event status values
 draft, submitted, under_review, approved, planning, confirmed, completed, cancelled,
-rejected. Transitions are guarded — never set status by direct assignment outside the
-status service.
+rejected. Review transitions belong in eventReviewService. Explicit draft submission
+belongs in eventService so validated details and status change atomically on the same
+owned Draft row. Both paths use expected-status filters and database transition triggers.
+Draft saves in eventDraftService must never change an existing request's status.
 
 ## House style
 - No `any`. Prefer explicit types.

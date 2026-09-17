@@ -53,8 +53,8 @@ export function SubmitEventRequestPage() {
         <WrongRoleNotice profile={profile} />
       ) : (
         <div className="grid gap-8 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-          <Card title="Event request" description="Fields marked with an asterisk are required.">
-            <EventRequestForm />
+          <Card title="Event request" description="Fields marked with an asterisk are required for submission, not for saving a draft.">
+            <EventRequestForm key={session.userId} />
           </Card>
           <SubmissionGuidance />
         </div>
