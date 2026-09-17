@@ -106,6 +106,15 @@ export type SaveEventDraftResult =
   | { ok: true; draft: SavedEventDraft }
   | { ok: false; reason: string; issues: ValidationIssue[] }
 
+/** Loaded dates remain ISO timestamps; the editor converts them for datetime inputs. */
+export interface LoadedEventDraft extends SavedEventDraft {
+  values: EventRequestInput
+}
+
+export type LoadEventDraftResult =
+  | { ok: true; draft: LoadedEventDraft }
+  | { ok: false; reason: string }
+
 /** What the caller of the service gets back on a successful submission. */
 export interface SubmittedEvent {
   id: string
