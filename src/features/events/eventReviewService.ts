@@ -127,9 +127,9 @@ export async function getEventRequest(id: string): Promise<DetailResult> {
 export type TransitionResult = { ok: true; status: EventStatus } | { ok: false; reason: string }
 
 /**
- * The only place a status is changed. CLAUDE.md: never set status by direct assignment
- * outside this service — so that the legality of a move is decided in one place the tests
- * can reach, and the database trigger stays the backstop rather than the error message.
+ * Review workflow transitions live here. Explicit draft submission lives in eventService
+ * so it can update validated details and status atomically. Both paths keep the database
+ * transition trigger as the backstop rather than the user-facing error message.
  */
 export async function transitionEventStatus(options: {
   id: string

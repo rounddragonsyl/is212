@@ -20,8 +20,13 @@ Supabase (PostgreSQL + Auth + RLS) · Vitest + React Testing Library · GitHub A
   keyed on status instead.
 
 ## Testing
-- Name every test after the acceptance criterion it covers:
-  test('AC-005.2: rejects submission when purpose is blank', ...)
+- Name each test case with its requirement ID and a unique case suffix:
+  test('AC-001.2-01: accepts an empty draft', ...)
+- Save Draft Event Request is US-001; AC-001.1 through AC-001.6 follow Jira order.
+  Case IDs must stay unique across the story, including parameterised rows. Preserve
+  existing case IDs when adding tests. Group tests by criterion and sort numerically
+  by story, criterion, then case number within each file. Preserve setup/helper scope
+  when rearranging tests. See README for the current allocations.
 - Every story needs at least one boundary, conflict or failure test.
 - We must reach high coverage and be able to trace acceptance criteria to tests.
 
@@ -39,8 +44,10 @@ Supabase (PostgreSQL + Auth + RLS) · Vitest + React Testing Library · GitHub A
 
 ## Event status values
 draft, submitted, under_review, approved, planning, confirmed, completed, cancelled,
-rejected. Transitions are guarded — never set status by direct assignment outside the
-status service.
+rejected. Review transitions belong in eventReviewService. Explicit draft submission
+belongs in eventService so validated details and status change atomically on the same
+owned Draft row. Both paths use expected-status filters and database transition triggers.
+Draft saves in eventDraftService must never change an existing request's status.
 
 ## House style
 - No `any`. Prefer explicit types.

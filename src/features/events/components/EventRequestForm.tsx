@@ -1,78 +1,28 @@
-import { useEffect, useRef, useState } from 'react'
-import { useForm } from 'react-hook-form'
-import type { FieldErrors, Resolver } from 'react-hook-form'
 import { Button } from '../../../components/ui/Button'
 import { Field, TextArea, TextInput } from '../../../components/ui/FormControls'
-import { submitEventRequest } from '../eventService'
-import { validateEventRequest } from '../validation'
-import type { EventRequestFormValues, SubmitEventRequestResult } from '../types'
+import { useEventRequestForm } from '../useEventRequestForm'
 import { OptionalRequirementsFields } from './OptionalRequirementsFields'
 import { SubmissionResult } from './SubmissionResult'
+import { DraftSaveResult } from './DraftSaveResult'
+import { StatusBadge } from './StatusBadge'
+import type { LoadedEventDraft } from '../types'
 
-const emptyForm: EventRequestFormValues = {
-  name: '',
-  purpose: '',
-  eventType: '',
-  description: '',
-  proposedStart: '',
-  proposedEnd: '',
-  expectedAttendance: '',
-  programme: '',
-  layoutPreference: '',
-  accessibilityRequirements: '',
-  equipmentRequirements: '',
-  registrationRequired: false,
-  specialArrangements: '',
-}
-
-/**
- * React Hook Form is wired to our own pure validator instead of zodResolver, so the rules
- * the form enforces are byte-for-byte the rules the unit tests assert. One definition,
- * two consumers.
- */
-const resolver: Resolver<EventRequestFormValues> = (values) => {
-  const result = validateEventRequest(values)
-  if (result.ok) return { values, errors: {} }
-
-  const errors = Object.fromEntries(
-    result.issues.map((issue) => [issue.field, { type: 'validation', message: issue.message }]),
-  ) as FieldErrors<EventRequestFormValues>
-
-  return { values: {}, errors }
-}
-
-export function EventRequestForm() {
-  const [result, setResult] = useState<SubmitEventRequestResult | null>(null)
-  const resultRef = useRef<HTMLDivElement>(null)
+export function EventRequestForm({ initialDraft }: { initialDraft?: LoadedEventDraft }) {
   const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors, isSubmitting },
-  } = useForm<EventRequestFormValues>({ defaultValues: emptyForm, resolver })
+    register, errors, result, draftResult, draftId, resultRef,
+    onSubmit, onSaveDraft, onChange, isSaving, isSubmitting, disabled,
+  } = useEventRequestForm(initialDraft)
 
-  // AC-005.2 keeps this handler from ever running with invalid values; the service
-  // revalidates anyway, because it is callable from places that are not this form.
-  const onSubmit = handleSubmit(async (values) => {
-    const outcome = await submitEventRequest(values)
-    setResult(outcome)
-    if (outcome.ok) reset(emptyForm)
-  })
-
-  // The banner sits above a long form, so the organiser presses Submit at the bottom and
-  // would otherwise see nothing happen. React Hook Form already focuses the first invalid
-  // field; this covers the outcome of a submission that actually reached the server.
-  useEffect(() => {
-    if (result) resultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-  }, [result])
+  if (initialDraft && result?.ok) return <SubmissionResult result={result} />
 
   return (
-    <form onSubmit={onSubmit} noValidate className="space-y-6">
+    <form onSubmit={onSubmit} onChange={onChange} noValidate className="space-y-6">
       <div ref={resultRef}>
         <SubmissionResult result={result} />
+        <DraftSaveResult result={draftResult} />
       </div>
 
-      <fieldset className="space-y-4">
+      <fieldset disabled={disabled} className="space-y-4">
         <legend className="mb-1 border-b border-slate-100 pb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">About the event</legend>
 
         <Field id="name" label="Event name">
@@ -100,7 +50,7 @@ export function EventRequestForm() {
         </Field>
       </fieldset>
 
-      <fieldset className="space-y-4">
+      <fieldset disabled={disabled} className="space-y-4">
         <legend className="mb-1 border-b border-slate-100 pb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">When and how many</legend>
 
         {/* Start and end read as one decision, so they sit on one row where there is space. */}
@@ -114,6 +64,7 @@ export function EventRequestForm() {
             <TextInput
               id="proposedStart"
               type="datetime-local"
+              step="any"
               aria-invalid={Boolean(errors.proposedStart)}
               {...register('proposedStart')}
             />
@@ -128,6 +79,7 @@ export function EventRequestForm() {
             <TextInput
               id="proposedEnd"
               type="datetime-local"
+              step="any"
               aria-invalid={Boolean(errors.proposedEnd)}
               {...register('proposedEnd')}
             />
@@ -150,13 +102,19 @@ export function EventRequestForm() {
         </Field>
       </fieldset>
 
-      <OptionalRequirementsFields register={register} />
+      <fieldset disabled={disabled}>
+        <OptionalRequirementsFields register={register} />
+      </fieldset>
 
       <div className="flex flex-wrap items-center justify-end gap-4 border-t border-slate-100 pt-6">
         <p className="mr-auto text-xs text-slate-500">
-          You can discuss the details with your coordinator after submitting.
+          Save an unfinished draft, or submit when the required details are complete.
         </p>
-        <Button type="submit" disabled={isSubmitting}>
+        {draftId && <StatusBadge status="draft" />}
+        <Button type="button" disabled={disabled} onClick={onSaveDraft}>
+          {isSaving ? 'Saving…' : 'Save Draft'}
+        </Button>
+        <Button type="submit" disabled={disabled}>
           {isSubmitting ? 'Submitting…' : 'Submit event request'}
         </Button>
       </div>

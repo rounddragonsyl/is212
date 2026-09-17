@@ -164,6 +164,26 @@ describe('AC-005.2 — invalid values', () => {
     if (result.ok) return
     expect(messageFor(result.issues, 'proposedStart')).toBe(VALIDATION_MESSAGES.startInvalid)
   })
+
+  test('AC-005.2: rejects a proposed start exactly equal to now (boundary)', () => {
+    const result = validate({
+      proposedStart: NOW.toISOString(),
+      proposedEnd: '2026-03-01T22:00',
+    })
+
+    expect(result.ok).toBe(false)
+    if (result.ok) return
+    expect(messageFor(result.issues, 'proposedStart')).toBe(VALIDATION_MESSAGES.startInPast)
+  })
+
+  test('AC-005.2: accepts an end date one second after start (smallest valid duration)', () => {
+    const result = validate({
+      proposedStart: '2026-03-01T18:00:00',
+      proposedEnd: '2026-03-01T18:00:01',
+    })
+
+    expect(result.ok).toBe(true)
+  })
 })
 
 describe('AC-005.1 — optional information', () => {
@@ -217,5 +237,23 @@ describe('AC-005.1 — optional information', () => {
     expect(result.ok).toBe(true)
     if (!result.ok) return
     expect(result.value.purpose).toBe('Team offsite')
+  })
+})
+
+describe('AC-005.2 — regression: browser default datetime-local value', () => {
+  test('rejects the un-touched form default (same start/end, both dated in the past)', () => {
+    const result = validateEventRequest(
+      {
+        ...validInput,
+        proposedStart: '2026-09-14T12:30',
+        proposedEnd: '2026-09-14T12:30',
+      },
+      { now: new Date('2026-09-15T00:00:00Z') },
+    )
+
+    expect(result.ok).toBe(false)
+    if (result.ok) return
+    expect(messageFor(result.issues, 'proposedStart')).toBe(VALIDATION_MESSAGES.startInPast)
+    expect(messageFor(result.issues, 'proposedEnd')).toBe(VALIDATION_MESSAGES.endBeforeStart)
   })
 })

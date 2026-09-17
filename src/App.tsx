@@ -5,6 +5,8 @@ import { SessionProvider } from './features/auth/SessionProvider'
 import { ReviewRequestDetailPage } from './features/events/pages/ReviewRequestDetailPage'
 import { ReviewRequestsPage } from './features/events/pages/ReviewRequestsPage'
 import { SubmitEventRequestPage } from './features/events/pages/SubmitEventRequestPage'
+import { MyDraftsPage } from './features/events/pages/MyDraftsPage'
+import { ResumeDraftPage } from './features/events/pages/ResumeDraftPage'
 import { HomePage } from './pages/HomePage'
 import { LandingPage } from './pages/LandingPage'
 import { NotFoundPage } from './pages/NotFoundPage'
@@ -25,6 +27,8 @@ export default function App() {
             <Route path="/welcome" element={<LandingPage />} />
             <Route path="/signin" element={<SignInPage />} />
             <Route path="/events/new" element={<SubmitEventRequestPage />} />
+            <Route path="/drafts" element={<MyDraftsPage />} />
+            <Route path="/drafts/:id" element={<ResumeDraftPage />} />
             {/* One route for both roles: RLS decides whether it lists everyone's requests
                 or only your own, so there is no privileged route to protect. */}
             <Route path="/requests" element={<ReviewRequestsPage />} />

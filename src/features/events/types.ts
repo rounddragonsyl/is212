@@ -81,6 +81,49 @@ export interface SubmittableEventRequest {
   specialArrangements: string | null
 }
 
+/** A validated draft keeps submission-only required fields nullable. */
+export type SaveableEventDraft = Omit<
+  SubmittableEventRequest,
+  'purpose' | 'proposedStart' | 'proposedEnd' | 'expectedAttendance'
+> & {
+  purpose: string | null
+  proposedStart: Date | null
+  proposedEnd: Date | null
+  expectedAttendance: number | null
+}
+
+export type DraftValidationResult =
+  | { ok: true; value: SaveableEventDraft }
+  | { ok: false; issues: ValidationIssue[] }
+
+export interface SavedEventDraft {
+  id: string
+  status: 'draft'
+  updatedAt: string
+}
+
+export type SaveEventDraftResult =
+  | { ok: true; draft: SavedEventDraft }
+  | { ok: false; reason: string; issues: ValidationIssue[] }
+
+/** Loaded dates remain ISO timestamps; the editor converts them for datetime inputs. */
+export interface LoadedEventDraft extends SavedEventDraft {
+  values: EventRequestInput
+}
+
+export type LoadEventDraftResult =
+  | { ok: true; draft: LoadedEventDraft }
+  | { ok: false; reason: string }
+
+export interface EventDraftSummary extends SavedEventDraft {
+  name: string | null
+  purpose: string | null
+}
+
+export type ListEventDraftsResult =
+  | { ok: true; drafts: EventDraftSummary[] }
+  | { ok: false; reason: string }
+
 /** What the caller of the service gets back on a successful submission. */
 export interface SubmittedEvent {
   id: string

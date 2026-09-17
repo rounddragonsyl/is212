@@ -27,6 +27,7 @@ export function SubmitEventRequestPage() {
         <p className="text-xs font-semibold uppercase tracking-wider text-indigo-600">
           Event organiser
         </p>
+        <Link to="/drafts" className="mt-2 inline-block text-sm text-indigo-700 underline">My Drafts</Link>
         <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">
           Submit an event request
         </h1>
@@ -45,17 +46,16 @@ export function SubmitEventRequestPage() {
       ) : !profile ? (
         <Card title="No organiser profile">
           <p className="text-sm text-slate-600">
-            You are signed in, but no profile row exists for your account, so there is nothing
-            to file a request against. Sign out and back in, or ask a coordinator to create
-            your profile.
+            You are signed in, but your account has no usable profile, so there is nothing to
+            file a request against. Ask an administrator to check your profile and role.
           </p>
         </Card>
       ) : profile.role !== 'organiser' ? (
         <WrongRoleNotice profile={profile} />
       ) : (
         <div className="grid gap-8 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-          <Card title="Event request" description="Fields marked with an asterisk are required.">
-            <EventRequestForm />
+          <Card title="Event request" description="Fields marked with an asterisk are required for submission, not for saving a draft.">
+            <EventRequestForm key={session.userId} />
           </Card>
           <SubmissionGuidance />
         </div>

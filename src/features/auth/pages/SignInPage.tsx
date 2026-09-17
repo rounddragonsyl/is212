@@ -3,7 +3,7 @@ import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { BrandMark } from '../../../components/layout/BrandMark'
 import { Button } from '../../../components/ui/Button'
 import { Field, TextInput } from '../../../components/ui/FormControls'
-import { ensureOrganiserProfile, getCurrentSession, signIn, signUp } from '../authService'
+import { getCurrentSession, signIn, signUp } from '../authService'
 import { useCurrentUser } from '../sessionContext'
 import { validateCredentials } from '../validation'
 import type { CredentialIssue } from '../validation'
@@ -68,16 +68,8 @@ export function SignInPage() {
       return
     }
 
-    // events.organiser_id references profiles, so a first-time user needs a row before
-    // they can file anything. See the note on ensureOrganiserProfile: in production this
-    // belongs to an administrator, not to the user signing themselves up.
-    const profile = await ensureOrganiserProfile(current)
-    if (!profile.ok) {
-      setFormError(profile.reason)
-      setBusy(false)
-      return
-    }
-
+    // No profile work here: handle_new_user (0005) created the row with the account, so it
+    // already existed when signIn told SessionProvider to look it up.
     navigate(destination, { replace: true })
   }
 
