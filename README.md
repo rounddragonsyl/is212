@@ -158,7 +158,37 @@ Every test name begins with the acceptance criterion it covers, so
 
 ## Acceptance criteria → tests (Save Draft Event Request, in progress)
 
-The AC numbers below refer to the ordered criteria in the Save Draft Event Request Jira story.
+Save Draft Event Request is **US-001**. Its criteria follow the Jira order:
+
+| Requirement ID | Acceptance criterion |
+| --- | --- |
+| AC-001.1 | Save an event request as a draft before submitting it |
+| AC-001.2 | Save a draft with incomplete information required for final submission |
+| AC-001.3 | Identify a saved draft as Draft status |
+| AC-001.4 | Reopen a saved draft and continue editing its information |
+| AC-001.5 | Saving or editing a draft does not submit it for review |
+| AC-001.6 | Treat the request as submitted only after an explicit submission action |
+
+Each automated case has a unique ID, for example `AC-001.2-01`. The final number
+identifies a test case, not another acceptance criterion. IDs are unique across the
+story's test files, including each parameterised input row. Within each file, group
+tests by criterion and sort numerically by story, criterion, then case number. Keep existing IDs stable
+and allocate the next unused number for new cases. Tests spanning several criteria use
+one primary ID and name additional criteria in parentheses. Invalid-value and failure
+checks support the associated criterion; they are not new customer requirements.
+
+Current automated case ranges:
+
+| Criterion | Case IDs | Count |
+| --- | --- | ---: |
+| AC-001.1 | AC-001.1-01 through AC-001.1-12 | 12 |
+| AC-001.2 | AC-001.2-01 through AC-001.2-22 | 22 |
+| AC-001.3 | AC-001.3-01 through AC-001.3-02 | 2 |
+| AC-001.4 | AC-001.4-01 through AC-001.4-34 | 34 |
+| AC-001.5 | AC-001.5-01 through AC-001.5-04 | 4 |
+| AC-001.6 | AC-001.6-01 through AC-001.6-09 | 9 |
+
+Run `npm run test -- --reporter=verbose` to see individual case IDs and results.
 Automated tests live in
 [`draftValidation.test.ts`](src/features/events/__tests__/draftValidation.test.ts) and
 [`eventDraftService.test.ts`](src/features/events/__tests__/eventDraftService.test.ts),
@@ -170,11 +200,11 @@ They do not connect to Supabase or prove the complete user flow or RLS enforceme
 
 | AC / supporting rule | Current evidence | Remaining checks |
 | --- | --- | --- |
-| AC 2 — allow incomplete required fields | Unit tests accept empty drafts, blank fields and a single supplied date | Save incomplete data to Supabase and reopen it |
+| AC-001.2 — allow incomplete required fields | Unit tests accept empty drafts, blank fields and a single supplied date | Save incomplete data to Supabase and reopen it |
 | Supplied values respect database constraints | Unit tests reject invalid dates, unordered date ranges, and invalid attendance; include boundary values | Verify constraints against live Supabase |
-| AC 6 — explicit submission | Form and service tests verify submission uses the saved draft ID and full validation | Verify transition and reference trigger against live Supabase |
-| AC 1, 4, 5 — save/edit without submission | Service and form tests check draft saves, repeated edits, guarded updates and failures | Live database tests |
-| AC 3 — identifiable Draft | Form and page tests verify Draft indicators after saving and in the list | Browser and live database verification |
+| AC-001.6 — explicit submission | Form and service tests verify submission uses the saved draft ID and full validation | Verify transition and reference trigger against live Supabase |
+| AC-001.1, AC-001.4, AC-001.5 — save/edit without submission | Service and form tests check draft saves, repeated edits, guarded updates and failures | Live database tests |
+| AC-001.3 — identifiable Draft | Form and page tests verify Draft indicators after saving and in the list | Browser and live database verification |
 
 Run the draft checks with:
 
@@ -219,7 +249,7 @@ test success as completion of the story.
   Supabase model. The trade-off — no server-side application layer to hold logic that
   cannot be expressed in SQL — is recorded in the C4 documentation rather than left to
   look accidental. If a rule ever needs a server, it becomes one Edge Function.
-- **Required fields are not `NOT NULL` columns.** US-004 lets organisers save incomplete
+- **Required fields are not `NOT NULL` columns.** US-001 lets organisers save incomplete
   drafts, so the requirement is enforced by a CHECK keyed on `status` instead.
 - **References come from a database trigger**, not the client, so two simultaneous
   submissions cannot mint the same number. The sequence is global, so reference numbers do

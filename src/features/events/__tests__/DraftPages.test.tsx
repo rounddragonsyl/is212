@@ -8,13 +8,16 @@ import { MyDraftsPage } from '../pages/MyDraftsPage'
 import { ResumeDraftPage } from '../pages/ResumeDraftPage'
 
 const mocks = vi.hoisted(() => ({ list: vi.fn(), load: vi.fn(), save: vi.fn(), submit: vi.fn() }))
+
 vi.mock('../eventDraftQueryService', () => ({
   listEventDrafts: mocks.list, getEventDraft: mocks.load,
   DRAFT_LOAD_MESSAGES: { listFailed: 'Could not load drafts.', loadFailed: 'Could not load draft.' },
 }))
+
 vi.mock('../eventDraftService', () => ({
   saveEventDraft: mocks.save, DRAFT_MESSAGES: { saveFailed: 'Save failed.' },
 }))
+
 vi.mock('../eventService', () => ({
   submitEventRequest: mocks.submit, SERVICE_MESSAGES: { network: 'Offline.' },
 }))
@@ -24,6 +27,7 @@ const user: CurrentUser = {
   profile: { id: 'owner-1', fullName: 'Organiser', role: 'organiser' },
   loading: false, refresh: async () => {},
 }
+
 const draft: LoadedEventDraft = {
   id: 'draft-1', status: 'draft', updatedAt: '2026-09-17T10:00:00Z',
   values: { name: 'Dinner', purpose: 'Celebrate', expectedAttendance: 20,
@@ -52,8 +56,16 @@ beforeEach(() => {
   mocks.save.mockResolvedValue({ ok: true, draft })
 })
 
-describe('Save Draft Event Request — list and resume with mocked services', () => {
-  test('AC 3/4/5: opens a listed draft, restores fields and saves edits to the same ID', async () => {
+describe('AC-001.3', () => {
+  test("AC-001.3-01: unnamed drafts have a usable fallback label (also AC-001.4)", async () => {
+    mocks.list.mockResolvedValue({ ok: true, drafts: [{ ...draft, name: null, purpose: null }] })
+    render(view())
+    expect(await screen.findByRole('link', { name: /Untitled draft/ })).toHaveAttribute('href', '/drafts/draft-1')
+  })
+})
+
+describe('AC-001.4', () => {
+  test("AC-001.4-24: opens a listed draft, restores fields and saves edits to the same ID (also AC-001.3, AC-001.5)", async () => {
     render(view())
     const link = await screen.findByRole('link', { name: /Dinner/ })
     expect(link).toHaveTextContent('Draft')
@@ -71,7 +83,75 @@ describe('Save Draft Event Request — list and resume with mocked services', ()
     expect(mocks.submit).not.toHaveBeenCalled()
   })
 
-  test('AC 4/6: direct draft URL can submit the existing request explicitly', async () => {
+  test("AC-001.4-25: an incomplete draft can reopen and save without required fields (also AC-001.2)", async () => {
+    mocks.load.mockResolvedValue({ ok: true, draft: { ...draft, values: {} } })
+    render(view('/drafts/draft-1'))
+    expect(await screen.findByLabelText('Event name')).toHaveValue('')
+    fireEvent.click(screen.getByRole('button', { name: 'Save Draft' }))
+    await screen.findByText('Draft saved')
+    expect(mocks.save).toHaveBeenCalledWith(expect.objectContaining({ purpose: '', proposedStart: '' }), 'draft-1')
+  })
+
+  test("AC-001.4-26: empty state offers a new request", async () => {
+    mocks.list.mockResolvedValue({ ok: true, drafts: [] })
+    render(view())
+    await screen.findByText('You have no saved drafts.')
+    expect(screen.getByRole('link', { name: 'Start a new request' })).toHaveAttribute('href', '/events/new')
+  })
+
+  test("AC-001.4-27: failed list can be retried", async () => {
+    mocks.list.mockResolvedValueOnce({ ok: false, reason: 'Offline list' })
+    render(view())
+    expect(await screen.findByRole('alert')).toHaveTextContent('Offline list')
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
+    await screen.findByRole('link', { name: /Dinner/ })
+  })
+
+  test("AC-001.4-28: unavailable draft shows no editable form and supports retry", async () => {
+    mocks.load.mockResolvedValueOnce({ ok: false, reason: 'Draft unavailable' })
+    render(view('/drafts/draft-1'))
+    await screen.findByText('Draft unavailable')
+    expect(screen.queryByLabelText('Event name')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
+    await screen.findByLabelText('Event name')
+  })
+
+  test.each([
+    ['AC-001.4-29', { ...user, session: null, profile: null }],
+    ['AC-001.4-30', { ...user, profile: { ...user.profile!, role: 'coordinator' as const } }],
+    ['AC-001.4-31', { ...user, loading: true }],
+  ] as const)("%s: draft queries wait for authorised page access (%j)", async (_caseId, currentUser) => {
+    render(view('/drafts/draft-1', currentUser))
+    expect(mocks.load).not.toHaveBeenCalled()
+    expect(screen.queryByLabelText('Event name')).not.toBeInTheDocument()
+  })
+
+  test("AC-001.4-32: navigating to another draft ignores an old pending response", async () => {
+    let finish!: (result: LoadEventDraftResult) => void
+    mocks.load.mockReturnValueOnce(new Promise<LoadEventDraftResult>((resolve) => { finish = resolve }))
+    mocks.load.mockResolvedValueOnce({ ok: true, draft: { ...draft, id: 'draft-2', values: { name: 'Second draft' } } })
+    render(view('/drafts/draft-1'))
+    fireEvent.click(screen.getByRole('link', { name: 'Other draft' }))
+    expect(await screen.findByLabelText('Event name')).toHaveValue('Second draft')
+    finish({ ok: true, draft })
+    await waitFor(() => expect(screen.getByLabelText('Event name')).toHaveValue('Second draft'))
+  })
+
+  test("AC-001.4-33: switching accounts clears the previous draft before loading again", async () => {
+    const rendered = render(view('/drafts/draft-1'))
+    expect(await screen.findByLabelText('Event name')).toHaveValue('Dinner')
+    mocks.load.mockResolvedValue({ ok: false, reason: 'Draft unavailable' })
+    rendered.rerender(view('/drafts/draft-1', {
+      ...user, session: { userId: 'owner-2', email: null },
+      profile: { id: 'owner-2', fullName: 'Another organiser', role: 'organiser' },
+    }))
+    expect(screen.queryByDisplayValue('Dinner')).not.toBeInTheDocument()
+    await screen.findByText('Draft unavailable')
+  })
+})
+
+describe('AC-001.6', () => {
+  test("AC-001.6-01: direct draft URL can submit the existing request explicitly (also AC-001.4)", async () => {
     mocks.submit.mockResolvedValue({ ok: true, event: { id: draft.id, status: 'submitted', reference: 'EVT-2099-0001', submittedAt: null } })
     render(view('/drafts/draft-1'))
     await screen.findByLabelText('Event name')
@@ -83,77 +163,5 @@ describe('Save Draft Event Request — list and resume with mocked services', ()
     mocks.list.mockResolvedValue({ ok: true, drafts: [] })
     fireEvent.click(screen.getByRole('link', { name: 'Back to My Drafts' }))
     await screen.findByText('You have no saved drafts.')
-  })
-
-  test('AC 2/4: an incomplete draft can reopen and save without required fields', async () => {
-    mocks.load.mockResolvedValue({ ok: true, draft: { ...draft, values: {} } })
-    render(view('/drafts/draft-1'))
-    expect(await screen.findByLabelText('Event name')).toHaveValue('')
-    fireEvent.click(screen.getByRole('button', { name: 'Save Draft' }))
-    await screen.findByText('Draft saved')
-    expect(mocks.save).toHaveBeenCalledWith(expect.objectContaining({ purpose: '', proposedStart: '' }), 'draft-1')
-  })
-
-  test('AC 3/4: unnamed drafts have a usable fallback label', async () => {
-    mocks.list.mockResolvedValue({ ok: true, drafts: [{ ...draft, name: null, purpose: null }] })
-    render(view())
-    expect(await screen.findByRole('link', { name: /Untitled draft/ })).toHaveAttribute('href', '/drafts/draft-1')
-  })
-
-  test('AC 4: empty state offers a new request', async () => {
-    mocks.list.mockResolvedValue({ ok: true, drafts: [] })
-    render(view())
-    await screen.findByText('You have no saved drafts.')
-    expect(screen.getByRole('link', { name: 'Start a new request' })).toHaveAttribute('href', '/events/new')
-  })
-
-  test('AC 4: failed list can be retried', async () => {
-    mocks.list.mockResolvedValueOnce({ ok: false, reason: 'Offline list' })
-    render(view())
-    expect(await screen.findByRole('alert')).toHaveTextContent('Offline list')
-    fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
-    await screen.findByRole('link', { name: /Dinner/ })
-  })
-
-  test('AC 4: unavailable draft shows no editable form and supports retry', async () => {
-    mocks.load.mockResolvedValueOnce({ ok: false, reason: 'Draft unavailable' })
-    render(view('/drafts/draft-1'))
-    await screen.findByText('Draft unavailable')
-    expect(screen.queryByLabelText('Event name')).not.toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
-    await screen.findByLabelText('Event name')
-  })
-
-  test.each([
-    { ...user, session: null, profile: null },
-    { ...user, profile: { ...user.profile!, role: 'coordinator' as const } },
-    { ...user, loading: true },
-  ])('AC 4: draft queries wait for authorised page access (%j)', async (currentUser) => {
-    render(view('/drafts/draft-1', currentUser))
-    expect(mocks.load).not.toHaveBeenCalled()
-    expect(screen.queryByLabelText('Event name')).not.toBeInTheDocument()
-  })
-
-  test('AC 4: navigating to another draft ignores an old pending response', async () => {
-    let finish!: (result: LoadEventDraftResult) => void
-    mocks.load.mockReturnValueOnce(new Promise<LoadEventDraftResult>((resolve) => { finish = resolve }))
-    mocks.load.mockResolvedValueOnce({ ok: true, draft: { ...draft, id: 'draft-2', values: { name: 'Second draft' } } })
-    render(view('/drafts/draft-1'))
-    fireEvent.click(screen.getByRole('link', { name: 'Other draft' }))
-    expect(await screen.findByLabelText('Event name')).toHaveValue('Second draft')
-    finish({ ok: true, draft })
-    await waitFor(() => expect(screen.getByLabelText('Event name')).toHaveValue('Second draft'))
-  })
-
-  test('AC 4: switching accounts clears the previous draft before loading again', async () => {
-    const rendered = render(view('/drafts/draft-1'))
-    expect(await screen.findByLabelText('Event name')).toHaveValue('Dinner')
-    mocks.load.mockResolvedValue({ ok: false, reason: 'Draft unavailable' })
-    rendered.rerender(view('/drafts/draft-1', {
-      ...user, session: { userId: 'owner-2', email: null },
-      profile: { id: 'owner-2', fullName: 'Another organiser', role: 'organiser' },
-    }))
-    expect(screen.queryByDisplayValue('Dinner')).not.toBeInTheDocument()
-    await screen.findByText('Draft unavailable')
   })
 })
