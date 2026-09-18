@@ -20,6 +20,19 @@ test('AC-24.2: refreshes status periodically and on focus, stopping after unmoun
   expect(read).toHaveBeenCalledTimes(3)
 })
 
+test('AC-24.2-01: queues manual refresh while an older status read is pending', async () => {
+  let resolve!: (value: { ok: true; value: string }) => void
+  const read = vi.fn()
+    .mockImplementationOnce(() => new Promise((done) => { resolve = done }))
+    .mockResolvedValue({ ok: true, value: 'approved' })
+  const { result } = renderHook(() => useRequestResource('owner', read))
+  act(() => { result.current.refresh(); result.current.refresh() })
+  expect(read).toHaveBeenCalledTimes(1)
+  await act(async () => { resolve({ ok: true, value: 'under_review' }) })
+  expect(read).toHaveBeenCalledTimes(2)
+  expect(result.current.value).toBe('approved')
+})
+
 test('AC-24.6: clears previously visible data if access is revoked', async () => {
   const read = vi.fn().mockResolvedValue({ ok: true, value: 'private request' })
   const { result } = renderHook(() => useRequestResource('owner', read))

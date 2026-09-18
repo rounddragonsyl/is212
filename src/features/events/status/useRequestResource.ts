@@ -14,8 +14,13 @@ export function useRequestResource<T>(key: string, read: () => Promise<Result<T>
   useEffect(() => {
     let active = true
     let pending = false
+    let queued = false
     const load = async () => {
-      if (pending) return
+      if (!active) return
+      if (pending) {
+        queued = true
+        return
+      }
       pending = true
       try {
         const result = await read()
@@ -27,6 +32,11 @@ export function useRequestResource<T>(key: string, read: () => Promise<Result<T>
           error: 'The event requests could not be loaded. Please try again.' })
       } finally {
         pending = false
+        // A refresh after a review decision must not disappear behind an older read.
+        if (active && queued) {
+          queued = false
+          void load()
+        }
       }
     }
     refreshRef.current = () => { void load() }

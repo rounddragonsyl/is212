@@ -27,6 +27,8 @@ export function SignedInHome({ profile }: { profile: UserProfile }) {
 
   const isCoordinator = profile.role === 'coordinator'
   const isOrganiser = profile.role === 'organiser'
+  const isManager = profile.role === 'operations_manager'
+  const canViewRequests = isOrganiser || isCoordinator || isManager
   const awaiting = requests?.filter((request) => request.status === 'submitted') ?? []
   const recent = requests?.slice(0, 3) ?? []
 
@@ -58,17 +60,17 @@ export function SignedInHome({ profile }: { profile: UserProfile }) {
                 : 'View all requests'}
             </Link>
           )}
-          {(isOrganiser || isCoordinator) && (
+          {canViewRequests && (
             <Link
               to="/requests"
               className="text-sm font-medium text-indigo-700 underline-offset-4 hover:underline"
             >
-              {isCoordinator ? 'See everything' : 'See my requests'}
+              {isOrganiser ? 'See my requests' : 'See all requests'}
             </Link>
           )}
         </div>
 
-        {!isOrganiser && !isCoordinator && (
+        {!canViewRequests && (
           <p className="mt-6 max-w-xl text-sm leading-relaxed text-slate-600">
             There is nothing for you to action here right now. Your coordinator will be in
             touch when an event needs you.
@@ -76,11 +78,11 @@ export function SignedInHome({ profile }: { profile: UserProfile }) {
         )}
       </section>
 
-      {(isOrganiser || isCoordinator) && (
+      {canViewRequests && (
         <section aria-labelledby="recent-heading" className="border-t border-slate-200 pt-10">
           <div className="flex items-baseline justify-between gap-4">
             <h2 id="recent-heading" className="text-lg font-semibold text-slate-900">
-              {isCoordinator ? 'Latest requests' : 'Your recent requests'}
+              {isOrganiser ? 'Your recent requests' : 'Latest requests'}
             </h2>
             <Link
               to="/requests"
@@ -98,7 +100,7 @@ export function SignedInHome({ profile }: { profile: UserProfile }) {
             <p className="mt-6 text-sm text-slate-500">Loading…</p>
           ) : recent.length === 0 ? (
             <p className="mt-6 max-w-xl text-sm leading-relaxed text-slate-600">
-              {isCoordinator
+              {isCoordinator || isManager
                 ? 'No requests have come in yet. They will appear here as soon as an organiser submits one.'
                 : 'You have not submitted a request yet. Starting one takes about two minutes.'}
             </p>

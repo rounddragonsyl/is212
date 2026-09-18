@@ -1,6 +1,7 @@
 export const USER_ROLES = [
   'organiser',
   'coordinator',
+  'operations_manager',
   'venue_staff',
   'tech_support',
   'attendee',
@@ -12,6 +13,7 @@ export type UserRole = (typeof USER_ROLES)[number]
 export const USER_ROLE_LABELS: Record<UserRole, string> = {
   organiser: 'Event Organiser',
   coordinator: 'Event Coordinator',
+  operations_manager: 'Event Operations Manager',
   venue_staff: 'Venue Staff',
   tech_support: 'Technical Support',
   attendee: 'Attendee',

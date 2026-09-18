@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { transitionEventStatus } from '../eventReviewService'
-import { reviewActionsFor } from '../statusRules'
+import { reviewActionsFor, STATUS_TRANSITIONS } from '../statusRules'
 import type { EventStatus } from '../types'
 
 interface ReviewActionsProps {
@@ -29,35 +29,50 @@ export function ReviewActions({ eventId, status, onReviewed }: ReviewActionsProp
   if (actions.length === 0) {
     return (
       <p className="text-sm text-slate-500">
-        This request is in a final state and cannot be changed.
+        {STATUS_TRANSITIONS[status].length === 0
+          ? 'This request is in a final state and cannot be changed.'
+          : 'No coordinator actions are available at this stage.'}
       </p>
     )
   }
 
   const act = async (to: EventStatus) => {
+    if (to === 'cancelled' && !window.confirm('Cancel this event? This cannot be undone.')) return
     setBusy(true)
     setError(null)
 
-    const result = await transitionEventStatus({
-      id: eventId,
-      from: status,
-      to,
-      actor: { role: 'coordinator', isOwner: false },
-      note,
-    })
+    try {
+      const result = await transitionEventStatus({
+        id: eventId,
+        from: status,
+        to,
+        actor: { role: 'coordinator', isOwner: false },
+        note,
+      })
 
-    if (result.ok) {
-      setNote('')
-      onReviewed(result.status)
-    } else {
-      setError(result.reason)
+      if (result.ok) {
+        setNote('')
+        onReviewed(result.status)
+      } else {
+        setError(result.reason)
+      }
+    } catch {
+      setError('The event could not be updated. Please try again.')
+    } finally {
+      setBusy(false)
     }
-
-    setBusy(false)
   }
 
   return (
     <div className="space-y-4">
+      {status === 'planning' && (
+        <p className="text-sm text-slate-600">
+          Confirm only after you have checked that all essential event arrangements are complete.
+        </p>
+      )}
+      {status === 'confirmed' && (
+        <p className="text-sm text-slate-600">Mark completed only after the event has taken place.</p>
+      )}
       <div>
         <label htmlFor="review-note" className="block text-sm font-medium text-slate-700">
           Note to the organiser

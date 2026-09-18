@@ -220,6 +220,26 @@ describe('SCRUM-24 organiser reads', () => {
     expect(neq).not.toHaveBeenCalled()
   })
 
+  test('AC-24.2-02: retrieves the current database status and shared reason on each read', async () => {
+    const row = {
+      id: EVENT_ID, organiser_id: 'owner-1', status: 'submitted',
+      reference: 'EVT-2026-0001', review_note: null,
+    }
+    const maybeSingle = vi.fn()
+      .mockResolvedValueOnce({ data: row, error: null })
+      .mockResolvedValueOnce({ data: { ...row, status: 'rejected', review_note: 'Venue unavailable' }, error: null })
+    const eq = vi.fn().mockReturnValue({ maybeSingle })
+    mocks.from.mockReturnValue({ select: vi.fn().mockReturnValue({ eq }) })
+    expect(await getEventRequest(EVENT_ID)).toMatchObject({
+      ok: true, request: { id: EVENT_ID, organiserId: 'owner-1', status: 'submitted' },
+    })
+    expect(await getEventRequest(EVENT_ID)).toMatchObject({
+      ok: true, request: { status: 'rejected', reviewNote: 'Venue unavailable' },
+    })
+    expect(eq).toHaveBeenCalledWith('id', EVENT_ID)
+    expect(maybeSingle).toHaveBeenCalledTimes(2)
+  })
+
   test('AC-24.6: forbidden and missing requests share the same response', async () => {
     const maybeSingle = vi.fn().mockResolvedValue({ data: null, error: null })
     const eq = vi.fn().mockReturnValue({ maybeSingle })
@@ -229,5 +249,29 @@ describe('SCRUM-24 organiser reads', () => {
     expect(eq).toHaveBeenCalledWith('id', EVENT_ID)
     expect(select.mock.calls[0][0]).not.toContain('reviewed_by')
     expect(select.mock.calls[0][0]).not.toContain('*')
+  })
+  test('AC-24.6-01: malformed IDs return unavailable without querying the database', async () => {
+    expect(await getEventRequest('not-an-event-id')).toEqual({ ok: false, reason: REVIEW_MESSAGES.notFound })
+    expect(mocks.from).not.toHaveBeenCalled()
+  })
+
+})
+
+
+describe('remaining lifecycle persistence', () => {
+  test.each([
+    ['approved', 'planning'], ['planning', 'confirmed'],
+    ['confirmed', 'completed'], ['approved', 'cancelled'],
+  ] as const)('AC-LIFECYCLE.5-%s-%s: persists the coordinator transition', async (from, to) => {
+    const { update, eqStatus } = mockUpdate({ data: { id: EVENT_ID, status: to }, error: null })
+    expect(await transitionEventStatus({ id: EVENT_ID, from, to,
+      actor: { role: 'coordinator', isOwner: false } })).toEqual({ ok: true, status: to })
+    expect(update).toHaveBeenCalledWith({ status: to, review_note: null })
+    expect(eqStatus).toHaveBeenCalledWith('status', from)
+  })
+  test('AC-LIFECYCLE.2-01: manager lifecycle writes are denied before persistence', async () => {
+    expect(await transitionEventStatus({ id: EVENT_ID, from: 'approved', to: 'planning',
+      actor: { role: 'operations_manager', isOwner: false } })).toEqual({ ok: false, reason: REVIEW_MESSAGES.notPermitted })
+    expect(mocks.from).not.toHaveBeenCalled()
   })
 })

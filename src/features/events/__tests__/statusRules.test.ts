@@ -78,9 +78,7 @@ describe('who may perform a transition', () => {
 
 describe('actions offered to a coordinator', () => {
   test('a newly submitted request offers review, not approval', () => {
-    // Cancelling is not a review decision: withdrawing a request belongs to the organiser
-    // who raised it, so it is deliberately absent from the coordinator's actions.
-    expect(reviewActionsFor('submitted').map((action) => action.to)).toEqual(['under_review'])
+    expect(reviewActionsFor('submitted').map((action) => action.to)).toEqual(['under_review', 'cancelled'])
   })
 
   test('a request under review offers approve, return and reject', () => {
@@ -93,4 +91,22 @@ describe('actions offered to a coordinator', () => {
   test('a rejected request offers nothing', () => {
     expect(reviewActionsFor('rejected')).toEqual([])
   })
+})
+
+
+describe('remaining lifecycle actions', () => {
+  test.each([
+    ['approved', ['planning', 'cancelled']],
+    ['planning', ['confirmed', 'cancelled']],
+    ['confirmed', ['completed', 'cancelled']],
+    ['completed', []], ['cancelled', []], ['draft', []],
+  ] as const)('AC-LIFECYCLE.1-%s: offers the permitted next steps', (status, expected) => {
+    expect(reviewActionsFor(status).map((action) => action.to)).toEqual(expected)
+  })
+  test.each(['operations_manager', 'venue_staff', 'tech_support', 'attendee'] as const)(
+    'AC-LIFECYCLE.2-%s: cannot change lifecycle even if they own a historical request', (role) => {
+      expect(canActorTransition({ role, isOwner: true }, 'approved', 'planning')).toBe(false)
+      expect(canActorTransition({ role, isOwner: true }, 'approved', 'cancelled')).toBe(false)
+    },
+  )
 })

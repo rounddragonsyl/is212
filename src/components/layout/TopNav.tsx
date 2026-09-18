@@ -30,6 +30,7 @@ function navItemsFor(role: UserRole | null): NavItem[] {
         { label: 'My Drafts', to: '/drafts' },
         { label: 'My requests', to: '/requests' },
       ]
+    case 'operations_manager':
     case 'coordinator':
       return [home, { label: 'Requests', to: '/requests' }]
     default:

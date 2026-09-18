@@ -1,3 +1,4 @@
+import { z } from 'zod'
 import { supabase } from '../../lib/supabase'
 import { canActorTransition } from './statusRules'
 import type { UserRole } from '../auth/types'
@@ -95,6 +96,10 @@ export type DetailResult =
   | { ok: false; reason: string }
 
 export async function getEventRequest(id: string): Promise<DetailResult> {
+  // Invalid URL IDs use the same response as missing or inaccessible requests.
+  if (!z.string().uuid().safeParse(id).success) {
+    return { ok: false, reason: REVIEW_MESSAGES.notFound }
+  }
   const { data, error } = await supabase
     .from('events')
     .select(DETAIL_COLUMNS)

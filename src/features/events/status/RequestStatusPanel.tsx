@@ -1,6 +1,18 @@
 import { Card } from '../../../components/ui/Card'
 import { StatusBadge } from '../components/StatusBadge'
-import type { EventRequestDetail } from '../types'
+import type { EventRequestDetail, EventStatus } from '../types'
+
+const STATUS_DESCRIPTIONS: Record<EventStatus, string> = {
+  draft: 'Your event request has not been submitted yet.',
+  submitted: 'Your event request has been submitted and is awaiting review.',
+  under_review: 'Your event request is currently being reviewed.',
+  approved: 'Your event request has been approved. Event arrangements are being prepared; the event is not yet confirmed.',
+  planning: 'Your event arrangements are being prepared; the event is not yet confirmed.',
+  confirmed: 'Your event has been confirmed and is ready to proceed.',
+  completed: 'This event has been completed.',
+  rejected: 'Your event request was rejected.',
+  cancelled: 'This event has been cancelled.',
+}
 
 export function RequestStatusPanel({ request }: { request: EventRequestDetail }) {
   const note = request.reviewNote?.trim()
@@ -9,6 +21,11 @@ export function RequestStatusPanel({ request }: { request: EventRequestDetail })
     <Card title="Current status">
       <div aria-live="polite" className="space-y-4">
         <StatusBadge status={request.status} />
+        <p className="text-sm text-slate-700">
+          {returned
+            ? 'Your event request has been returned for clarification or amendment. See the requested information below.'
+            : STATUS_DESCRIPTIONS[request.status]}
+        </p>
         {returned ? (
           <div>
             <h3 className="font-semibold text-amber-800">Outstanding clarification or amendment request</h3>

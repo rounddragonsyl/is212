@@ -22,12 +22,13 @@ beforeEach(() => {
 })
 
 describe('role vocabulary', () => {
-  test('every role in the app matches the profiles_role_valid CHECK in 0001_events.sql', () => {
+  test('every role in the app matches the profiles_role_valid CHECK in 0006_operations_manager.sql', () => {
     // Kept in step by hand, so this test is the thing that catches a drift between the
     // database constraint and the app.
     expect([...USER_ROLES]).toEqual([
       'organiser',
       'coordinator',
+      'operations_manager',
       'venue_staff',
       'tech_support',
       'attendee',
@@ -42,6 +43,7 @@ describe('role vocabulary', () => {
 
   test('rejects a value that is not one of the known roles', () => {
     expect(isUserRole('organiser')).toBe(true)
+    expect(isUserRole('operations_manager')).toBe(true)
     expect(isUserRole('admin')).toBe(false)
     expect(isUserRole(null)).toBe(false)
   })
@@ -54,6 +56,11 @@ describe('getMyProfile', () => {
     const profile = await getMyProfile(USER_ID)
 
     expect(profile).toEqual({ id: USER_ID, fullName: 'Test Organiser', role: 'coordinator' })
+  })
+
+  test('AC-ROLES.1-01: recognises an assigned operations manager profile', async () => {
+    mockProfileRow({ id: USER_ID, full_name: 'Manager', role: 'operations_manager' })
+    expect(await getMyProfile(USER_ID)).toEqual({ id: USER_ID, fullName: 'Manager', role: 'operations_manager' })
   })
 
   test('returns null for an unrecognised role rather than defaulting to organiser', async () => {

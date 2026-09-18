@@ -26,18 +26,19 @@ export function ReviewRequestsPage() {
   const requests = value ?? []
 
   const isCoordinator = profile?.role === 'coordinator'
+  const isManager = profile?.role === 'operations_manager'
 
   return (
     <PageContainer>
       <div className="mb-8 max-w-3xl">
         <p className="text-xs font-semibold uppercase tracking-wider text-indigo-600">
-          {isCoordinator ? 'Event coordinator' : 'Event requests'}
+          {isManager ? 'Event operations manager' : isCoordinator ? 'Event coordinator' : 'Event requests'}
         </p>
         <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">
-          {isCoordinator ? 'Incoming requests' : 'Your requests'}
+          {isCoordinator || isManager ? 'Incoming requests' : 'Your requests'}
         </h1>
         <p className="mt-3 text-sm leading-relaxed text-slate-600">
-          {isCoordinator
+          {isManager ? 'View submitted events and their current progress.' : isCoordinator
             ? 'Every submitted request, newest first. Open one to see the full details and decide.'
             : 'Your event requests, including drafts. Status updates automatically every 30 seconds.'}
         </p>
@@ -57,7 +58,7 @@ export function ReviewRequestsPage() {
       ) : requests.length === 0 ? (
         <Card title="Nothing here yet">
           <p className="text-sm text-slate-600">
-            {isCoordinator
+            {isCoordinator || isManager
               ? 'No requests have been submitted yet. They appear here the moment an organiser submits one.'
               : 'You have not created any event requests yet.'}
           </p>
