@@ -2,7 +2,6 @@ import { describe, expect, test } from 'vitest'
 import { VALIDATION_MESSAGES, validateEventRequest } from '../validation'
 import type { EventRequestInput, ValidationIssue } from '../types'
 
-// A fixed clock, so "in the past" means the same thing in June as it does in January.
 const NOW = new Date('2026-01-01T09:00:00Z')
 
 const validInput: EventRequestInput = {
@@ -19,41 +18,36 @@ const messageFor = (issues: ValidationIssue[], field: ValidationIssue['field']) 
   issues.find((issue) => issue.field === field)?.message
 
 describe('AC-005.2 — required fields', () => {
-  test('AC-005.2: rejects submission when purpose is missing', () => {
+  test('AC-005.2-01: rejects submission when purpose is missing', () => {
     const result = validate({ purpose: undefined })
-
     expect(result.ok).toBe(false)
     if (result.ok) return
     expect(messageFor(result.issues, 'purpose')).toBe(VALIDATION_MESSAGES.purposeRequired)
   })
 
-  test('AC-005.2: rejects submission when purpose is whitespace only', () => {
+  test('AC-005.2-02: rejects submission when purpose is whitespace only', () => {
     const result = validate({ purpose: '    ' })
-
     expect(result.ok).toBe(false)
     if (result.ok) return
     expect(messageFor(result.issues, 'purpose')).toBe(VALIDATION_MESSAGES.purposeRequired)
   })
 
-  test('AC-005.2: rejects submission when the preferred start date and time is missing', () => {
+  test('AC-005.2-03: rejects submission when the preferred start date and time is missing', () => {
     const result = validate({ proposedStart: '' })
-
     expect(result.ok).toBe(false)
     if (result.ok) return
     expect(messageFor(result.issues, 'proposedStart')).toBe(VALIDATION_MESSAGES.startRequired)
   })
 
-  test('AC-005.2: rejects submission when the preferred end date and time is missing', () => {
+  test('AC-005.2-04: rejects submission when the preferred end date and time is missing', () => {
     const result = validate({ proposedEnd: undefined })
-
     expect(result.ok).toBe(false)
     if (result.ok) return
     expect(messageFor(result.issues, 'proposedEnd')).toBe(VALIDATION_MESSAGES.endRequired)
   })
 
-  test('AC-005.2: rejects submission when expected attendance is missing', () => {
+  test('AC-005.2-05: rejects submission when expected attendance is missing', () => {
     const result = validate({ expectedAttendance: '' })
-
     expect(result.ok).toBe(false)
     if (result.ok) return
     expect(messageFor(result.issues, 'expectedAttendance')).toBe(
@@ -61,9 +55,8 @@ describe('AC-005.2 — required fields', () => {
     )
   })
 
-  test('AC-005.2: reports every missing required field at once, not just the first', () => {
+  test('AC-005.2-06: reports every missing required field at once, not just the first', () => {
     const result = validateEventRequest({}, { now: NOW })
-
     expect(result.ok).toBe(false)
     if (result.ok) return
     expect(result.issues.map((issue) => issue.field).sort()).toEqual([
@@ -76,9 +69,8 @@ describe('AC-005.2 — required fields', () => {
 })
 
 describe('AC-005.2 — invalid values', () => {
-  test('AC-005.2: rejects an expected attendance of 0 (lower boundary, invalid)', () => {
+  test('AC-005.2-07: rejects an expected attendance of 0 (lower boundary, invalid)', () => {
     const result = validate({ expectedAttendance: '0' })
-
     expect(result.ok).toBe(false)
     if (result.ok) return
     expect(messageFor(result.issues, 'expectedAttendance')).toBe(
@@ -86,9 +78,8 @@ describe('AC-005.2 — invalid values', () => {
     )
   })
 
-  test('AC-005.2: rejects a negative expected attendance of -1', () => {
+  test('AC-005.2-08: rejects a negative expected attendance of -1', () => {
     const result = validate({ expectedAttendance: '-1' })
-
     expect(result.ok).toBe(false)
     if (result.ok) return
     expect(messageFor(result.issues, 'expectedAttendance')).toBe(
@@ -96,17 +87,15 @@ describe('AC-005.2 — invalid values', () => {
     )
   })
 
-  test('AC-005.2: accepts an expected attendance of 1 (lower boundary, valid)', () => {
+  test('AC-005.2-09: accepts an expected attendance of 1 (lower boundary, valid)', () => {
     const result = validate({ expectedAttendance: '1' })
-
     expect(result.ok).toBe(true)
     if (!result.ok) return
     expect(result.value.expectedAttendance).toBe(1)
   })
 
-  test('AC-005.2: rejects a non-numeric expected attendance', () => {
+  test('AC-005.2-10: rejects a non-numeric expected attendance', () => {
     const result = validate({ expectedAttendance: 'a lot' })
-
     expect(result.ok).toBe(false)
     if (result.ok) return
     expect(messageFor(result.issues, 'expectedAttendance')).toBe(
@@ -114,9 +103,8 @@ describe('AC-005.2 — invalid values', () => {
     )
   })
 
-  test('AC-005.2: rejects a fractional expected attendance', () => {
+  test('AC-005.2-11: rejects a fractional expected attendance', () => {
     const result = validate({ expectedAttendance: '12.5' })
-
     expect(result.ok).toBe(false)
     if (result.ok) return
     expect(messageFor(result.issues, 'expectedAttendance')).toBe(
@@ -124,72 +112,65 @@ describe('AC-005.2 — invalid values', () => {
     )
   })
 
-  test('AC-005.2: rejects an end date and time before the start', () => {
+  test('AC-005.2-12: rejects an end date and time before the start', () => {
     const result = validate({
       proposedStart: '2026-03-01T18:00',
       proposedEnd: '2026-03-01T17:00',
     })
-
     expect(result.ok).toBe(false)
     if (result.ok) return
     expect(messageFor(result.issues, 'proposedEnd')).toBe(VALIDATION_MESSAGES.endBeforeStart)
   })
 
-  test('AC-005.2: rejects a zero-length event where end equals start (boundary)', () => {
+  test('AC-005.2-13: rejects a zero-length event where end equals start (boundary)', () => {
     const result = validate({
       proposedStart: '2026-03-01T18:00',
       proposedEnd: '2026-03-01T18:00',
     })
-
     expect(result.ok).toBe(false)
     if (result.ok) return
     expect(messageFor(result.issues, 'proposedEnd')).toBe(VALIDATION_MESSAGES.endBeforeStart)
   })
 
-  test('AC-005.2: rejects a proposed start date in the past', () => {
+  test('AC-005.2-14: rejects a proposed start date in the past', () => {
     const result = validate({
       proposedStart: '2025-12-31T18:00',
       proposedEnd: '2025-12-31T22:00',
     })
-
     expect(result.ok).toBe(false)
     if (result.ok) return
     expect(messageFor(result.issues, 'proposedStart')).toBe(VALIDATION_MESSAGES.startInPast)
   })
 
-  test('AC-005.2: rejects an unparseable date', () => {
+  test('AC-005.2-15: rejects an unparseable date', () => {
     const result = validate({ proposedStart: 'next Tuesday-ish' })
-
     expect(result.ok).toBe(false)
     if (result.ok) return
     expect(messageFor(result.issues, 'proposedStart')).toBe(VALIDATION_MESSAGES.startInvalid)
   })
 
-  test('AC-005.2: rejects a proposed start exactly equal to now (boundary)', () => {
+  test('AC-005.2-16: rejects a proposed start exactly equal to now (boundary)', () => {
     const result = validate({
       proposedStart: NOW.toISOString(),
       proposedEnd: '2026-03-01T22:00',
     })
-
     expect(result.ok).toBe(false)
     if (result.ok) return
     expect(messageFor(result.issues, 'proposedStart')).toBe(VALIDATION_MESSAGES.startInPast)
   })
 
-  test('AC-005.2: accepts an end date one second after start (smallest valid duration)', () => {
+  test('AC-005.2-17: accepts an end date one second after start (smallest valid duration)', () => {
     const result = validate({
       proposedStart: '2026-03-01T18:00:00',
       proposedEnd: '2026-03-01T18:00:01',
     })
-
     expect(result.ok).toBe(true)
   })
 })
 
 describe('AC-005.1 — optional information', () => {
-  test('AC-005.1: accepts a request with every optional field omitted', () => {
+  test('AC-005.1-01: accepts a request with every optional field omitted', () => {
     const result = validate()
-
     expect(result.ok).toBe(true)
     if (!result.ok) return
     expect(result.value.purpose).toBe('Annual client appreciation dinner')
@@ -198,7 +179,7 @@ describe('AC-005.1 — optional information', () => {
     expect(result.value.registrationRequired).toBe(false)
   })
 
-  test('AC-005.1: captures every optional field when the organiser supplies them', () => {
+  test('AC-005.1-02: captures every optional field when the organiser supplies them', () => {
     const result = validate({
       name: 'Client Appreciation Dinner 2026',
       eventType: 'Gala dinner',
@@ -210,7 +191,6 @@ describe('AC-005.1 — optional information', () => {
       registrationRequired: true,
       specialArrangements: 'Kosher and halal menu options',
     })
-
     expect(result.ok).toBe(true)
     if (!result.ok) return
     expect(result.value).toMatchObject({
@@ -222,18 +202,16 @@ describe('AC-005.1 — optional information', () => {
     })
   })
 
-  test('AC-005.1: collapses whitespace-only optional fields to null rather than storing blanks', () => {
+  test('AC-005.1-03: collapses whitespace-only optional fields to null rather than storing blanks', () => {
     const result = validate({ programme: '   ', layoutPreference: '' })
-
     expect(result.ok).toBe(true)
     if (!result.ok) return
     expect(result.value.programme).toBeNull()
     expect(result.value.layoutPreference).toBeNull()
   })
 
-  test('AC-005.1: trims surrounding whitespace from the purpose before storing it', () => {
+  test('AC-005.1-04: trims surrounding whitespace from the purpose before storing it', () => {
     const result = validate({ purpose: '  Team offsite  ' })
-
     expect(result.ok).toBe(true)
     if (!result.ok) return
     expect(result.value.purpose).toBe('Team offsite')
@@ -241,7 +219,7 @@ describe('AC-005.1 — optional information', () => {
 })
 
 describe('AC-005.2 — regression: browser default datetime-local value', () => {
-  test('rejects the un-touched form default (same start/end, both dated in the past)', () => {
+  test('AC-005.2-18: rejects the un-touched form default (same start/end, both dated in the past)', () => {
     const result = validateEventRequest(
       {
         ...validInput,
@@ -250,7 +228,6 @@ describe('AC-005.2 — regression: browser default datetime-local value', () => 
       },
       { now: new Date('2026-09-15T00:00:00Z') },
     )
-
     expect(result.ok).toBe(false)
     if (result.ok) return
     expect(messageFor(result.issues, 'proposedStart')).toBe(VALIDATION_MESSAGES.startInPast)

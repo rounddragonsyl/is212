@@ -182,9 +182,8 @@ describe('AC-001.6', () => {
 })
 
 describe('AC-005.1', () => {
-  test('AC-005.1: offers an input for every piece of preliminary information', () => {
+  test('AC-005.1-06: offers an input for every piece of preliminary information', () => {
     render(<EventRequestForm />)
-
     for (const label of [
       /purpose of the event/i,
       /type of event/i,
@@ -204,37 +203,31 @@ describe('AC-005.1', () => {
 })
 
 describe('AC-005.2', () => {
-  test('AC-005.2: does not submit when a required field is missing, and says which', async () => {
+  test('AC-005.2-19: does not submit when a required field is missing, and says which', async () => {
     render(<EventRequestForm />)
-
     submit()
-
     expect(await screen.findByText(/purpose is required/i)).toBeInTheDocument()
     expect(mocks.submitEventRequest).not.toHaveBeenCalled()
   })
 })
 
 describe('AC-005.3', () => {
-  test('AC-005.3: informs the organiser of a successful submission and its reference', async () => {
+  test('AC-005.3-01: informs the organiser of a successful submission and its reference', async () => {
     mocks.submitEventRequest.mockResolvedValue(success)
     render(<EventRequestForm />)
-
     fillRequiredFields()
     submit()
-
     const banner = await screen.findByRole('status')
     expect(banner).toHaveTextContent('Your event request was submitted')
     expect(banner).toHaveTextContent('EVT-2026-0042')
     expect(banner).toHaveTextContent('Submitted')
   })
 
-  test('AC-005.3: clears the form after a successful submission so the next request starts clean', async () => {
+  test('AC-005.3-02: clears the form after a successful submission so the next request starts clean', async () => {
     mocks.submitEventRequest.mockResolvedValue(success)
     render(<EventRequestForm />)
-
     fillRequiredFields()
     submit()
-
     await screen.findByRole('status')
     await waitFor(() => {
       expect(screen.getByLabelText(/purpose of the event/i)).toHaveValue('')
@@ -243,17 +236,15 @@ describe('AC-005.3', () => {
 })
 
 describe('AC-005.4', () => {
-  test('AC-005.4: informs the organiser of a failed submission with the reason', async () => {
+  test('AC-005.4-09: informs the organiser of a failed submission with the reason', async () => {
     mocks.submitEventRequest.mockResolvedValue({
       ok: false,
       reason: 'You must be signed in as an event organiser to submit a request.',
       issues: [],
     } satisfies SubmitEventRequestResult)
     render(<EventRequestForm />)
-
     fillRequiredFields()
     submit()
-
     const banner = await screen.findByRole('alert')
     expect(banner).toHaveTextContent('Your event request was not submitted')
     expect(banner).toHaveTextContent(/must be signed in as an event organiser/i)
