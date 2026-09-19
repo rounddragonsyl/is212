@@ -39,8 +39,8 @@ beforeEach(() => {
   vi.clearAllMocks()
 })
 
-describe('listing requests', () => {
-  test('drafts are excluded — an unsubmitted draft is the organiser private working copy', async () => {
+describe('AC-004.1 — coordinator views submitted request details', () => {
+  test('AC-004.1-01: drafts are excluded — an unsubmitted draft is the organiser private working copy', async () => {
     const { neq } = mockList({ data: [], error: null })
 
     await listEventRequests()
@@ -48,7 +48,7 @@ describe('listing requests', () => {
     expect(neq).toHaveBeenCalledWith('status', 'draft')
   })
 
-  test('maps database columns onto the shape the UI renders', async () => {
+  test('AC-004.1-02: maps database columns onto the shape the UI renders', async () => {
     mockList({
       data: [
         {
@@ -82,7 +82,7 @@ describe('listing requests', () => {
     })
   })
 
-  test('a database error is reported to the user without leaking the schema', async () => {
+  test('AC-004.1-03: a database error is reported to the user without leaking the schema', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {})
     mockList({ data: null, error: { message: 'column events.review_note does not exist' } })
 
@@ -97,10 +97,10 @@ describe('listing requests', () => {
   })
 })
 
-describe('reviewing a request', () => {
+describe('AC-004.2 / AC-004.3 — coordinator accepts/rejects with a reason', () => {
   const coordinator = { role: 'coordinator', isOwner: false } as const
 
-  test('a coordinator can take a submitted request under review', async () => {
+  test('AC-004.2-17: a coordinator can take a submitted request under review', async () => {
     mockUpdate({ data: { id: EVENT_ID, status: 'under_review' }, error: null })
 
     const result = await transitionEventStatus({
@@ -115,7 +115,7 @@ describe('reviewing a request', () => {
     expect(result.status).toBe('under_review')
   })
 
-  test('an illegal transition is refused before it reaches the database', async () => {
+  test('AC-004.2-18: an illegal transition is refused before it reaches the database', async () => {
     const { update } = mockUpdate({ data: null, error: null })
 
     const result = await transitionEventStatus({
@@ -131,7 +131,7 @@ describe('reviewing a request', () => {
     expect(update).not.toHaveBeenCalled()
   })
 
-  test('an organiser cannot approve their own request', async () => {
+  test('AC-004.2-19: an organiser cannot approve their own request', async () => {
     const { update } = mockUpdate({ data: null, error: null })
 
     const result = await transitionEventStatus({
@@ -145,7 +145,7 @@ describe('reviewing a request', () => {
     expect(update).not.toHaveBeenCalled()
   })
 
-  test('a rejection without a reason is refused', async () => {
+  test('AC-004.3-01: a rejection without a reason is refused', async () => {
     // A rejection the organiser cannot act on is not a review.
     const { update } = mockUpdate({ data: null, error: null })
 
@@ -163,7 +163,7 @@ describe('reviewing a request', () => {
     expect(update).not.toHaveBeenCalled()
   })
 
-  test('a rejection with a reason records the note', async () => {
+  test('AC-004.3-02: a rejection with a reason records the note (also AC-004.5)', async () => {
     const { update } = mockUpdate({ data: { id: EVENT_ID, status: 'rejected' }, error: null })
 
     await transitionEventStatus({
@@ -180,7 +180,7 @@ describe('reviewing a request', () => {
     })
   })
 
-  test('the update is scoped to the status we believe the request is in', async () => {
+  test('AC-004.2-20: the update is scoped to the status we believe the request is in', async () => {
     // Optimistic concurrency: if another coordinator has moved it, we must not overwrite them.
     const { eqStatus } = mockUpdate({ data: { id: EVENT_ID, status: 'approved' }, error: null })
 
@@ -194,7 +194,7 @@ describe('reviewing a request', () => {
     expect(eqStatus).toHaveBeenCalledWith('status', 'under_review')
   })
 
-  test('a request another coordinator has already moved is reported, not overwritten', async () => {
+  test('AC-004.2-21: a request another coordinator has already moved is reported, not overwritten', async () => {
     mockUpdate({ data: null, error: null })
 
     const result = await transitionEventStatus({
@@ -210,9 +210,8 @@ describe('reviewing a request', () => {
   })
 })
 
-
-describe('SCRUM-24 organiser reads', () => {
-  test('AC-24.1: includes drafts when listing organiser requests', async () => {
+describe('AC-003 — view event request status (SCRUM-24)', () => {
+  test('AC-003.1-01: includes drafts when listing organiser requests', async () => {
     const order = vi.fn().mockResolvedValue({ data: [], error: null })
     const neq = vi.fn()
     mocks.from.mockReturnValue({ select: vi.fn().mockReturnValue({ order, neq }) })
@@ -220,7 +219,7 @@ describe('SCRUM-24 organiser reads', () => {
     expect(neq).not.toHaveBeenCalled()
   })
 
-  test('AC-24.2-02: retrieves the current database status and shared reason on each read', async () => {
+  test('AC-003.2-01: retrieves the current database status and shared reason on each read', async () => {
     const row = {
       id: EVENT_ID, organiser_id: 'owner-1', status: 'submitted',
       reference: 'EVT-2026-0001', review_note: null,
@@ -240,7 +239,7 @@ describe('SCRUM-24 organiser reads', () => {
     expect(maybeSingle).toHaveBeenCalledTimes(2)
   })
 
-  test('AC-24.6: forbidden and missing requests share the same response', async () => {
+  test('AC-003.6-01: forbidden and missing requests share the same response', async () => {
     const maybeSingle = vi.fn().mockResolvedValue({ data: null, error: null })
     const eq = vi.fn().mockReturnValue({ maybeSingle })
     const select = vi.fn().mockReturnValue({ eq })
@@ -250,13 +249,12 @@ describe('SCRUM-24 organiser reads', () => {
     expect(select.mock.calls[0][0]).not.toContain('reviewed_by')
     expect(select.mock.calls[0][0]).not.toContain('*')
   })
-  test('AC-24.6-01: malformed IDs return unavailable without querying the database', async () => {
+
+  test('AC-003.6-02: malformed IDs return unavailable without querying the database', async () => {
     expect(await getEventRequest('not-an-event-id')).toEqual({ ok: false, reason: REVIEW_MESSAGES.notFound })
     expect(mocks.from).not.toHaveBeenCalled()
   })
-
 })
-
 
 describe('remaining lifecycle persistence', () => {
   test.each([
@@ -269,6 +267,7 @@ describe('remaining lifecycle persistence', () => {
     expect(update).toHaveBeenCalledWith({ status: to, review_note: null })
     expect(eqStatus).toHaveBeenCalledWith('status', from)
   })
+
   test('AC-LIFECYCLE.2-01: manager lifecycle writes are denied before persistence', async () => {
     expect(await transitionEventStatus({ id: EVENT_ID, from: 'approved', to: 'planning',
       actor: { role: 'operations_manager', isOwner: false } })).toEqual({ ok: false, reason: REVIEW_MESSAGES.notPermitted })

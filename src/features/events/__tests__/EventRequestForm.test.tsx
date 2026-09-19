@@ -181,8 +181,8 @@ describe('AC-001.6', () => {
   })
 })
 
-describe('AC-005.1', () => {
-  test('AC-005.1-06: offers an input for every piece of preliminary information', () => {
+describe('AC-002.1', () => {
+  test('AC-002.1-06: offers an input for every piece of preliminary information', () => {
     render(<EventRequestForm />)
     for (const label of [
       /purpose of the event/i,
@@ -202,8 +202,8 @@ describe('AC-005.1', () => {
   })
 })
 
-describe('AC-005.2', () => {
-  test('AC-005.2-19: does not submit when a required field is missing, and says which', async () => {
+describe('AC-002.2', () => {
+  test('AC-002.2-19: does not submit when a required field is missing, and says which', async () => {
     render(<EventRequestForm />)
     submit()
     expect(await screen.findByText(/purpose is required/i)).toBeInTheDocument()
@@ -211,8 +211,8 @@ describe('AC-005.2', () => {
   })
 })
 
-describe('AC-005.3', () => {
-  test('AC-005.3-01: informs the organiser of a successful submission and its reference', async () => {
+describe('AC-002.3', () => {
+  test('AC-002.3-01: informs the organiser of a successful submission and its reference', async () => {
     mocks.submitEventRequest.mockResolvedValue(success)
     render(<EventRequestForm />)
     fillRequiredFields()
@@ -223,7 +223,7 @@ describe('AC-005.3', () => {
     expect(banner).toHaveTextContent('Submitted')
   })
 
-  test('AC-005.3-02: clears the form after a successful submission so the next request starts clean', async () => {
+  test('AC-002.3-02: clears the form after a successful submission so the next request starts clean', async () => {
     mocks.submitEventRequest.mockResolvedValue(success)
     render(<EventRequestForm />)
     fillRequiredFields()
@@ -235,8 +235,8 @@ describe('AC-005.3', () => {
   })
 })
 
-describe('AC-005.4', () => {
-  test('AC-005.4-09: informs the organiser of a failed submission with the reason', async () => {
+describe('AC-002.4', () => {
+  test('AC-002.4-09: informs the organiser of a failed submission with the reason', async () => {
     mocks.submitEventRequest.mockResolvedValue({
       ok: false,
       reason: 'You must be signed in as an event organiser to submit a request.',
