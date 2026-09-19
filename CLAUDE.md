@@ -8,9 +8,15 @@ Roles: Event Organiser, Event Coordinator, Venue Staff, Technical Support Staff,
 React 18 + TypeScript + Vite · Tailwind · React Hook Form + Zod
 Supabase (PostgreSQL + Auth + RLS) · Vitest + React Testing Library · GitHub Actions
 
+## Repository layout
+- frontend/ is the React app. Run every npm command from there.
+- backend/supabase/migrations/ holds the database schema, RLS policies and triggers.
+  There is no API server: the browser talks to Supabase directly, so the database is the
+  backend.
+
 ## Architecture rules — follow these without being asked
-- Feature folders: src/features/<feature>/ with types.ts, validation.ts, <x>Service.ts,
-  components/, __tests__/
+- Feature folders: frontend/src/features/<feature>/ with types.ts, validation.ts,
+  <x>Service.ts, components/, __tests__/
 - validation.ts holds PURE functions only. No React, no Supabase, no I/O.
 - Only <x>Service.ts talks to Supabase. Components never import the Supabase client.
 - Business rules are validated in the client (UX) AND constrained in the database

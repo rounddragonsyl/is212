@@ -20,12 +20,15 @@ database verification and draft access-policy work remain pending.
 
 ## Setup
 
+All npm commands run from `frontend/`:
+
 ```bash
+cd frontend
 npm install
 cp .env.example .env    # Windows: copy .env.example .env
 ```
 
-Fill in `.env` from **Supabase dashboard → Project Settings → API**:
+Fill in `frontend/.env` from **Supabase dashboard → Project Settings → API**:
 
 | Variable | Where to find it |
 | --- | --- |
@@ -38,12 +41,14 @@ is compiled into the browser bundle.
 ## Applying the migration
 
 **Option A — dashboard (no CLI).** Open SQL Editor in your Supabase project, paste the
-contents of [`supabase/migrations/0001_events.sql`](supabase/migrations/0001_events.sql)
+contents of [`backend/supabase/migrations/0001_events.sql`](backend/supabase/migrations/0001_events.sql)
 and run it. The script is idempotent, so re-running it is safe.
 
-**Option B — Supabase CLI.**
+**Option B — Supabase CLI.** The CLI looks for a `supabase/` folder in the current
+directory, so run it from `backend/`:
 
 ```bash
+cd backend
 supabase link --project-ref <your-project-ref>
 supabase db push
 ```
@@ -100,9 +105,11 @@ Adding the user creates their `organiser` profile automatically, through the
 > sign-in. That raced the session lookup — a new user saw *No organiser profile* until they
 > reloaded — and let the client take part in choosing its own role. Creating it in a trigger
 > on `auth.users` fixes both: the row exists before any session can, and the client never
-> inserts into `profiles`. See [`0005_profile_on_signup.sql`](supabase/migrations/0005_profile_on_signup.sql).
+> inserts into `profiles`. See [`0005_profile_on_signup.sql`](backend/supabase/migrations/0005_profile_on_signup.sql).
 
 ## Running
+
+From `frontend/`:
 
 ```bash
 npm run dev        # Vite dev server
@@ -117,27 +124,35 @@ npm run build      # typecheck + production build
 ## Project structure
 
 ```
-src/
-├── lib/supabase.ts              single Supabase client
-├── components/ui/               shared presentational components
-├── components/layout/           app shell, navigation, footer
-└── features/
-    ├── auth/                    session plumbing (US-002 owns the real story)
-    └── events/                  one folder per backlog component
-        ├── types.ts
-        ├── validation.ts        PURE functions — no React, no Supabase, no I/O
-        ├── useEventRequestForm.ts form state and separate save/submit actions
-        ├── draftValidation.ts   incomplete draft validation, separate from submission
-        ├── eventService.ts      submits new event requests to Supabase
-        ├── eventDraftQueryService.ts lists and loads a signed-in organiser’s drafts
-        ├── eventDraftService.ts saves new drafts and updates existing owned drafts
-        ├── components/
-        └── __tests__/
-supabase/migrations/             database schema, RLS, triggers
+frontend/                            React app (Vite, Tailwind, Vitest)
+├── package.json, vite.config.ts, tsconfig.json, .env
+└── src/
+    ├── lib/supabase.ts              single Supabase client
+    ├── components/ui/               shared presentational components
+    ├── components/layout/           app shell, navigation, footer
+    └── features/
+        ├── auth/                    session plumbing (US-002 owns the real story)
+        └── events/                  one folder per backlog component
+            ├── types.ts
+            ├── validation.ts        PURE functions — no React, no Supabase, no I/O
+            ├── useEventRequestForm.ts form state and separate save/submit actions
+            ├── draftValidation.ts   incomplete draft validation, separate from submission
+            ├── eventService.ts      submits new event requests to Supabase
+            ├── eventDraftQueryService.ts lists and loads a signed-in organiser’s drafts
+            ├── eventDraftService.ts saves new drafts and updates existing owned drafts
+            ├── components/
+            └── __tests__/
+backend/
+└── supabase/migrations/             database schema, RLS, triggers
 ```
 
+The split follows where code runs, not a separate API server. The browser talks to
+Supabase directly, so the backend is the database itself: its schema, its RLS policies
+and its triggers. That is why the business rules enforced in `backend/` are the real
+control, and the checks in `frontend/` are there for the user's benefit.
+
 Future features (`venues`, `bookings`, `equipment`, `registration`, `notifications`)
-become sibling folders under `src/features/`. The folder name is simultaneously a backlog
+become sibling folders under `frontend/src/features/`. The folder name is simultaneously a backlog
 component, a C4 component and a directory, so tracing a requirement to its implementation
 is one step.
 
@@ -190,8 +205,8 @@ Current automated case ranges:
 
 Run `npm run test -- --reporter=verbose` to see individual case IDs and results.
 Automated tests live in
-[`draftValidation.test.ts`](src/features/events/__tests__/draftValidation.test.ts) and
-[`eventDraftService.test.ts`](src/features/events/__tests__/eventDraftService.test.ts),
+[`draftValidation.test.ts`](frontend/src/features/events/__tests__/draftValidation.test.ts) and
+[`eventDraftService.test.ts`](frontend/src/features/events/__tests__/eventDraftService.test.ts),
 with form tests in `EventRequestForm.test.tsx` and draft-submission tests in `eventService.test.ts`.
 `eventDraftQueryService.test.ts`, `draftFormValues.test.ts` and `DraftPages.test.tsx`
 cover listing, restored values and the list-to-editor workflow.
@@ -206,7 +221,7 @@ They do not connect to Supabase or prove the complete user flow or RLS enforceme
 | AC-001.1, AC-001.4, AC-001.5 — save/edit without submission | Service and form tests check draft saves, repeated edits, guarded updates and failures | Live database tests |
 | AC-001.3 — identifiable Draft | Form and page tests verify Draft indicators after saving and in the list | Browser and live database verification |
 
-Run the draft checks with:
+Run the draft checks from `frontend/` with:
 
 ```bash
 npm run test -- src/features/events/__tests__
