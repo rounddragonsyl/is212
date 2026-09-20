@@ -176,7 +176,9 @@ export type SubmitEventRequestResult =
 
   // US6 - Request Change for Event
 
-export type ChangeRequestStatus = 'submitted' | 'approved' | 'rejected' | 'withdrawn'
+export type ChangeRequestStatus =
+  | 'submitted' | 'approved' | 'partially_approved' | 'rejected'
+  | 'clarification_requested' | 'withdrawn'
 
 /** A partial diff of the event's editable fields — only the ones being proposed for change.
  *  Reuse the same field names/types as your event's own input type where possible, e.g.: */
@@ -207,7 +209,7 @@ export interface EventChangeRequest {
   reviewNote: string | null
 }
 
-/** Prepared review only: these new outcomes are not yet database status values. */
+/** Review preparation; persistence is handled by the database review operation. */
 export interface ChangeRequestFieldDecision {
   field: keyof ProposedEventChanges
   decision: 'approved' | 'rejected'

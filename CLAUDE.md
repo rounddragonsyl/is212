@@ -61,9 +61,20 @@ Draft saves in eventDraftService must never change an existing request's status.
   before relying on CLI migration discovery. Do not silently renumber applied files.
 - `changeRequestReviewValidation.ts` is pure, unconnected US7 review preparation.
   Decisions cover each proposed field once; rejected fields require explanations.
-  Clarification applies nothing. New prepared outcomes are NOT yet database statuses.
+  Clarification applies nothing. Migration 0008 adds these outcomes to the database.
   Do not treat prepared values as a validated event or bypass database permissions.
   README records the 19 test IDs using the supplied Jira AC order.
+- `0008_change_request_review.sql` adds coordinator assignment and the atomic review
+  RPC. Only Operations Managers assign; only the assigned coordinator reviews a
+  pending request with a matching event updated_at. Values come from the stored
+  proposal. Submitted event details cannot be edited directly by the browser;
+  US4 status transitions and US1 draft edits still work. Never apply this migration
+  silently to shared Supabase. UI integration/notifications/revalidation are pending.
+- Database checks live in `supabase/tests/`; run
+  `bash supabase/tests/run_change_request_review.sh` with Docker running. Synthetic
+  fixtures and Auth helpers are for the disposable container only, not shared Supabase.
+  43 US7 SQL case IDs continue the unit-test allocations (see README), with four
+  additional cross-story regression checks. These tests are separate from Vitest/CI.
 
 ## House style
 - No `any`. Prefer explicit types.
