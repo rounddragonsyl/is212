@@ -53,13 +53,12 @@ const CHANGEABLE_TEXT_FIELDS = [
  *  never held original values to begin with. registrationRequired is excluded until it
  *  has a proper tri-state control (a checkbox can't represent "no change"). */
 function collectChanges(values: ChangeRequestFormValues): ProposedEventChanges {
-  const { reason, registrationRequired, ...rest } = values
   const changes: ProposedEventChanges = {}
 
   for (const key of CHANGEABLE_TEXT_FIELDS) {
-    const value = rest[key]
+    const value = values[key]
     if (typeof value === 'string' && value.trim() !== '') {
-      (changes as any)[key] = value
+      changes[key] = value
     }
   }
 
