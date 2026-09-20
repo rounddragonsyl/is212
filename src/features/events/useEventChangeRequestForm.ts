@@ -32,6 +32,22 @@ const resolver: Resolver<ChangeRequestFormValues> = (values) => {
   return Object.keys(errors).length > 0 ? { values: {}, errors } : { values, errors: {} }
 }
 
+const CHANGEABLE_TEXT_FIELDS = [
+  'name',
+  'purpose',
+  'eventType',
+  'description',
+  'proposedStart',
+  'proposedEnd',
+  'expectedAttendance',
+  'programme',
+  'layoutPreference',
+  'accessibilityRequirements',
+  'equipmentRequirements',
+  'specialArrangements',
+] as const satisfies readonly (keyof ProposedEventChanges)[]
+
+
 /** Collects only the fields the organiser actually filled in. A blank string means "no
  *  change to this field" — this is not a diff against original values, since the form
  *  never held original values to begin with. registrationRequired is excluded until it
@@ -40,7 +56,7 @@ function collectChanges(values: ChangeRequestFormValues): ProposedEventChanges {
   const { reason, registrationRequired, ...rest } = values
   const changes: ProposedEventChanges = {}
 
-  for (const key of Object.keys(rest) as (keyof typeof rest)[]) {
+  for (const key of CHANGEABLE_TEXT_FIELDS) {
     const value = rest[key]
     if (typeof value === 'string' && value.trim() !== '') {
       (changes as any)[key] = value
