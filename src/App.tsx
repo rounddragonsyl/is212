@@ -10,6 +10,7 @@ import { ResumeDraftPage } from './features/events/pages/ResumeDraftPage'
 import { HomePage } from './pages/HomePage'
 import { LandingPage } from './pages/LandingPage'
 import { NotFoundPage } from './pages/NotFoundPage'
+import { SubmitEventChangesPage } from './features/events/pages/SubmitEventChangesPage'
 
 /**
  * Routes are declared here rather than scattered across features, so the sitemap is one
@@ -34,6 +35,7 @@ export default function App() {
             <Route path="/requests" element={<ReviewRequestsPage />} />
             <Route path="/requests/:id" element={<ReviewRequestDetailPage />} />
             <Route path="*" element={<NotFoundPage />} />
+            <Route path="/requests/:id/request-change" element={<SubmitEventChangesPage />} />
           </Route>
         </Routes>
       </BrowserRouter>
