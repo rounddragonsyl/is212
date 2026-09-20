@@ -9,6 +9,8 @@ import { RequestStatusPanel } from '../status/RequestStatusPanel'
 import { useRequestResource } from '../status/useRequestResource'
 import { getEventRequest } from '../eventReviewService'
 import { orDash } from '../formatters'
+import { LOCKED_STATUSES } from '../eventChangeRequestService' 
+import { ChangeRequestList } from '../components/ChangeRequestList'
 
 export function ReviewRequestDetailPage() {
   const { id = '' } = useParams()
@@ -67,6 +69,14 @@ export function ReviewRequestDetailPage() {
             <RequestDetails request={request} />
           </Card>
 
+          <Card title="Requested changes" description="Changes proposed by the organiser for this event.">
+            <ChangeRequestList
+              eventId={request.id}
+              organiserId={request.organiserId}
+              currentUserId={profile?.id}
+            />
+          </Card>
+
           {profile?.role === 'coordinator' && (
             <Card
               title="Decision"
@@ -79,8 +89,18 @@ export function ReviewRequestDetailPage() {
               />
             </Card>
           )}
+
+          {profile?.role === 'organiser' && !LOCKED_STATUSES.includes(request.status) && (
+            <Link
+              to={`/requests/${request.id}/request-change`}
+              className="inline-flex items-center justify-center rounded-lg bg-indigo-600 px-4 py-2
+                text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700"
+            >
+              Request changes
+            </Link>
+          )}
         </div>
-      )}
+        )}
       </div>
     </PageContainer>
   )
