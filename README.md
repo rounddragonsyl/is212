@@ -88,6 +88,37 @@ These were one-off local checks, not new Vitest cases or checks added to CI. The
 211 application tests also passed. Live Supabase verification and the security gaps
 listed above remain separate follow-up work.
 
+## US7 review rules (not yet connected)
+
+`src/features/events/changeRequestReviewValidation.ts` prepares a review without
+reading or writing Supabase. It reuses US6's `ProposedEventChanges` field names.
+For a decision, every proposed field must appear exactly once as approved or rejected;
+each rejected field needs a reason/follow-up. The result contains individual decisions
+and only the accepted values, with an overall approved/partially approved/rejected
+outcome. Requesting clarification instead requires a message and prepares no changes.
+This is the proposed interaction for US7; clarification leaves the whole request
+unresolved, rather than mixing approval and clarification in the same action.
+
+These outcomes are preparation types, not additional values in the current database
+status constraint. Nothing calls this helper from the app yet. Database permissions,
+stale-request checks, validation of the resulting event (including its date range),
+atomic writes, notifications and UI display remain to be implemented. Checking the
+proposal's shape here does not establish that a proposed date or attendance is valid.
+
+The 19 automated tests in
+`src/features/events/__tests__/changeRequestReviewValidation.test.ts` use the agreed
+`AC-007.Y.Z` format and the AC order in the supplied Jira export:
+
+| Criterion | Case IDs | Coverage in this step |
+| --- | --- | --- |
+| 5 — approve/reject, including agreed clarification #104 | AC-007.5.1–AC-007.5.12 | Full/partial decisions, missing/duplicate decisions and malformed proposals |
+| 6 — rejection reason | AC-007.6.1–AC-007.6.2 | Explanation required and retained per rejected field |
+| 7 — request clarification | AC-007.7.1–AC-007.7.3 | Follow-up message, no approved values, incompatible actions rejected |
+| 9 — apply only approved values | AC-007.9.1–AC-007.9.2 | Prepared values preserve explicit false/empty values and do not mutate input |
+
+These tests cover pure logic, not completed ACs or communication to the organiser.
+If Jira criteria are reordered, update the mapping with the team before adding cases.
+
 ## Roles
 
 Roles live in `public.profiles.role`, never in `auth.users` — Supabase owns that table and

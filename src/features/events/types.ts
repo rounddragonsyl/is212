@@ -206,3 +206,26 @@ export interface EventChangeRequest {
   reviewedAt: string | null
   reviewNote: string | null
 }
+
+/** Prepared review only: these new outcomes are not yet database status values. */
+export interface ChangeRequestFieldDecision {
+  field: keyof ProposedEventChanges
+  decision: 'approved' | 'rejected'
+  note: string
+}
+
+export type PreparedChangeRequestReview =
+  | {
+      status: 'approved' | 'partially_approved' | 'rejected'
+      decisions: ChangeRequestFieldDecision[]
+      approvedChanges: ProposedEventChanges
+    }
+  | {
+      status: 'clarification_requested'
+      note: string
+      approvedChanges: ProposedEventChanges
+    }
+
+export type ChangeRequestReviewValidationResult =
+  | { ok: true; review: PreparedChangeRequestReview }
+  | { ok: false; reason: string }
