@@ -114,8 +114,8 @@ describe('AC-001.6', () => {
   })
 })
 
-describe('AC-005.1', () => {
-  test('AC-005.1-05: optional details the organiser omitted are stored as null, not empty strings', async () => {
+describe('AC-002.1', () => {
+  test('AC-002.1-05: optional details the organiser omitted are stored as null, not empty strings', async () => {
     const { insert } = mockInsert({ data: submittedRow, error: null })
     await submitEventRequest({ ...validInput, programme: '   ' })
     const payload = insert.mock.calls[0][0]
@@ -125,8 +125,8 @@ describe('AC-005.1', () => {
   })
 })
 
-describe('AC-005.4', () => {
-  test('AC-005.4-01: an invalid request is rejected with the failing rule, not a generic message', async () => {
+describe('AC-002.4', () => {
+  test('AC-002.4-01: an invalid request is rejected with the failing rule, not a generic message', async () => {
     const { insert } = mockInsert({ data: null, error: null })
     const result = await submitEventRequest({ ...validInput, purpose: '   ' })
     expect(result.ok).toBe(false)
@@ -138,7 +138,7 @@ describe('AC-005.4', () => {
     expect(insert).not.toHaveBeenCalled()
   })
 
-  test('AC-005.4-02: a submission without a signed-in user explains that sign-in is required', async () => {
+  test('AC-002.4-02: a submission without a signed-in user explains that sign-in is required', async () => {
     mocks.getUser.mockResolvedValue({ data: { user: null }, error: null })
     const { insert } = mockInsert({ data: null, error: null })
     const result = await submitEventRequest(validInput)
@@ -148,7 +148,7 @@ describe('AC-005.4', () => {
     expect(insert).not.toHaveBeenCalled()
   })
 
-  test('AC-005.4-03: a row-level-security refusal is reported as a permission problem', async () => {
+  test('AC-002.4-03: a row-level-security refusal is reported as a permission problem', async () => {
     mockInsert({ data: null, error: { code: '42501', message: 'new row violates policy' } })
     const result = await submitEventRequest(validInput)
     expect(result.ok).toBe(false)
@@ -156,7 +156,7 @@ describe('AC-005.4', () => {
     expect(result.reason).toBe(SERVICE_MESSAGES.rlsDenied)
   })
 
-  test('AC-005.4-04: a database CHECK violation is reported without leaking the constraint name', async () => {
+  test('AC-002.4-04: a database CHECK violation is reported without leaking the constraint name', async () => {
     mockInsert({
       data: null,
       error: { code: '23514', message: 'violates check constraint "submitted_requires_core_fields"' },
@@ -168,7 +168,7 @@ describe('AC-005.4', () => {
     expect(result.reason).not.toContain('submitted_requires_core_fields')
   })
 
-  test('AC-005.4-05: a unique-reference collision is reported so the organiser can retry', async () => {
+  test('AC-002.4-05: a unique-reference collision is reported so the organiser can retry', async () => {
     mockInsert({
       data: null,
       error: { code: '23505', message: 'duplicate key value violates unique constraint' },
@@ -179,7 +179,7 @@ describe('AC-005.4', () => {
     expect(result.reason).toBe(SERVICE_MESSAGES.duplicateReference)
   })
 
-  test('AC-005.4-06: a missing organiser profile is reported as a profile problem', async () => {
+  test('AC-002.4-06: a missing organiser profile is reported as a profile problem', async () => {
     mockInsert({ data: null, error: { code: '23503', message: 'foreign key violation' } })
     const result = await submitEventRequest(validInput)
     expect(result.ok).toBe(false)
@@ -187,7 +187,7 @@ describe('AC-005.4', () => {
     expect(result.reason).toBe(SERVICE_MESSAGES.unknownOrganiser)
   })
 
-  test('AC-005.4-07: an unrecognised database error gives advice, not raw Postgres text', async () => {
+  test('AC-002.4-07: an unrecognised database error gives advice, not raw Postgres text', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {})
     mockInsert({
       data: null,
@@ -201,15 +201,15 @@ describe('AC-005.4', () => {
     expect(console.error).toHaveBeenCalled()
   })
 
-  test('AC-005.4-08: never throws, even given a malformed payload', async () => {
+  test('AC-002.4-08: never throws, even given a malformed payload', async () => {
     await expect(
       submitEventRequest({ purpose: null, proposedStart: null } as unknown as EventRequestInput),
     ).resolves.toMatchObject({ ok: false })
   })
 })
 
-describe('AC-005.5', () => {
-  test('AC-005.5-01: a successful submission returns a unique reference in EVT-YYYY-NNNN form', async () => {
+describe('AC-002.5', () => {
+  test('AC-002.5-01: a successful submission returns a unique reference in EVT-YYYY-NNNN form', async () => {
     mockInsert({ data: submittedRow, error: null })
     const result = await submitEventRequest(validInput)
     expect(result.ok).toBe(true)
@@ -217,7 +217,7 @@ describe('AC-005.5', () => {
     expect(result.event.reference).toMatch(/^EVT-\d{4}-\d{4}$/)
   })
 
-  test('AC-005.5-02: a successful submission is stored with status "Submitted"', async () => {
+  test('AC-002.5-02: a successful submission is stored with status "Submitted"', async () => {
     mockInsert({ data: submittedRow, error: null })
     const result = await submitEventRequest(validInput)
     expect(result.ok).toBe(true)
@@ -227,7 +227,7 @@ describe('AC-005.5', () => {
     expect(result.event.submittedAt).toBe('2026-01-05T02:11:00.000Z')
   })
 
-  test('AC-005.5-03: the client sends status submitted but never a reference of its own', async () => {
+  test('AC-002.5-03: the client sends status submitted but never a reference of its own', async () => {
     const { insert } = mockInsert({ data: submittedRow, error: null })
     await submitEventRequest(validInput)
     const payload = insert.mock.calls[0][0]
@@ -236,7 +236,7 @@ describe('AC-005.5', () => {
     expect(payload).not.toHaveProperty('submitted_at')
   })
 
-  test('AC-005.5-04: the request is filed against the signed-in organiser', async () => {
+  test('AC-002.5-04: the request is filed against the signed-in organiser', async () => {
     const { insert } = mockInsert({ data: submittedRow, error: null })
     await submitEventRequest(validInput)
     const payload = insert.mock.calls[0][0]
@@ -244,7 +244,7 @@ describe('AC-005.5', () => {
     expect(mocks.from).toHaveBeenCalledWith('events')
   })
 
-  test('AC-005.5-05: a saved row that came back without a reference is treated as a failure', async () => {
+  test('AC-002.5-05: a saved row that came back without a reference is treated as a failure', async () => {
     mockInsert({ data: { ...submittedRow, reference: null }, error: null })
     const result = await submitEventRequest(validInput)
     expect(result.ok).toBe(false)
