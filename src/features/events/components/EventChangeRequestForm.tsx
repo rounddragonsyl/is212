@@ -1,9 +1,9 @@
 import { Button } from '../../../components/ui/Button'
 import { Field, TextArea, TextInput } from '../../../components/ui/FormControls'
-import { OptionalRequirementsFields } from './OptionalRequirementsFields'
 import { useEventChangeRequestForm } from '../useEventChangeRequestForm'
-import type { EventRequestDetail } from '../types'
+import type { ChangeRequestFormValues } from '../useEventChangeRequestForm'
 import type { RequestEventChangeResult } from '../eventChangeRequestService'
+import type { UseFormRegister } from 'react-hook-form'
 
 function ChangeRequestResultBanner({ result }: { result: RequestEventChangeResult | null }) {
   if (!result) return null
@@ -17,12 +17,30 @@ function ChangeRequestResultBanner({ result }: { result: RequestEventChangeResul
   return <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{result.reason}</p>
 }
 
-export function EventChangeRequestForm({
-  eventId,
-}: {
-  eventId: string
-}) {
-    const { register, errors, result, resultRef, onSubmit, isSubmitting, disabled } =
+function ChangeOptionalFields({ register }: { register: UseFormRegister<ChangeRequestFormValues> }) {
+  return (
+    <div className="space-y-4">
+      <Field id="programme" label="Programme">
+        <TextArea id="programme" placeholder="Leave blank to keep current" {...register('programme')} />
+      </Field>
+      <Field id="layoutPreference" label="Room layout">
+        <TextInput id="layoutPreference" placeholder="Leave blank to keep current" {...register('layoutPreference')} />
+      </Field>
+      <Field id="accessibilityRequirements" label="Accessibility requirements">
+        <TextArea id="accessibilityRequirements" placeholder="Leave blank to keep current" {...register('accessibilityRequirements')} />
+      </Field>
+      <Field id="equipmentRequirements" label="Equipment requirements">
+        <TextArea id="equipmentRequirements" placeholder="Leave blank to keep current" {...register('equipmentRequirements')} />
+      </Field>
+      <Field id="specialArrangements" label="Special arrangements">
+        <TextArea id="specialArrangements" placeholder="Leave blank to keep current" {...register('specialArrangements')} />
+      </Field>
+    </div>
+  )
+}
+
+export function EventChangeRequestForm({ eventId }: { eventId: string }) {
+  const { register, errors, result, resultRef, onSubmit, isSubmitting, disabled } =
     useEventChangeRequestForm(eventId)
 
   return (
@@ -70,7 +88,7 @@ export function EventChangeRequestForm({
       </fieldset>
 
       <fieldset disabled={disabled}>
-        <OptionalRequirementsFields register={register} />
+        <ChangeOptionalFields register={register} />
       </fieldset>
 
       <fieldset disabled={disabled} className="space-y-2">

@@ -5,7 +5,7 @@ import { requestEventChange, CHANGE_REQUEST_MESSAGES } from './eventChangeReques
 import type { RequestEventChangeResult } from './eventChangeRequestService'
 import type { ProposedEventChanges } from './types'
 
-type ChangeRequestFormValues = Required<ProposedEventChanges> & { reason: string }
+export type ChangeRequestFormValues = Required<ProposedEventChanges> & { reason: string }
 
 const emptyChangeForm: ChangeRequestFormValues = {
   name: '',
