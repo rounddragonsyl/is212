@@ -59,6 +59,11 @@ Draft saves in eventDraftService must never change an existing request's status.
   a baseline, not proof of secure review or withdrawal. See README for known gaps.
 - Both `0005` migrations precede `0006`; their duplicate version prefix needs resolving
   before relying on CLI migration discovery. Do not silently renumber applied files.
+- `changeRequestReviewValidation.ts` is pure, unconnected US7 review preparation.
+  Decisions cover each proposed field once; rejected fields require explanations.
+  Clarification applies nothing. New prepared outcomes are NOT yet database statuses.
+  Do not treat prepared values as a validated event or bypass database permissions.
+  README records the 19 test IDs using the supplied Jira AC order.
 
 ## House style
 - No `any`. Prefer explicit types.
