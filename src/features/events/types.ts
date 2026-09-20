@@ -173,3 +173,37 @@ export type ValidationResult =
 export type SubmitEventRequestResult =
   | { ok: true; event: SubmittedEvent }
   | { ok: false; reason: string; issues: ValidationIssue[] }
+
+
+// US6 - Request Change for Event
+
+export type ChangeRequestStatus = 'submitted' | 'approved' | 'rejected' | 'withdrawn'
+
+/** A partial diff of the event's editable fields — only the ones being proposed for change.
+ *  Reuse the same field names/types as your event's own input type where possible, e.g.: */
+export type ProposedEventChanges = Partial<{
+  name: string
+  purpose: string
+  eventType: string
+  description: string
+  proposedStart: string
+  proposedEnd: string
+  expectedAttendance: string
+  programme: string
+  layoutPreference: string
+  accessibilityRequirements: string
+  equipmentRequirements: string
+  registrationRequired: boolean
+  specialArrangements: string
+}>
+
+export interface EventChangeRequest {
+  id: string
+  eventId: string
+  proposedChanges: ProposedEventChanges
+  reason: string
+  status: ChangeRequestStatus
+  submittedAt: string
+  reviewedAt: string | null
+  reviewNote: string | null
+}
