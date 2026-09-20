@@ -130,8 +130,19 @@ export async function requestEventChange(
   return { ok: true, requestId: data.id }
 }
 
+interface EventChangeRequestRow {
+  id: string
+  event_id: string
+  proposed_changes: ProposedEventChanges
+  reason: string
+  status: ChangeRequestStatus
+  submitted_at: string
+  reviewed_at: string | null
+  review_note: string | null
+}
+
 // matches camelCase variables to snake_case
-function toEventChangeRequest(row: any): EventChangeRequest {
+function toEventChangeRequest(row: EventChangeRequestRow): EventChangeRequest {
   return {
     id: row.id,
     eventId: row.event_id,
@@ -140,7 +151,7 @@ function toEventChangeRequest(row: any): EventChangeRequest {
     status: row.status,
     submittedAt: row.submitted_at,
     reviewedAt: row.reviewed_at,
-    reviewNote: row.reviewed_note,
+    reviewNote: row.review_note,
   }
 }
 
