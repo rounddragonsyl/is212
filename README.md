@@ -48,7 +48,45 @@ supabase link --project-ref <your-project-ref>
 supabase db push
 ```
 
-Apply migrations **in order**, `0001` through `0005`.
+Apply migrations **in order**, `0001` through `0007`, including both `0005` files
+before `0006`. The two files currently share a version prefix, so the CLI path above
+needs that version collision resolved before it can be relied on; use the SQL Editor
+for the existing sequence in the meantime.
+
+### Change-request database baseline
+
+[`0007_event_change_requests.sql`](supabase/migrations/0007_event_change_requests.sql)
+records the existing US6 change-request table, four access policies and automatic
+`updated_at` trigger from the shared Supabase exports. It stores proposed changes
+separately from `events`; applying it does not approve requests or update event details.
+It contains no exported test records. On an existing installation, it preserves rows
+and recreates the named policies/trigger; `CREATE TABLE IF NOT EXISTS` does not repair
+differences in an existing table's columns or constraints. Check the existing schema
+before applying it. Authenticated SELECT/INSERT/UPDATE privileges are explicit, and
+the coordinator policy uses the project's `current_user_role()` helper.
+
+This is a baseline, not completed US7 security or review functionality. Coordinator
+assignment, individual decisions/partial approval, clarification, notifications and
+arrangement revalidation remain to be implemented. The baseline policies also do not
+prevent forged review fields on insert, edits to other columns during withdrawal,
+ineligible event statuses, or duplicate pending requests. Those protections need a
+follow-up migration and authenticated database tests. An index enforcing uniqueness
+is not included because the supplied exports did not include index definitions.
+
+The supplied live event-read policies also differ from `0005_request_status.sql`:
+coordinators currently see drafts in that export. This migration does not replace
+event policies or reconcile that separate discrepancy. Do not rerun all earlier
+migrations on the shared database merely to install this baseline.
+
+Verification on 21 September 2026: applied all repository migrations in order to a
+disposable PostgreSQL 17 container, then passed 19 SQL assertions covering RLS setup,
+owner/coordinator/anonymous access, invalid inputs, withdrawal, unchanged event records,
+and preservation of request values when rerunning `0007`. Supabase's `auth.users`,
+`auth.uid()` and database roles/default grants were represented by a local test setup;
+this exercised real PostgreSQL policies and constraints, not the live Supabase Auth/API.
+These were one-off local checks, not new Vitest cases or checks added to CI. The existing
+211 application tests also passed. Live Supabase verification and the security gaps
+listed above remain separate follow-up work.
 
 ## Roles
 

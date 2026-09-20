@@ -49,6 +49,17 @@ belongs in eventService so validated details and status change atomically on the
 owned Draft row. Both paths use expected-status filters and database transition triggers.
 Draft saves in eventDraftService must never change an existing request's status.
 
+## Change-request database baseline
+- `0007_event_change_requests.sql` captures the shared US6 table, policies and timestamp
+  trigger. It preserves existing rows and does not implement US7 review decisions.
+- US7 is Event Coordinator Reviewing Change Requests. Use the agreed `AC-007.Y.Z`
+  test naming format for new tests, with criteria in the agreed Jira order.
+- Follow-up work must cover assigned-coordinator access, per-change decisions and
+  reasons, and atomic application of accepted changes. Existing request policies are
+  a baseline, not proof of secure review or withdrawal. See README for known gaps.
+- Both `0005` migrations precede `0006`; their duplicate version prefix needs resolving
+  before relying on CLI migration discovery. Do not silently renumber applied files.
+
 ## House style
 - No `any`. Prefer explicit types.
 - Comment *why*, not *what*. We are examined orally on our design decisions.
