@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Never targets a configured Supabase project: no .env, ports or host volumes.
+repo_root="$(cd "$(dirname "$0")/../.." && pwd)"
+container="is212-review-test-$$"
+cleanup() { docker rm -f "$container" >/dev/null 2>&1 || true; }
+trap cleanup EXIT
+docker run --detach --rm --name "$container" \
+  -e POSTGRES_HOST_AUTH_METHOD=trust postgres:17 >/dev/null
+
+ready=false
+for attempt in {1..30}; do
+  if docker exec "$container" pg_isready -U postgres >/dev/null 2>&1; then
+    ready=true
+    break
+  fi
+  sleep 1
+done
+if [ "$ready" != true ]; then echo 'Temporary database did not become ready.' >&2; exit 1; fi
+
+{
+  cat "$repo_root/supabase/tests/bootstrap.sql"
+  for migration in "$repo_root"/supabase/migrations/*.sql; do cat "$migration"; printf '\n'; done
+  cat "$repo_root/supabase/tests/change_request_review.sql"
+  cat "$repo_root/supabase/migrations/0008_change_request_review.sql"
+  cat <<'SQL'
+select pg_temp.assert_true(
+  not exists ((select * from public.event_change_requests except select * from requests_before_repeat)
+    union all (select * from requests_before_repeat except select * from public.event_change_requests)),
+  'AC-007.13.3: rerunning migration preserves saved review decisions');
+SQL
+} | docker exec -i "$container" psql -X -U postgres -v ON_ERROR_STOP=1

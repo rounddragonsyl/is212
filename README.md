@@ -48,7 +48,7 @@ supabase link --project-ref <your-project-ref>
 supabase db push
 ```
 
-Apply migrations **in order**, `0001` through `0007`, including both `0005` files
+Apply migrations **in order**, `0001` through `0008`, including both `0005` files
 before `0006`. The two files currently share a version prefix, so the CLI path above
 needs that version collision resolved before it can be relied on; use the SQL Editor
 for the existing sequence in the meantime.
@@ -99,11 +99,11 @@ outcome. Requesting clarification instead requires a message and prepares no cha
 This is the proposed interaction for US7; clarification leaves the whole request
 unresolved, rather than mixing approval and clarification in the same action.
 
-These outcomes are preparation types, not additional values in the current database
-status constraint. Nothing calls this helper from the app yet. Database permissions,
-stale-request checks, validation of the resulting event (including its date range),
-atomic writes, notifications and UI display remain to be implemented. Checking the
-proposal's shape here does not establish that a proposed date or attendance is valid.
+Nothing calls this helper from the app yet. Migration `0008` adds the corresponding
+database outcomes and review operation described below. Frontend service/UI integration,
+notifications and arrangement revalidation remain. Checking the proposal's shape here
+does not establish that a proposed date or attendance is valid; the database operation
+validates the event produced by the accepted subset before saving it.
 
 The 19 automated tests in
 `src/features/events/__tests__/changeRequestReviewValidation.test.ts` use the agreed
@@ -118,6 +118,63 @@ The 19 automated tests in
 
 These tests cover pure logic, not completed ACs or communication to the organiser.
 If Jira criteria are reordered, update the mapping with the team before adding cases.
+
+### US7 database review operation
+
+[`0008_change_request_review.sql`](supabase/migrations/0008_change_request_review.sql)
+adds `events.coordinator_id` and `event_change_requests.field_decisions`, plus
+`partially_approved` and `clarification_requested` request statuses. Existing events
+start unassigned; there is no automatic assignment or assignment screen in this change.
+An authenticated Operations Manager can call
+`assign_event_coordinator(p_event_id, p_coordinator_id)` to assign/reassign an event.
+Direct attempts by other signed-in roles to change that field are blocked.
+
+`review_event_change_request(p_request_id, p_event_updated_at, p_review)` accepts the
+same `action: decide` / `action: clarify` structure as the TypeScript validator. Pass
+the event's `updated_at` from the comparison screen as the expected version. The
+function locks the event and request, checks the current assigned coordinator and
+pending status, and rejects stale event details. It loads proposed values from the
+stored request (never from the reviewer), applies only approved fields, and stamps
+the decisions, actor and time in the same transaction. An error rolls back both writes.
+Rejected fields require explanations; clarification stores its message and changes no
+event details. Timestamps without offsets are interpreted in Singapore time.
+
+This is **change-request** review, separate from US4's original event approval.
+US4's event-status actions are preserved. Direct browser edits of submitted event
+details are now blocked, so updates to those details must use the review operation.
+Draft editing/submission remains allowed. Change-request access is restricted to its
+organiser and the assigned coordinator; insert/update column permissions prevent
+spoofed reviewer metadata and proposal edits during withdrawal.
+
+The function validates the resulting required fields, date interval and attendance,
+but does not yet classify significant changes, flag arrangements for revalidation,
+send notifications, or provide clarification-response/resubmission UI. It does not
+change event lifecycle status or implement a full audit-history screen. The existing
+US6 UI still blocks confirmed events and needs its eligibility rule corrected during
+integration. Duplicate pending-request prevention remains a client precheck, not a
+database uniqueness guarantee. Reconcile these dependencies before exposing review
+actions to users; this migration has only been applied to disposable local databases.
+
+Run the database checks with Docker Desktop running:
+
+```bash
+bash supabase/tests/run_change_request_review.sh
+```
+
+The script creates a disposable PostgreSQL 17 container, applies the migrations,
+runs `supabase/tests/change_request_review.sql`, and reruns `0008` to verify record
+preservation. It removes its container on exit, opens no host ports and never reads
+`.env`. `supabase/tests/bootstrap.sql` simulates Supabase Auth identities and grants;
+RLS/constraints/functions run in PostgreSQL, but live Supabase Auth/API is not tested.
+Do not run these fixture files in shared Supabase. They are not part of `npm test` or CI.
+
+Verified locally: **47 SQL checks** (43 US7 checks and 4 shared-workflow regressions),
+plus **230 application tests**, lint and production build. SQL case IDs continue the
+unit-test allocations: AC-007.2.1–18, .5.13–19, .6.3–4, .7.4–6, .9.3–11, .10.1,
+and .13.1–3. Four `REGRESSION-US1/US4/US6` checks protect other stories rather than
+claiming additional US7 ACs. Coverage includes access, reassignment, partial decisions,
+invalid/stale reviews, a forced final-save failure with rollback, and rerun preservation.
+Concurrent sessions have not yet been exercised by this suite.
 
 ## Roles
 
