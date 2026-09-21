@@ -3,6 +3,7 @@ import {
   REVIEW_MESSAGES,
   getEventRequest,
   listEventRequests,
+  listReviewDecisions,
   transitionEventStatus,
 } from '../eventReviewService'
 
@@ -207,6 +208,72 @@ describe('AC-004.2 / AC-004.3 — coordinator accepts/rejects with a reason', ()
     expect(result.ok).toBe(false)
     if (result.ok) return
     expect(result.reason).toBe(REVIEW_MESSAGES.illegalTransition)
+  })
+})
+
+describe('AC-004.5 — a record of each decision is retained', () => {
+  function mockDecisions(response: { data: unknown[] | null; error: { message: string } | null }) {
+    const order = vi.fn().mockResolvedValue(response)
+    const eq = vi.fn((_column: string, _value: string) => ({ order }))
+    const select = vi.fn((_columns: string) => ({ eq }))
+    mocks.from.mockReturnValue({ select })
+    return { select, eq, order }
+  }
+
+  test('AC-004.5.1: lists the decision, reason and reviewer for a request, newest first', async () => {
+    const { select, eq, order } = mockDecisions({
+      data: [
+        {
+          id: 'decision-2', from_status: 'under_review', decision: 'approved', reason: null,
+          decided_by_name: 'Casey Coordinator', decided_at: '2026-09-21T09:00:00Z',
+        },
+        {
+          id: 'decision-1', from_status: 'under_review', decision: 'returned',
+          reason: 'Please add a programme.', decided_by_name: 'Casey Coordinator',
+          decided_at: '2026-09-20T09:00:00Z',
+        },
+      ],
+      error: null,
+    })
+
+    const result = await listReviewDecisions(EVENT_ID)
+
+    expect(mocks.from).toHaveBeenCalledWith('event_review_decisions')
+    expect(eq).toHaveBeenCalledWith('event_id', EVENT_ID)
+    expect(order).toHaveBeenCalledWith('decided_at', { ascending: false })
+    // Only the snapshot name is requested; the reviewer's user id stays in the database.
+    expect(select.mock.calls[0][0]).not.toContain('decided_by,')
+    expect(result).toEqual({
+      ok: true,
+      decisions: [
+        {
+          id: 'decision-2', fromStatus: 'under_review', decision: 'approved', reason: null,
+          decidedByName: 'Casey Coordinator', decidedAt: '2026-09-21T09:00:00Z',
+        },
+        {
+          id: 'decision-1', fromStatus: 'under_review', decision: 'returned',
+          reason: 'Please add a programme.', decidedByName: 'Casey Coordinator',
+          decidedAt: '2026-09-20T09:00:00Z',
+        },
+      ],
+    })
+  })
+
+  test('AC-004.5.2: a malformed request ID returns unavailable without querying the database', async () => {
+    expect(await listReviewDecisions('not-an-event-id')).toEqual({
+      ok: false, reason: REVIEW_MESSAGES.notFound,
+    })
+    expect(mocks.from).not.toHaveBeenCalled()
+  })
+
+  test('AC-004.5.3: a failed history read is reported without leaking the schema', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    mockDecisions({ data: null, error: { message: 'relation event_review_decisions does not exist' } })
+
+    const result = await listReviewDecisions(EVENT_ID)
+
+    expect(result).toEqual({ ok: false, reason: REVIEW_MESSAGES.historyFailed })
+    expect(console.error).toHaveBeenCalled()
   })
 })
 

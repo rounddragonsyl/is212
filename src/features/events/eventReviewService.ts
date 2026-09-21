@@ -2,7 +2,13 @@ import { z } from 'zod'
 import { supabase } from '../../lib/supabase'
 import { canActorTransition } from './statusRules'
 import type { UserRole } from '../auth/types'
-import type { EventRequestDetail, EventRequestSummary, EventStatus } from './types'
+import type {
+  EventRequestDetail,
+  EventRequestSummary,
+  EventStatus,
+  ReviewDecision,
+  ReviewDecisionOutcome,
+} from './types'
 
 /**
  * Reading and reviewing event requests. Separate from eventService so the organiser's
@@ -23,12 +29,15 @@ const SUMMARY_COLUMNS =
 const DETAIL_COLUMNS =
   'id, reference, organiser_id, name, purpose, event_type, proposed_start, proposed_end, expected_attendance, status, submitted_at, description, programme, layout_preference, accessibility_requirements, equipment_requirements, registration_required, special_arrangements, review_note, reviewed_at, created_at'
 
+const DECISION_COLUMNS = 'id, from_status, decision, reason, decided_by_name, decided_at'
+
 export const REVIEW_MESSAGES = {
   loadFailed: 'The event requests could not be loaded.',
   notFound: 'That event request could not be found, or you are not permitted to see it.',
   illegalTransition: 'That is not a valid next step for this request.',
   notPermitted: 'You are not permitted to make that change.',
   noteRequired: 'Give a reason when returning or rejecting a request.',
+  historyFailed: 'The decision history could not be loaded.',
 } as const
 
 interface EventRow {
@@ -178,4 +187,55 @@ export async function transitionEventStatus(options: {
   if (!data) return { ok: false, reason: REVIEW_MESSAGES.illegalTransition }
 
   return { ok: true, status: data.status as EventStatus }
+}
+
+interface DecisionRow {
+  id: string
+  from_status: string
+  decision: string
+  reason: string | null
+  decided_by_name: string
+  decided_at: string
+}
+
+export type DecisionHistoryResult =
+  | { ok: true; decisions: ReviewDecision[] }
+  | { ok: false; reason: string }
+
+/**
+ * AC-004.5. Read-only on purpose: decisions are recorded by the database trigger that
+ * fires when transitionEventStatus changes the status, using auth.uid() as the actor.
+ * There is no client write path to forge or edit a record, so there is no write function.
+ *
+ * RLS returns rows only to coordinators and operations managers. For anyone else the
+ * result is an empty history, which is the same thing the organiser would see anyway.
+ */
+export async function listReviewDecisions(eventId: string): Promise<DecisionHistoryResult> {
+  if (!z.string().uuid().safeParse(eventId).success) {
+    return { ok: false, reason: REVIEW_MESSAGES.notFound }
+  }
+
+  const { data, error } = await supabase
+    .from('event_review_decisions')
+    .select(DECISION_COLUMNS)
+    .eq('event_id', eventId)
+    .order('decided_at', { ascending: false })
+
+  if (error) {
+    console.error('[events] listReviewDecisions', error)
+    return { ok: false, reason: REVIEW_MESSAGES.historyFailed }
+  }
+
+  const rows: DecisionRow[] = data ?? []
+  return {
+    ok: true,
+    decisions: rows.map((row) => ({
+      id: row.id,
+      fromStatus: row.from_status as EventStatus,
+      decision: row.decision as ReviewDecisionOutcome,
+      reason: row.reason,
+      decidedByName: row.decided_by_name,
+      decidedAt: row.decided_at,
+    })),
+  }
 }

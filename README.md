@@ -176,6 +176,54 @@ claiming additional US7 ACs. Coverage includes access, reassignment, partial dec
 invalid/stale reviews, a forced final-save failure with rollback, and rerun preservation.
 Concurrent sessions have not yet been exercised by this suite.
 
+## US4 review decisions and notifications (AC-004.4, AC-004.5)
+
+Migration `0009_review_decisions.sql` (run after `0008`) adds two tables, both written only
+by the `events_record_review_decision` trigger, which fires after an event's status change
+has passed every existing transition rule:
+
+- `event_review_decisions` retains every approve, reject and return with its reason, the
+  reviewer (`decided_by`, plus a `decided_by_name` snapshot) and time. The event row's
+  `review_note`/`reviewed_by` hold only the latest decision; this table is the trail.
+  It is append-only (no write privilege for any signed-in role) and readable only by
+  coordinators and operations managers, matching 0005's rule that reviewer identity is
+  internal. Coordinators see it on the request page under **Decision history**.
+- `notification_outbox` queues the organiser's email for approvals and rejections in the
+  same transaction as the decision. No browser role can read it. Returns are logged but
+  not emailed, because AC-004.4 names approved/rejected; widening that is one line in the
+  trigger.
+
+Emails are sent by the Edge Function `supabase/functions/send-review-notifications`, so the
+provider key never reaches the browser. To enable it:
+
+```bash
+supabase functions deploy send-review-notifications
+supabase secrets set RESEND_API_KEY=<key> NOTIFICATION_FROM="ConnectSphere <onboarding@resend.dev>"
+```
+
+Then add a Database Webhook (Dashboard → Database → Webhooks) on **INSERT** into
+`public.notification_outbox` that calls the function. The function claims each row before
+sending, so repeated or overlapping calls do not send duplicates, and it retries a failed
+send up to five times. On Resend's free tier without a verified domain, mail can only be
+delivered to the Resend account owner's address, which is enough for a demo.
+
+Test allocations (continuing from the existing US4 IDs):
+
+| Criterion | Unit tests (Vitest) | Database checks |
+| --- | --- | --- |
+| AC-004.4 — organiser emailed with outcome and reason | — (database behaviour) | AC-004.4.1–AC-004.4.5 |
+| AC-004.5 — decision, reason and reviewer retained | AC-004.5.1–AC-004.5.6 | AC-004.5.7–AC-004.5.12 |
+
+The database checks run against a **disposable** database only:
+
+```bash
+psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/review_decisions_test.sql
+```
+
+They cover the recorded actor and reason, retention across a later decision, forgery and
+editing attempts, organiser visibility, refused transitions, the queued email contents,
+and an organiser with no email address. The script rolls back its fixtures.
+
 ## Roles
 
 Roles live in `public.profiles.role`, never in `auth.users` — Supabase owns that table and

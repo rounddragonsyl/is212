@@ -85,6 +85,17 @@ Draft saves in eventDraftService must never change an existing request's status.
   43 US7 SQL case IDs continue the unit-test allocations (see README), with four
   additional cross-story regression checks. These tests are separate from Vitest/CI.
 
+## Review decisions and email (US4)
+- `0009_review_decisions.sql`: `event_review_decisions` is the retained AC-004.5 record and
+  `notification_outbox` queues AC-004.4 emails. Both are written only by the AFTER UPDATE
+  trigger `record_event_review_decision`, using auth.uid() as the actor. Never add a
+  client insert path or a write policy to either table.
+- The decision log is staff-only (coordinator, operations_manager); reviewer identity stays
+  internal. The outbox is service-role only.
+- Emails are sent by the Edge Function `supabase/functions/send-review-notifications`
+  (Deno, not part of the Vite build). Provider keys live in Supabase secrets, never `VITE_`.
+- Database checks: `supabase/tests/review_decisions_test.sql`, disposable databases only.
+
 ## House style
 - No `any`. Prefer explicit types.
 - Comment *why*, not *what*. We are examined orally on our design decisions.

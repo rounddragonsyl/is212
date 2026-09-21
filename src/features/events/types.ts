@@ -13,7 +13,7 @@ export const EVENT_STATUSES = [
 export type EventStatus = (typeof EVENT_STATUSES)[number]
 
 // Stored lowercase so the value matches the database CHECK constraint exactly; the
-// human-facing wording AC-005.3/AC-005.5 asks for is a presentation concern.
+// human-facing wording AC-002.3/AC-002.5 asks for is a presentation concern.
 export const EVENT_STATUS_LABELS: Record<EventStatus, string> = {
   draft: 'Draft',
   submitted: 'Submitted',
@@ -64,7 +64,7 @@ export interface EventRequestFormValues {
   specialArrangements: string
 }
 
-/** A request that has passed every AC-005.2 rule. Only validation.ts may produce one. */
+/** A request that has passed every AC-002.2 rule. Only validation.ts may produce one. */
 export interface SubmittableEventRequest {
   name: string | null
   purpose: string
@@ -147,7 +147,7 @@ export interface EventRequestSummary {
   submittedAt: string | null
 }
 
-/** Everything AC-005.1 captured, for a coordinator deciding on a request. */
+/** Everything AC-002.1 captured, for a coordinator deciding on a request. */
 export interface EventRequestDetail extends EventRequestSummary {
   description: string | null
   programme: string | null
@@ -173,6 +173,25 @@ export type ValidationResult =
 export type SubmitEventRequestResult =
   | { ok: true; event: SubmittedEvent }
   | { ok: false; reason: string; issues: ValidationIssue[] }
+
+// US4 - Review decision record (AC-004.5)
+
+/** 'returned' is under_review -> submitted: the coordinator asking for more detail. */
+export type ReviewDecisionOutcome = 'approved' | 'rejected' | 'returned'
+
+/**
+ * One retained review decision. Written only by the database trigger in
+ * 0009_review_decisions.sql, so the browser can read this but never create or edit it.
+ * decidedByName is a snapshot taken when the decision was made.
+ */
+export interface ReviewDecision {
+  id: string
+  fromStatus: EventStatus
+  decision: ReviewDecisionOutcome
+  reason: string | null
+  decidedByName: string
+  decidedAt: string
+}
 
   // US6 - Request Change for Event
 
