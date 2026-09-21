@@ -295,7 +295,7 @@ Save Draft Event Request is **US-001**. Its criteria follow the Jira order:
 | AC-001.5 | Saving or editing a draft does not submit it for review |
 | AC-001.6 | Treat the request as submitted only after an explicit submission action |
 
-Each automated case has a unique ID, for example `AC-001.2-01`. The final number
+Each automated case has a unique ID, for example `AC-001.2.1`. The final number
 identifies a test case, not another acceptance criterion. IDs are unique across the
 story's test files, including each parameterised input row. Within each file, group
 tests by criterion and sort numerically by story, criterion, then case number. Keep existing IDs stable
@@ -307,12 +307,12 @@ Current automated case ranges:
 
 | Criterion | Case IDs | Count |
 | --- | --- | ---: |
-| AC-001.1 | AC-001.1-01 through AC-001.1-12 | 12 |
-| AC-001.2 | AC-001.2-01 through AC-001.2-22 | 22 |
-| AC-001.3 | AC-001.3-01 through AC-001.3-02 | 2 |
-| AC-001.4 | AC-001.4-01 through AC-001.4-34 | 34 |
-| AC-001.5 | AC-001.5-01 through AC-001.5-04 | 4 |
-| AC-001.6 | AC-001.6-01 through AC-001.6-09 | 9 |
+| AC-001.1 | AC-001.1.1 through AC-001.1.12 | 12 |
+| AC-001.2 | AC-001.2.1 through AC-001.2.22 | 22 |
+| AC-001.3 | AC-001.3.1 through AC-001.3.2 | 2 |
+| AC-001.4 | AC-001.4.1 through AC-001.4.34 | 34 |
+| AC-001.5 | AC-001.5.1 through AC-001.5.4 | 4 |
+| AC-001.6 | AC-001.6.1 through AC-001.6.9 | 9 |
 
 Run `npm run test -- --reporter=verbose` to see individual case IDs and results.
 Automated tests live in

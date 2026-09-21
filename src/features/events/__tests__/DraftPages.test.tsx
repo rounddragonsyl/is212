@@ -57,7 +57,7 @@ beforeEach(() => {
 })
 
 describe('AC-001.3', () => {
-  test("AC-001.3-01: unnamed drafts have a usable fallback label (also AC-001.4)", async () => {
+  test("AC-001.3.1: unnamed drafts have a usable fallback label (also AC-001.4)", async () => {
     mocks.list.mockResolvedValue({ ok: true, drafts: [{ ...draft, name: null, purpose: null }] })
     render(view())
     expect(await screen.findByRole('link', { name: /Untitled draft/ })).toHaveAttribute('href', '/drafts/draft-1')
@@ -65,7 +65,7 @@ describe('AC-001.3', () => {
 })
 
 describe('AC-001.4', () => {
-  test("AC-001.4-24: opens a listed draft, restores fields and saves edits to the same ID (also AC-001.3, AC-001.5)", async () => {
+  test("AC-001.4.24: opens a listed draft, restores fields and saves edits to the same ID (also AC-001.3, AC-001.5)", async () => {
     render(view())
     const link = await screen.findByRole('link', { name: /Dinner/ })
     expect(link).toHaveTextContent('Draft')
@@ -83,7 +83,7 @@ describe('AC-001.4', () => {
     expect(mocks.submit).not.toHaveBeenCalled()
   })
 
-  test("AC-001.4-25: an incomplete draft can reopen and save without required fields (also AC-001.2)", async () => {
+  test("AC-001.4.25: an incomplete draft can reopen and save without required fields (also AC-001.2)", async () => {
     mocks.load.mockResolvedValue({ ok: true, draft: { ...draft, values: {} } })
     render(view('/drafts/draft-1'))
     expect(await screen.findByLabelText('Event name')).toHaveValue('')
@@ -92,14 +92,14 @@ describe('AC-001.4', () => {
     expect(mocks.save).toHaveBeenCalledWith(expect.objectContaining({ purpose: '', proposedStart: '' }), 'draft-1')
   })
 
-  test("AC-001.4-26: empty state offers a new request", async () => {
+  test("AC-001.4.26: empty state offers a new request", async () => {
     mocks.list.mockResolvedValue({ ok: true, drafts: [] })
     render(view())
     await screen.findByText('You have no saved drafts.')
     expect(screen.getByRole('link', { name: 'Start a new request' })).toHaveAttribute('href', '/events/new')
   })
 
-  test("AC-001.4-27: failed list can be retried", async () => {
+  test("AC-001.4.27: failed list can be retried", async () => {
     mocks.list.mockResolvedValueOnce({ ok: false, reason: 'Offline list' })
     render(view())
     expect(await screen.findByRole('alert')).toHaveTextContent('Offline list')
@@ -107,7 +107,7 @@ describe('AC-001.4', () => {
     await screen.findByRole('link', { name: /Dinner/ })
   })
 
-  test("AC-001.4-28: unavailable draft shows no editable form and supports retry", async () => {
+  test("AC-001.4.28: unavailable draft shows no editable form and supports retry", async () => {
     mocks.load.mockResolvedValueOnce({ ok: false, reason: 'Draft unavailable' })
     render(view('/drafts/draft-1'))
     await screen.findByText('Draft unavailable')
@@ -117,16 +117,16 @@ describe('AC-001.4', () => {
   })
 
   test.each([
-    ['AC-001.4-29', { ...user, session: null, profile: null }],
-    ['AC-001.4-30', { ...user, profile: { ...user.profile!, role: 'coordinator' as const } }],
-    ['AC-001.4-31', { ...user, loading: true }],
+    ['AC-001.4.29', { ...user, session: null, profile: null }],
+    ['AC-001.4.30', { ...user, profile: { ...user.profile!, role: 'coordinator' as const } }],
+    ['AC-001.4.31', { ...user, loading: true }],
   ] as const)("%s: draft queries wait for authorised page access (%j)", async (_caseId, currentUser) => {
     render(view('/drafts/draft-1', currentUser))
     expect(mocks.load).not.toHaveBeenCalled()
     expect(screen.queryByLabelText('Event name')).not.toBeInTheDocument()
   })
 
-  test("AC-001.4-32: navigating to another draft ignores an old pending response", async () => {
+  test("AC-001.4.32: navigating to another draft ignores an old pending response", async () => {
     let finish!: (result: LoadEventDraftResult) => void
     mocks.load.mockReturnValueOnce(new Promise<LoadEventDraftResult>((resolve) => { finish = resolve }))
     mocks.load.mockResolvedValueOnce({ ok: true, draft: { ...draft, id: 'draft-2', values: { name: 'Second draft' } } })
@@ -137,7 +137,7 @@ describe('AC-001.4', () => {
     await waitFor(() => expect(screen.getByLabelText('Event name')).toHaveValue('Second draft'))
   })
 
-  test("AC-001.4-33: switching accounts clears the previous draft before loading again", async () => {
+  test("AC-001.4.33: switching accounts clears the previous draft before loading again", async () => {
     const rendered = render(view('/drafts/draft-1'))
     expect(await screen.findByLabelText('Event name')).toHaveValue('Dinner')
     mocks.load.mockResolvedValue({ ok: false, reason: 'Draft unavailable' })
@@ -151,7 +151,7 @@ describe('AC-001.4', () => {
 })
 
 describe('AC-001.6', () => {
-  test("AC-001.6-01: direct draft URL can submit the existing request explicitly (also AC-001.4)", async () => {
+  test("AC-001.6.1: direct draft URL can submit the existing request explicitly (also AC-001.4)", async () => {
     mocks.submit.mockResolvedValue({ ok: true, event: { id: draft.id, status: 'submitted', reference: 'EVT-2099-0001', submittedAt: null } })
     render(view('/drafts/draft-1'))
     await screen.findByLabelText('Event name')

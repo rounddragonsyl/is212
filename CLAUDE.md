@@ -20,19 +20,28 @@ Supabase (PostgreSQL + Auth + RLS) · Vitest + React Testing Library · GitHub A
   keyed on status instead.
 
 ## Testing
-- Name each test case with its requirement ID and a unique case suffix:
-  test('AC-001.2-01: accepts an empty draft', ...)
-- Save Draft Event Request is US-001; AC-001.1 through AC-001.6 follow Jira order.
-  Case IDs must stay unique across the story, including parameterised rows. Preserve
-  existing case IDs when adding tests. Group tests by criterion and sort numerically
-  by story, criterion, then case number within each file. Preserve setup/helper scope
-  when rearranging tests. See README for the current allocations.
+- Every test case ID has the form `AC-00X.Y.Z`:
+  X = user story number from the backlog (US1-US15, not the Jira SCRUM key),
+  Y = acceptance criterion, numbered in Jira bullet order,
+  Z = test case number within that criterion (unpadded: .1, .2 ... .12).
+  Example: test('AC-001.2.1: accepts an empty draft', ...)
+- Current story numbers: US1 Save Draft (SCRUM-8), US2 Submit Event Request (SCRUM-7),
+  US3 View Event Request Status (SCRUM-24), US4 Review and Approve/Reject/Return
+  (SCRUM-9), US6 Organiser Requesting Changes (SCRUM-11), US7 Coordinator Reviewing
+  Change Requests (SCRUM-12).
+- Z is unique per criterion across the whole story, including parameterised rows and
+  tests in different files. Before adding a test, use the next unused Z for that
+  criterion (see README allocations); never reuse or renumber an existing ID.
+- Within a file, Z must increase top to bottom for each criterion. Group tests by
+  criterion and preserve setup/helper scope when rearranging tests.
+- Tests with no backlog story (AC-LIFECYCLE, AC-ROLES) are pending tickets; do not add
+  more ad-hoc prefixes.
 - Every story needs at least one boundary, conflict or failure test.
 - We must reach high coverage and be able to trace acceptance criteria to tests.
 
 ## Roles and authorisation
 - Roles live in public.profiles.role, never in auth.users. Values: organiser, coordinator,
-  venue_staff, tech_support, attendee.
+  operations_manager, venue_staff, tech_support, attendee.
 - Read the caller's role in SQL with public.current_user_role(). It is SECURITY DEFINER on
   purpose: a policy on profiles that queries profiles recurses infinitely.
 - Roles are assigned by an administrator, never chosen by the user. A trigger blocks a
@@ -52,8 +61,8 @@ Draft saves in eventDraftService must never change an existing request's status.
 ## Change-request database baseline
 - `0007_event_change_requests.sql` captures the shared US6 table, policies and timestamp
   trigger. It preserves existing rows and does not implement US7 review decisions.
-- US7 is Event Coordinator Reviewing Change Requests. Use the agreed `AC-007.Y.Z`
-  test naming format for new tests, with criteria in the agreed Jira order.
+- US7 is Event Coordinator Reviewing Change Requests; its tests follow the standard
+  `AC-00X.Y.Z` format with criteria in the agreed Jira order.
 - Follow-up work must cover assigned-coordinator access, per-change decisions and
   reasons, and atomic application of accepted changes. Existing request policies are
   a baseline, not proof of secure review or withdrawal. See README for known gaps.

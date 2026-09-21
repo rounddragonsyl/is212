@@ -36,7 +36,7 @@ beforeEach(() => {
 })
 
 describe('AC-001.1', () => {
-  test("AC-001.1-01: maps every supplied field to the existing database column", async () => {
+  test("AC-001.1.1: maps every supplied field to the existing database column", async () => {
     const query = mockWrite({ data: savedRow, error: null })
     await saveEventDraft({
       name: ' Dinner ', purpose: 'Celebrate', eventType: 'Dinner', description: 'Team meal',
@@ -55,7 +55,7 @@ describe('AC-001.1', () => {
     })
   })
 
-  test("AC-001.1-02: rejects invalid details before contacting Supabase", async () => {
+  test("AC-001.1.2: rejects invalid details before contacting Supabase", async () => {
     const result = await saveEventDraft({ expectedAttendance: -1 })
     expect(result.ok).toBe(false)
     if (result.ok) return
@@ -65,8 +65,8 @@ describe('AC-001.1', () => {
   })
 
   test.each([
-    ['AC-001.1-03', { data: { user: null }, error: null }],
-    ['AC-001.1-04', { data: { user: { id: ORGANISER_ID } }, error: { message: 'Expired session' } }],
+    ['AC-001.1.3', { data: { user: null }, error: null }],
+    ['AC-001.1.4', { data: { user: { id: ORGANISER_ID } }, error: { message: 'Expired session' } }],
   ] as const)("%s: refuses saving without a valid signed-in user (%j)", async (_caseId, session) => {
     mocks.getUser.mockResolvedValue(session)
     expect(await saveEventDraft({})).toEqual({
@@ -76,22 +76,22 @@ describe('AC-001.1', () => {
   })
 
   test.each([
-    ['AC-001.1-05', '42501', DRAFT_MESSAGES.notPermitted],
-    ['AC-001.1-06', '23503', DRAFT_MESSAGES.unknownOrganiser],
-    ['AC-001.1-07', '23514', DRAFT_MESSAGES.invalidDetails],
-    ['AC-001.1-08', 'unknown', DRAFT_MESSAGES.saveFailed],
+    ['AC-001.1.5', '42501', DRAFT_MESSAGES.notPermitted],
+    ['AC-001.1.6', '23503', DRAFT_MESSAGES.unknownOrganiser],
+    ['AC-001.1.7', '23514', DRAFT_MESSAGES.invalidDetails],
+    ['AC-001.1.8', 'unknown', DRAFT_MESSAGES.saveFailed],
   ] as const)("%s: translates database error %s into an actionable message", async (_caseId, code, reason) => {
     mockWrite({ data: null, error: { code, message: 'Internal database details' } })
     expect(await saveEventDraft({})).toEqual({ ok: false, reason, issues: [] })
   })
 
-  test("AC-001.1-09: handles an authentication network exception", async () => {
+  test("AC-001.1.9: handles an authentication network exception", async () => {
     mocks.getUser.mockRejectedValue(new Error('Connection lost'))
     await expect(saveEventDraft({})).resolves.toMatchObject({ ok: false, reason: DRAFT_MESSAGES.saveFailed })
     expect(mocks.from).not.toHaveBeenCalled()
   })
 
-  test("AC-001.1-10: handles a lost save response without retrying the insert", async () => {
+  test("AC-001.1.10: handles a lost save response without retrying the insert", async () => {
     const query = mockWrite({ data: null, error: null })
     query.maybeSingle.mockRejectedValue(new Error('Connection lost'))
     await expect(saveEventDraft({})).resolves.toMatchObject({ ok: false, reason: DRAFT_MESSAGES.saveFailed })
@@ -100,7 +100,7 @@ describe('AC-001.1', () => {
 })
 
 describe('AC-001.2', () => {
-  test("AC-001.2-21: saves an empty request as draft for the signed-in owner (also AC-001.1, AC-001.5)", async () => {
+  test("AC-001.2.21: saves an empty request as draft for the signed-in owner (also AC-001.1, AC-001.5)", async () => {
     const query = mockWrite({ data: savedRow, error: null })
     expect(await saveEventDraft({})).toEqual({
       ok: true,
@@ -119,7 +119,7 @@ describe('AC-001.2', () => {
 })
 
 describe('AC-001.4', () => {
-  test("AC-001.4-01: reports an unavailable draft without inserting a replacement (also AC-001.5)", async () => {
+  test("AC-001.4.1: reports an unavailable draft without inserting a replacement (also AC-001.5)", async () => {
     const query = mockWrite({ data: null, error: null })
     expect(await saveEventDraft({}, savedRow.id)).toEqual({
       ok: false, reason: DRAFT_MESSAGES.unavailable, issues: [],
@@ -127,14 +127,14 @@ describe('AC-001.4', () => {
     expect(query.insert).not.toHaveBeenCalled()
   })
 
-  test("AC-001.4-02: a blank existing ID cannot accidentally create a new draft", async () => {
+  test("AC-001.4.2: a blank existing ID cannot accidentally create a new draft", async () => {
     expect(await saveEventDraft({}, '')).toMatchObject({ ok: false })
     expect(mocks.from).not.toHaveBeenCalled()
   })
 })
 
 describe('AC-001.5', () => {
-  test("AC-001.5-01: updates only the matching owned draft without changing workflow fields (also AC-001.4)", async () => {
+  test("AC-001.5.1: updates only the matching owned draft without changing workflow fields (also AC-001.4)", async () => {
     const query = mockWrite({ data: savedRow, error: null })
     const result = await saveEventDraft({ name: 'Updated name', purpose: '' }, savedRow.id)
     expect(result.ok).toBe(true)
@@ -150,8 +150,8 @@ describe('AC-001.5', () => {
   })
 
   test.each([
-    ['AC-001.5-02', null],
-    ['AC-001.5-03', { ...savedRow, status: 'submitted' }],
+    ['AC-001.5.2', null],
+    ['AC-001.5.3', { ...savedRow, status: 'submitted' }],
   ] as const)(
     "%s: does not report success for an absent or non-draft response (%j) (also AC-001.1)", async (_caseId, data) => {
       mockWrite({ data, error: null })
