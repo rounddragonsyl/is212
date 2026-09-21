@@ -193,26 +193,40 @@ has passed every existing transition rule:
   not emailed, because AC-004.4 names approved/rejected; widening that is one line in the
   trigger.
 
-Emails are sent by the Edge Function `supabase/functions/send-review-notifications`, so the
-provider key never reaches the browser. To enable it:
+Emails are sent by the Edge Function `supabase/functions/send-review-notifications`, which
+sends through the project Gmail account over SMTP (port 465; Supabase blocks 25 and 587).
+Gmail needs no custom domain and can reach any organiser's address. The credentials live
+only in Supabase secrets, never in the browser bundle. To enable it:
+
+1. On the Gmail account, turn on 2-Step Verification, then create an app password
+   (Google Account → Security → App passwords). Use that 16-character password, not the
+   account password.
+2. Deploy and configure:
 
 ```bash
 supabase functions deploy send-review-notifications
-supabase secrets set RESEND_API_KEY=<key> NOTIFICATION_FROM="ConnectSphere <onboarding@resend.dev>"
+supabase secrets set GMAIL_USER=connectsphere212@gmail.com GMAIL_APP_PASSWORD=<app password>
 ```
 
-Then add a Database Webhook (Dashboard → Database → Webhooks) on **INSERT** into
-`public.notification_outbox` that calls the function. The function claims each row before
-sending, so repeated or overlapping calls do not send duplicates, and it retries a failed
-send up to five times. On Resend's free tier without a verified domain, mail can only be
-delivered to the Resend account owner's address, which is enough for a demo.
+3. Add a Database Webhook (Dashboard → Database → Webhooks) on **INSERT** into
+   `public.notification_outbox` that calls the function.
 
-Test allocations (continuing from the existing US4 IDs):
+The function claims each row before sending, so repeated or overlapping calls do not send
+duplicates, and it retries a failed send up to five times; the reason for a failure is
+kept in `last_error`. Gmail allows a few hundred messages a day, well above project needs.
+
+US4 test allocations (all criteria, in Jira order):
 
 | Criterion | Unit tests (Vitest) | Database checks |
 | --- | --- | --- |
-| AC-004.4 — organiser emailed with outcome and reason | — (database behaviour) | AC-004.4.1–AC-004.4.5 |
-| AC-004.5 — decision, reason and reviewer retained | AC-004.5.1–AC-004.5.6 | AC-004.5.7–AC-004.5.12 |
+| AC-004.1 — coordinator views full details | AC-004.1.1–.3 (`eventReviewService.test.ts`), AC-004.1.4–.6 (`RequestDetails.test.tsx`) | — |
+| AC-004.2 — accept or reject via a button | AC-004.2.1–.16 (`statusRules.test.ts`), AC-004.2.17–.21 (`eventReviewService.test.ts`), AC-004.2.22–.26 (`ReviewActions.test.tsx`) | — |
+| AC-004.3 — reason entered in an input box | AC-004.3.1–.2 (`eventReviewService.test.ts`), AC-004.3.3–.5 (`ReviewActions.test.tsx`) | — |
+| AC-004.4 — organiser emailed with outcome and reason | — (database behaviour) | AC-004.4.1–.5 |
+| AC-004.5 — decision, reason and reviewer retained | AC-004.5.1–.3 (`eventReviewService.test.ts`), AC-004.5.4–.6 (`DecisionHistory.test.tsx`) | AC-004.5.7–.12 |
+
+Actual email delivery through Gmail is verified manually against the live project (the
+queued message arrives in the organiser's inbox), since it depends on an external service.
 
 The database checks run against a **disposable** database only:
 

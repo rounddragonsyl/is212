@@ -2,22 +2,28 @@
 //
 // Drains public.notification_outbox, which the decision trigger in
 // 0009_review_decisions.sql fills in the same transaction as the decision itself.
-// This is the only place an email provider key exists: never in the browser bundle.
+// This is the only place the mail account's credentials exist: never in the browser.
 //
-// Runs on Deno in Supabase Edge Functions, not in Vite, so it is outside src/ and uses
-// URL imports. Invoke it from a Database Webhook on INSERT into notification_outbox (see
-// README), or on a schedule; either way it is safe to call repeatedly.
+// Sends through Gmail over SMTP, which needs no custom domain and can reach any
+// recipient. Port 465 (implicit TLS) is deliberate: Supabase Edge Functions block
+// outbound connections on ports 25 and 587.
+//
+// Runs on Deno in Supabase Edge Functions, not in Vite, so it lives outside src/. Invoke
+// it from a Database Webhook on INSERT into notification_outbox (see README), or on a
+// schedule; either way it is safe to call repeatedly.
 //
 // Secrets (supabase secrets set ...):
-//   RESEND_API_KEY       — API key from resend.com
-//   NOTIFICATION_FROM    — sender, e.g. "ConnectSphere <onboarding@resend.dev>"
+//   GMAIL_USER          — the sending account, e.g. connectsphere212@gmail.com
+//   GMAIL_APP_PASSWORD  — a Google app password (16 characters), NOT the account password
 // SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are provided by the platform.
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient } from 'npm:@supabase/supabase-js@2'
+import nodemailer from 'npm:nodemailer@6.9.16'
 
 const BATCH_SIZE = 20
 // After this many failed sends a message stops being retried and is left for a human.
 const MAX_ATTEMPTS = 5
+const SENDER_NAME = 'ConnectSphere'
 
 interface OutboxRow {
   id: string
@@ -28,10 +34,10 @@ interface OutboxRow {
 }
 
 Deno.serve(async () => {
-  const resendKey = Deno.env.get('RESEND_API_KEY')
-  const from = Deno.env.get('NOTIFICATION_FROM')
-  if (!resendKey || !from) {
-    return Response.json({ error: 'Email provider is not configured' }, { status: 500 })
+  const gmailUser = Deno.env.get('GMAIL_USER')
+  const gmailPassword = Deno.env.get('GMAIL_APP_PASSWORD')
+  if (!gmailUser || !gmailPassword) {
+    return Response.json({ error: 'Email sending is not configured' }, { status: 500 })
   }
 
   // The service role bypasses RLS, which is required: no browser role can read the outbox.
@@ -40,6 +46,13 @@ Deno.serve(async () => {
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     { auth: { persistSession: false } },
   )
+
+  const transport = nodemailer.createTransport({
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true,
+    auth: { user: gmailUser, pass: gmailPassword },
+  })
 
   const { data, error } = await supabase
     .from('notification_outbox')
@@ -66,30 +79,32 @@ Deno.serve(async () => {
       .maybeSingle()
     if (!claimed) continue
 
-    const response = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ from, to: [row.recipient_email], subject: row.subject, text: row.body }),
-    })
-
-    if (response.ok) {
+    try {
+      await transport.sendMail({
+        from: `"${SENDER_NAME}" <${gmailUser}>`,
+        to: row.recipient_email,
+        subject: row.subject,
+        text: row.body,
+      })
       await supabase
         .from('notification_outbox')
         .update({ status: 'sent', sent_at: new Date().toISOString(), last_error: null })
         .eq('id', row.id)
       sent += 1
-    } else {
+    } catch (sendError) {
       const attempts = row.attempts + 1
+      const message = sendError instanceof Error ? sendError.message : String(sendError)
       await supabase
         .from('notification_outbox')
         .update({
           status: attempts >= MAX_ATTEMPTS ? 'failed' : 'pending',
-          last_error: `${response.status} ${(await response.text()).slice(0, 500)}`,
+          last_error: message.slice(0, 500),
         })
         .eq('id', row.id)
       failed += 1
     }
   }
 
+  transport.close()
   return Response.json({ sent, failed })
 })
