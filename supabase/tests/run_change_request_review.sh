@@ -40,4 +40,21 @@ select pg_temp.assert_true(
     union all (select * from field_reviews_before_repeat except select * from public.event_change_requests)),
   'AC-007.13.5: rerunning field clarification migration preserves existing and provisional decisions');
 SQL
+  # Reproduce the shared table's differently named legacy constraint. NOT VALID
+  # allows existing reviewed fixtures but still rejects new updates to these states.
+  cat <<'SQL'
+alter table public.event_change_requests add constraint event_change_requests_status_valid
+  check (status in ('submitted','approved','rejected','withdrawn')) not valid;
+do $$ begin
+  begin
+    update public.event_change_requests set status='clarification_requested'
+      where id='20000000-0000-0000-0000-000000000001';
+  exception when check_violation then return;
+  end;
+  raise exception 'Legacy constraint fixture did not reproduce the failure';
+end $$;
+SQL
+  cat "$repo_root/supabase/migrations/0011_change_request_legacy_status_constraint.sql"
+  cat "$repo_root/supabase/migrations/0011_change_request_legacy_status_constraint.sql"
+  cat "$repo_root/supabase/tests/change_request_legacy_status_constraint.sql"
 } | docker exec -i "$container" psql -X -U postgres -v ON_ERROR_STOP=1
