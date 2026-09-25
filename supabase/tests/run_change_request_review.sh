@@ -57,4 +57,5 @@ SQL
   cat "$repo_root/supabase/migrations/0011_change_request_legacy_status_constraint.sql"
   cat "$repo_root/supabase/migrations/0011_change_request_legacy_status_constraint.sql"
   cat "$repo_root/supabase/tests/change_request_legacy_status_constraint.sql"
+  cat "$repo_root/supabase/tests/direct_event_review.sql"
 } | docker exec -i "$container" psql -X -U postgres -v ON_ERROR_STOP=1

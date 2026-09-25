@@ -161,9 +161,18 @@ export async function transitionEventStatus(options: {
   }
 
   // A rejection or a return without a reason leaves the organiser nothing to act on.
-  const needsNote = to === 'rejected' || (to === 'submitted' && from === 'under_review')
+  const needsNote = to === 'rejected' || (to === 'submitted' && ['submitted', 'under_review'].includes(from))
   if (needsNote && !note?.trim()) {
     return { ok: false, reason: REVIEW_MESSAGES.noteRequired }
+  }
+
+  if (from === 'submitted' && ['approved', 'rejected', 'submitted'].includes(to)) {
+    const { data, error } = await supabase.rpc('review_submitted_event', {
+      p_event_id: id, p_decision: to, p_note: note?.trim() || null,
+    })
+    if (error || data !== to) return { ok: false, reason: error?.code === '42501'
+      ? REVIEW_MESSAGES.notPermitted : REVIEW_MESSAGES.illegalTransition }
+    return { ok: true, status: to }
   }
 
   const { data, error } = await supabase

@@ -27,7 +27,7 @@ describe('AC-004.2 — accept/reject workflow rules', () => {
   })
 
   test('AC-004.2.3: a submitted request cannot jump straight to approved', () => {
-    // Approval without review would make the review step optional in practice.
+    // Direct table updates retain the old graph; the RPC combines its two steps.
     expect(canTransition('submitted', 'approved')).toBe(false)
   })
 
@@ -76,8 +76,8 @@ describe('AC-004.2 — who may perform a transition', () => {
 })
 
 describe('AC-004.2 — actions offered to a coordinator', () => {
-  test('AC-004.2.14: a newly submitted request offers review, not approval', () => {
-    expect(reviewActionsFor('submitted').map((action) => action.to)).toEqual(['under_review', 'cancelled'])
+  test('AC-004.2.14: a newly submitted request offers approve, return and reject', () => {
+    expect(reviewActionsFor('submitted').map((action) => action.to)).toEqual(['approved', 'submitted', 'rejected', 'cancelled'])
   })
 
   test('AC-004.2.15: a request under review offers approve, return and reject', () => {

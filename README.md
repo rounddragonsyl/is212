@@ -95,8 +95,10 @@ throughout coordinator review. Returned event requests show **Clarification requ
 when submitted with an outstanding review note, including on home/list badges. Draft
 and final outcome labels are unchanged. Submission confirmation/guidance use the same
 wording. Change requests also display **In review** for internal status `submitted`.
-Coordinator event-request labels/actions and all database status values are unchanged;
-removing US4's Start review action remains a separate team-coordinated change.
+Database status values and staff labels are unchanged. A follow-up in this PR removes
+US4's Start review button: submitted requests offer Approve, Reject and Return for
+more detail immediately. Apply migration `0012_review_submitted_event.sql` before
+using those direct decisions. See [the direct-review change log](docs/direct-event-review.md).
 
 This presentation change reuses the existing status-panel, submission and change-list
 cases; no new test IDs are allocated. Request summaries now include the existing
