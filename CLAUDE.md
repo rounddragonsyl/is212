@@ -74,25 +74,34 @@ Draft saves in eventDraftService must never change an existing request's status.
 - Both `0005` migrations precede `0006`; their duplicate version prefix needs resolving
   before relying on CLI migration discovery. Do not silently renumber applied files.
 - `changeRequestReviewValidation.ts` is pure US7 review preparation.
-  Decisions cover each proposed field once; rejected fields require explanations.
-  Clarification applies nothing. Migration 0008 adds these outcomes to the database.
+  Decisions cover each proposed field once; rejected fields require explanations and
+  clarification_requested fields require questions. Any unresolved field makes all
+  approvals provisional: no event changes apply until every field is resolved.
   Do not treat prepared values as a validated event or bypass database permissions.
-  README records the 19 test IDs using the supplied Jira AC order.
+  README records the 27 validator test IDs using the supplied Jira AC order.
 - `changeRequestReviewService.ts` calls that validator and the existing review RPC;
   UI integration is pending. Pass the exact event `updated_at` shown to the reviewer,
   never refresh it just before saving. Only decisions/notes go to the RPC, not proposed
   values or reviewer identity. Do not automatically retry a lost review response.
-  Its 18 mocked tests continue the existing AC allocations; see README.
+  Its 21 mocked tests continue the existing AC allocations; see README. Choose the
+  RPC payload by the presence of decisions, not by status: field-level clarification
+  also uses action=decide. Legacy whole-request action=clarify remains supported.
 - `0008_change_request_review.sql` adds coordinator assignment and the atomic review
   RPC. Only Operations Managers assign; only the assigned coordinator reviews a
   pending request with a matching event updated_at. Values come from the stored
   proposal. Submitted event details cannot be edited directly by the browser;
   US4 status transitions and US1 draft edits still work. Never apply this migration
   silently to shared Supabase. UI integration/notifications/revalidation are pending.
+- `0010_change_request_field_clarification.sql` replaces the review RPC to save mixed
+  provisional decisions/questions without changing the event. It still accepts only
+  submitted requests. Organiser replies/resubmission are not implemented; do not
+  expose an unfinished clarification loop or bypass it with direct status updates.
+  reviewed_at/by record the review action even if clarification is still outstanding.
+  Per-field questions are in field_decisions.note, not the legacy review_note.
 - Database checks live in `supabase/tests/`; run
   `bash supabase/tests/run_change_request_review.sh` with Docker running. Synthetic
   fixtures and Auth helpers are for the disposable container only, not shared Supabase.
-  43 US7 SQL case IDs continue the unit-test allocations (see README), with four
+  61 US7 SQL case IDs continue the unit-test allocations (see README), with four
   additional cross-story regression checks. These tests are separate from Vitest/CI.
 
 ## Review decisions and email (US4)

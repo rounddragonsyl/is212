@@ -113,6 +113,33 @@ describe('AC-007.7 — clarification instead of a decision', () => {
       .toEqual({ ok: false, reason: CHANGE_REVIEW_MESSAGES.clarificationRequired })
     expect(mocks.rpc).not.toHaveBeenCalled()
   })
+
+  test('AC-007.7.17: sends provisional field decisions and questions without changing them to a whole-request note', async () => {
+    mocks.rpc.mockResolvedValue({ data: 'clarification_requested', error: null })
+    const review = { action: 'decide', decisions: [approved.decisions[0], {
+      field: 'expectedAttendance', decision: 'clarification_requested', note: 'Does this include staff?',
+    }] }
+    expect(await saveChangeRequestReview(request, version, review))
+      .toEqual({ ok: true, status: 'clarification_requested' })
+    expect(mocks.rpc).toHaveBeenCalledWith('review_event_change_request', {
+      p_request_id: request.id, p_event_updated_at: version, p_review: review,
+    })
+    expect(mocks.from).not.toHaveBeenCalled()
+  })
+
+  test('AC-007.7.18: a blank field question blocks the RPC even when another field is approved', async () => {
+    expect(await saveChangeRequestReview(request, version, { action: 'decide', decisions: [
+      approved.decisions[0], { field: 'expectedAttendance', decision: 'clarification_requested', note: '  ' },
+    ] })).toEqual({ ok: false, reason: CHANGE_REVIEW_MESSAGES.clarificationRequired })
+    expect(mocks.rpc).not.toHaveBeenCalled()
+  })
+
+  test('AC-007.7.19: does not report success if the server returns partial approval for an unresolved request', async () => {
+    mocks.rpc.mockResolvedValue({ data: 'partially_approved', error: null })
+    expect(await saveChangeRequestReview(request, version, { action: 'decide', decisions: [
+      approved.decisions[0], { field: 'expectedAttendance', decision: 'clarification_requested', note: 'Why more?' },
+    ] })).toEqual({ ok: false, reason: messages.failed })
+  })
 })
 
 describe('AC-007.9 — preserve the database checks on accepted changes', () => {

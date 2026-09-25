@@ -51,9 +51,9 @@ export async function saveChangeRequestReview(
     }
 
     // Never send approvedChanges or reviewer identity: both are resolved by the database.
-    const payload = review.status === 'clarification_requested'
-      ? { action: 'clarify', note: review.note }
-      : { action: 'decide', decisions: review.decisions }
+    const payload = 'decisions' in review
+      ? { action: 'decide', decisions: review.decisions }
+      : { action: 'clarify', note: review.note }
     const { data, error } = await supabase.rpc('review_event_change_request', {
       p_request_id: request.id,
       p_event_updated_at: eventUpdatedAt,

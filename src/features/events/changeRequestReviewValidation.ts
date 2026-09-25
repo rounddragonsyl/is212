@@ -26,7 +26,7 @@ const proposedChangesSchema = changeFieldsSchema.refine(
 
 const decisionSchema = z.object({
   field: changeFieldsSchema.keyof(),
-  decision: z.enum(['approved', 'rejected']),
+  decision: z.enum(['approved', 'rejected', 'clarification_requested']),
   note: z.string().trim().default(''),
 }).strict()
 
@@ -74,6 +74,16 @@ export function validateChangeRequestReview(
   }
   if (decisions.some(({ decision, note }) => decision === 'rejected' && !note)) {
     return { ok: false, reason: CHANGE_REVIEW_MESSAGES.rejectionNoteRequired }
+  }
+  if (decisions.some(({ decision, note }) => decision === 'clarification_requested' && !note)) {
+    return { ok: false, reason: CHANGE_REVIEW_MESSAGES.clarificationRequired }
+  }
+  // Approval is provisional until every field is resolved. Keep all decisions for
+  // the next review round, but expose no values that could be applied prematurely.
+  if (decisions.some(({ decision }) => decision === 'clarification_requested')) {
+    return { ok: true, review: {
+      status: 'clarification_requested', decisions, approvedChanges: {},
+    } }
   }
 
   const accepted = decisions.filter(({ decision }) => decision === 'approved')

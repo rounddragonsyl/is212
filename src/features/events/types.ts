@@ -231,13 +231,13 @@ export interface EventChangeRequest {
 /** Review preparation; persistence is handled by the database review operation. */
 export interface ChangeRequestFieldDecision {
   field: keyof ProposedEventChanges
-  decision: 'approved' | 'rejected'
+  decision: 'approved' | 'rejected' | 'clarification_requested'
   note: string
 }
 
 export type PreparedChangeRequestReview =
   | {
-      status: 'approved' | 'partially_approved' | 'rejected'
+      status: 'approved' | 'partially_approved' | 'rejected' | 'clarification_requested'
       decisions: ChangeRequestFieldDecision[]
       approvedChanges: ProposedEventChanges
     }
