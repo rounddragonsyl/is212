@@ -88,7 +88,7 @@ These were one-off local checks, not new Vitest cases or checks added to CI. The
 211 application tests also passed. Live Supabase verification and the security gaps
 listed above remain separate follow-up work.
 
-## US7 review rules (not yet connected)
+## US7 review rules and service (UI integration pending)
 
 `src/features/events/changeRequestReviewValidation.ts` prepares a review without
 reading or writing Supabase. It reuses US6's `ProposedEventChanges` field names.
@@ -99,9 +99,9 @@ outcome. Requesting clarification instead requires a message and prepares no cha
 This is the proposed interaction for US7; clarification leaves the whole request
 unresolved, rather than mixing approval and clarification in the same action.
 
-Nothing calls this helper from the app yet. Migration `0008` adds the corresponding
-database outcomes and review operation described below. Frontend service/UI integration,
-notifications and arrangement revalidation remain. Checking the proposal's shape here
+`changeRequestReviewService.ts` now calls this helper before saving through migration
+`0008`'s database review operation. Review UI integration, notifications and arrangement
+revalidation remain. Checking the proposal's shape here
 does not establish that a proposed date or attendance is valid; the database operation
 validates the event produced by the accepted subset before saving it.
 
@@ -118,6 +118,40 @@ The 19 automated tests in
 
 These tests cover pure logic, not completed ACs or communication to the organiser.
 If Jira criteria are reordered, update the mapping with the team before adding cases.
+
+### US7 review service
+
+`saveChangeRequestReview(request, eventUpdatedAt, input)` sends decisions or a
+clarification message to `review_event_change_request`. Supply the exact `updated_at`
+of the event displayed to the reviewer; do not refresh it just before saving. The
+service sends no proposed event values or reviewer identity. The database remains
+responsible for current assignment, request state, resulting-event validation and
+atomic writes. Stale/denied reviews show a reload message; a lost response asks the
+user to check the saved status before retrying, since the transaction may have committed.
+No review screen calls this service yet, and shared Supabase has not been updated by
+this change. It requires migration `0008` to be applied through the team's database process.
+
+The 18 mocked tests in `src/features/events/__tests__/changeRequestReviewService.test.ts`
+use these additional IDs, preserving the earlier unit and SQL allocations:
+
+| Criterion | Case IDs | Coverage |
+| --- | --- | --- |
+| 2 — assigned coordinator | AC-007.2.19–21 | Missing/expired session and server permission denial |
+| 5 — decisions | AC-007.5.20–27 | Full/partial approval, incomplete decisions, stale/already-decided request, failure handling |
+| 6 — rejection reason | AC-007.6.5 | Blank explanation blocks saving |
+| 7 — clarification | AC-007.7.7–8 | Message-only action and required explanation |
+| 9 — approved values | AC-007.9.12–14 | Comparison version required and invalid resulting event rejected |
+| 10 — rejection | AC-007.10.2 | Full rejection uses the RPC without direct event writes |
+
+These tests verify the service contract, not live database permissions.
+
+CI supplies placeholder `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` values to
+both the Test and Build steps. The existing US4 `ReviewActions` tests mock the review
+function but import the original service for its messages, which also initialises the
+Supabase client. The placeholders allow that import without a local `.env`; they do
+not provide a working database connection or turn mocked tests into integration tests.
+The proposed additional Supabase mock in that test file was not adopted. US4 application
+behaviour and test expectations remain unchanged.
 
 ### US7 database review operation
 
