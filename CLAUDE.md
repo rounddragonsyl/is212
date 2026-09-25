@@ -38,6 +38,11 @@ Supabase (PostgreSQL + Auth + RLS) · Vitest + React Testing Library · GitHub A
   more ad-hoc prefixes.
 - Every story needs at least one boundary, conflict or failure test.
 - We must reach high coverage and be able to trace acceptance criteria to tests.
+- CI provides placeholder Supabase URL/key values separately for the Test and Build
+  steps. These let the client initialise during imports; they do not connect to a real
+  database. US4 ReviewActions tests mock the review function but import the real service
+  for its messages. Keep mocked tests from making real network calls; live integration
+  tests require a separate test environment, fixtures and cleanup.
 
 ## Roles and authorisation
 - Roles live in public.profiles.role, never in auth.users. Values: organiser, coordinator,
@@ -68,11 +73,16 @@ Draft saves in eventDraftService must never change an existing request's status.
   a baseline, not proof of secure review or withdrawal. See README for known gaps.
 - Both `0005` migrations precede `0006`; their duplicate version prefix needs resolving
   before relying on CLI migration discovery. Do not silently renumber applied files.
-- `changeRequestReviewValidation.ts` is pure, unconnected US7 review preparation.
+- `changeRequestReviewValidation.ts` is pure US7 review preparation.
   Decisions cover each proposed field once; rejected fields require explanations.
   Clarification applies nothing. Migration 0008 adds these outcomes to the database.
   Do not treat prepared values as a validated event or bypass database permissions.
   README records the 19 test IDs using the supplied Jira AC order.
+- `changeRequestReviewService.ts` calls that validator and the existing review RPC;
+  UI integration is pending. Pass the exact event `updated_at` shown to the reviewer,
+  never refresh it just before saving. Only decisions/notes go to the RPC, not proposed
+  values or reviewer identity. Do not automatically retry a lost review response.
+  Its 18 mocked tests continue the existing AC allocations; see README.
 - `0008_change_request_review.sql` adds coordinator assignment and the atomic review
   RPC. Only Operations Managers assign; only the assigned coordinator reviews a
   pending request with a matching event updated_at. Values come from the stored
