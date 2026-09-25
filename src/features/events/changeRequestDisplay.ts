@@ -9,7 +9,7 @@ export const CHANGE_FIELD_LABELS: Record<keyof ProposedEventChanges, string> = {
 }
 
 export const CHANGE_STATUS_LABELS: Record<ChangeRequestStatus, string> = {
-  submitted: 'Pending review', clarification_requested: 'Clarification required',
+  submitted: 'In review', clarification_requested: 'Clarification required',
   approved: 'Approved', rejected: 'Rejected', partially_approved: 'Partially approved', withdrawn: 'Withdrawn',
 }
 

@@ -26,8 +26,8 @@ describe('AC-003 — view event request status (SCRUM-24)', () => {
   test.each(EVENT_STATUSES)(
     'AC-003.3.1 (%s): clearly labels every status, including incomplete drafts',
     (status) => {
-      render(<RequestStatusPanel request={{ ...request, status }} />)
-      expect(screen.getByText(EVENT_STATUS_LABELS[status])).toBeInTheDocument()
+      render(<RequestStatusPanel organiserView request={{ ...request, status }} />)
+      expect(screen.getByText(status === 'submitted' || status === 'under_review' ? 'In review' : EVENT_STATUS_LABELS[status])).toBeInTheDocument()
     },
   )
 
@@ -47,9 +47,11 @@ describe('AC-003 — view event request status (SCRUM-24)', () => {
   })
 
   test('AC-003.5.1: identifies an outstanding return and clears it after review progresses', () => {
-    const { rerender } = render(<RequestStatusPanel request={{ ...request, status: 'submitted', reviewNote: 'Please amend the programme' }} />)
+    const { rerender } = render(<RequestStatusPanel organiserView request={{ ...request, status: 'submitted', reviewNote: 'Please amend the programme' }} />)
     expect(screen.getByText('Outstanding clarification or amendment request')).toBeInTheDocument()
     expect(screen.getByText('Please amend the programme')).toBeInTheDocument()
+    expect(screen.getByText('Clarification required')).toBeInTheDocument()
+    expect(screen.queryByText('In review')).not.toBeInTheDocument()
     expect(screen.getByText(/has been returned for clarification/)).toBeInTheDocument()
     expect(screen.queryByText(/is awaiting review/)).not.toBeInTheDocument()
     rerender(<RequestStatusPanel request={{ ...request, status: 'approved' }} />)

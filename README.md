@@ -88,7 +88,23 @@ These were one-off local checks, not new Vitest cases or checks added to CI. The
 211 application tests also passed. Live Supabase verification and the security gaps
 listed above remain separate follow-up work.
 
+## Organiser-facing review labels (26 September)
+
+Event requests display **In review** to organisers immediately after submission and
+throughout coordinator review. Returned event requests show **Clarification required**
+when submitted with an outstanding review note, including on home/list badges. Draft
+and final outcome labels are unchanged. Submission confirmation/guidance use the same
+wording. Change requests also display **In review** for internal status `submitted`.
+Coordinator event-request labels/actions and all database status values are unchanged;
+removing US4's Start review action remains a separate team-coordinated change.
+
+This presentation change reuses the existing status-panel, submission and change-list
+cases; no new test IDs are allocated. Request summaries now include the existing
+`review_note` column so list badges can distinguish clarification from review.
+
 ## US7 review rules and service
+
+### Shared database status-rule correction
 
 Live setup correction (25 September): the shared table retained an older CHECK
 constraint named `event_change_requests_status_valid`, which only allowed four
@@ -196,7 +212,7 @@ complete that loop. The follow-up must retain questions/responses, return the re
 submitted for review, and protect against stale request as well as event versions.
 Do not bypass it with a direct browser status update.
 
-Implemented organiser labels: Submitted → Pending review; Clarification requested →
+Implemented organiser labels: Submitted → In review; Clarification requested →
 Clarification required; Approved / Rejected / Partially approved are final outcomes.
 Withdrawn remains a separate historical outcome.
 

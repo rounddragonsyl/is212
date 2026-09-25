@@ -134,6 +134,7 @@ export interface SubmittedEvent {
 
 /** Enough of an event to list it. Dates stay as ISO strings until something renders them. */
 export interface EventRequestSummary {
+  reviewNote?: string | null
   id: string
   reference: string | null
   organiserId: string

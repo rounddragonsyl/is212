@@ -85,7 +85,7 @@ export function ReviewRequestDetailPage() {
               </div>
             </header>
 
-            <RequestStatusPanel request={request} />
+            <RequestStatusPanel request={request} organiserView={profile?.role === 'organiser'} />
             <p className="text-xs text-slate-500">Status updates automatically every 30 seconds.</p>
 
             <Card title="Request details">
