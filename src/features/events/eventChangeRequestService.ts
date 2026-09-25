@@ -1,11 +1,10 @@
 import { supabase } from '../../lib/supabase'
-import type { EventChangeRequest, ChangeRequestStatus, ProposedEventChanges } from './types'
+import type { EventChangeRequest, ChangeRequestStatus, ProposedEventChanges, ChangeRequestFieldDecision } from './types'
 import type { EventStatus } from './types' // adjust path if EventStatus lives elsewhere
 
 /**
- * The only module that talks to Supabase about change requests. A change request never
- * mutates the event row itself — the confirmed details stay in force and visible until a
- * coordinator approves it. This module only manages the separate change_requests table.
+ * Organiser submission, listing and withdrawal use the separate event_change_requests
+ * table. Applying approved values belongs to the coordinator review RPC/service.
  */
 
 const PENDING_STATUS: ChangeRequestStatus = 'submitted'
@@ -130,7 +129,7 @@ export async function requestEventChange(
   return { ok: true, requestId: data.id }
 }
 
-interface EventChangeRequestRow {
+export interface EventChangeRequestRow {
   id: string
   event_id: string
   proposed_changes: ProposedEventChanges
@@ -139,10 +138,11 @@ interface EventChangeRequestRow {
   submitted_at: string
   reviewed_at: string | null
   review_note: string | null
+  field_decisions: ChangeRequestFieldDecision[] | null
 }
 
 // matches camelCase variables to snake_case
-function toEventChangeRequest(row: EventChangeRequestRow): EventChangeRequest {
+export function toEventChangeRequest(row: EventChangeRequestRow): EventChangeRequest {
   return {
     id: row.id,
     eventId: row.event_id,
@@ -152,6 +152,7 @@ function toEventChangeRequest(row: EventChangeRequestRow): EventChangeRequest {
     submittedAt: row.submitted_at,
     reviewedAt: row.reviewed_at,
     reviewNote: row.review_note,
+    fieldDecisions: row.field_decisions ?? [],
   }
 }
 
@@ -160,13 +161,12 @@ function toEventChangeRequest(row: EventChangeRequestRow): EventChangeRequest {
 export async function getMyChangeRequests(eventId: string): Promise<EventChangeRequest[]> {
   const { data, error } = await supabase
     .from('event_change_requests')
-    .select('id, event_id, proposed_changes, reason, status, submitted_at, reviewed_at, review_note')
+    .select('id, event_id, proposed_changes, reason, status, submitted_at, reviewed_at, review_note, field_decisions')
     .eq('event_id', eventId)
     .order('submitted_at', { ascending: false })
 
   if (error) {
-    console.error('[change-requests] getMyChangeRequests', error)
-    return []
+    throw new Error('The change requests could not be loaded. Please try again.')
   }
   return (data ?? []).map(toEventChangeRequest)
 }

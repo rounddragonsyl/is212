@@ -88,7 +88,30 @@ These were one-off local checks, not new Vitest cases or checks added to CI. The
 211 application tests also passed. Live Supabase verification and the security gaps
 listed above remain separate follow-up work.
 
-## US7 review rules and service (UI integration pending)
+## US7 review rules and service
+
+Live setup correction (25 September): the shared table retained an older CHECK
+constraint named `event_change_requests_status_valid`, which only allowed four
+statuses. Migration `0008` replaced `status_check`, so the legacy rule still blocked
+clarification and partial approval. Apply
+[`0011_change_request_legacy_status_constraint.sql`](supabase/migrations/0011_change_request_legacy_status_constraint.sql)
+after `0010` to consolidate both names into the six-status constraint without changing
+rows or access policies. The UI's generic validation message did not identify this
+database setup mismatch. Jaydon reported applying `0008`, `0010` and `0011` to shared
+Supabase and successfully saving a field clarification on 25 September. Organiser-side
+visibility and the other live review paths still need verification.
+
+The database runner now reproduces the legacy constraint before applying `0011`
+twice. Three additional checks in `supabase/tests/change_request_legacy_status_constraint.sql`
+verify partial approval (`AC-007.5.38`), clarification (`AC-007.7.36`) and preservation
+of all request rows on repeated application (`AC-007.13.6`). All **68 local database
+checks passed**. These checks supplement the 37 UI tests below.
+
+The coordinator review screen is now connected on `/requests/:id`, in Requested
+changes. See [the UI change log and all 37 new test cases](docs/us7-review-ui.md) for
+the files changed, testing instructions and remaining work. This is still a partial
+US7 implementation: organiser replies, notifications and arrangement revalidation
+are not complete.
 
 `src/features/events/changeRequestReviewValidation.ts` prepares a review without
 reading or writing Supabase. It reuses US6's `ProposedEventChanges` field names.
@@ -129,8 +152,8 @@ service sends no proposed event values or reviewer identity. The database remain
 responsible for current assignment, request state, resulting-event validation and
 atomic writes. Stale/denied reviews show a reload message; a lost response asks the
 user to check the saved status before retrying, since the transaction may have committed.
-No review screen calls this service yet, and shared Supabase has not been updated by
-this change. Field-level clarification requires migration `0010` after the preceding
+The coordinator review form calls this service. Shared Supabase has not been updated
+by this UI change. Field-level clarification requires migration `0010` after the preceding
 migrations, applied through the team's database process.
 
 The original 18 mocked tests in `src/features/events/__tests__/changeRequestReviewService.test.ts`
@@ -155,7 +178,7 @@ not provide a working database connection or turn mocked tests into integration 
 The proposed additional Supabase mock in that test file was not adopted. US4 application
 behaviour and test expectations remain unchanged.
 
-### Field-level clarification (backend only)
+### Field-level clarification
 
 `0010_change_request_field_clarification.sql` replaces the review function without
 rewriting migration `0008` or existing data. For example, two approved fields, one
@@ -168,14 +191,14 @@ that the request has reached a final outcome. Field questions live in each decis
 
 Only a submitted request can be reviewed. A request awaiting clarification cannot
 be finalised by repeating the RPC call. The organiser-response/resubmission operation
-and UI are still pending; this backend step does not complete that loop or expose
-new controls. That follow-up must retain questions/responses, return the request to
+and UI are still pending. The review screen now saves/displays questions, but does not
+complete that loop. The follow-up must retain questions/responses, return the request to
 submitted for review, and protect against stale request as well as event versions.
 Do not bypass it with a direct browser status update.
 
-Planned organiser labels: Submitted → Pending review; Clarification requested →
+Implemented organiser labels: Submitted → Pending review; Clarification requested →
 Clarification required; Approved / Rejected / Partially approved are final outcomes.
-Withdrawn remains a separate historical outcome. These labels are not yet implemented.
+Withdrawn remains a separate historical outcome.
 
 This step adds 11 application tests (validator now 27; service now 21) and 18 SQL checks:
 
@@ -224,8 +247,9 @@ send notifications, or provide clarification-response/resubmission UI. It does n
 change event lifecycle status or implement a full audit-history screen. The existing
 US6 UI still blocks confirmed events and needs its eligibility rule corrected during
 integration. Duplicate pending-request prevention remains a client precheck, not a
-database uniqueness guarantee. Reconcile these dependencies before exposing review
-actions to users; this migration has only been applied to disposable local databases.
+database uniqueness guarantee. Reconcile these dependencies before calling US7 done;
+the review UI can be tested with existing requests in an assigned event. This migration
+has only been verified here against disposable local databases.
 
 Run the database checks with Docker Desktop running:
 

@@ -226,6 +226,16 @@ export interface EventChangeRequest {
   submittedAt: string
   reviewedAt: string | null
   reviewNote: string | null
+  fieldDecisions: ChangeRequestFieldDecision[]
+}
+
+/** One database snapshot: the comparison and its version must always travel together. */
+export interface ChangeRequestReviewContext {
+  eventId: string
+  eventStatus: EventStatus
+  eventUpdatedAt: string
+  currentValues: EventRequestInput
+  requests: EventChangeRequest[]
 }
 
 /** Review preparation; persistence is handled by the database review operation. */
