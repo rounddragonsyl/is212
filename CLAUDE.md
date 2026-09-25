@@ -64,6 +64,12 @@ owned Draft row. Both paths use expected-status filters and database transition 
 Draft saves in eventDraftService must never change an existing request's status.
 
 ## Change-request database baseline
+- Shared Supabase used `event_change_requests_status_valid`, not just the fresh
+  baseline's `event_change_requests_status_check`. Apply `0011` after `0010` to
+  consolidate these into the six-status rule. Without it, clarification and partial
+  approval fail even with the current RPC. The runner reproduces the mismatch and
+  checks the fix; it now has 68 database checks. Never rerun 0007 after later migrations
+  as a deployment shortcut: it restores the older, broader access policies.
 - `0007_event_change_requests.sql` captures the shared US6 table, policies and timestamp
   trigger. It preserves existing rows and does not implement US7 review decisions.
 - US7 is Event Coordinator Reviewing Change Requests; its tests follow the standard
@@ -80,7 +86,8 @@ Draft saves in eventDraftService must never change an existing request's status.
   Do not treat prepared values as a validated event or bypass database permissions.
   README records the 27 validator test IDs using the supplied Jira AC order.
 - `changeRequestReviewService.ts` calls that validator and the existing review RPC;
-  UI integration is pending. Pass the exact event `updated_at` shown to the reviewer,
+  the coordinator detail page now uses it through ChangeRequestReviewPanel/Form.
+  Pass the exact event `updated_at` shown to the reviewer,
   never refresh it just before saving. Only decisions/notes go to the RPC, not proposed
   values or reviewer identity. Do not automatically retry a lost review response.
   Its 21 mocked tests continue the existing AC allocations; see README. Choose the
@@ -91,13 +98,21 @@ Draft saves in eventDraftService must never change an existing request's status.
   pending request with a matching event updated_at. Values come from the stored
   proposal. Submitted event details cannot be edited directly by the browser;
   US4 status transitions and US1 draft edits still work. Never apply this migration
-  silently to shared Supabase. UI integration/notifications/revalidation are pending.
+  silently to shared Supabase. Notifications/revalidation are pending.
 - `0010_change_request_field_clarification.sql` replaces the review RPC to save mixed
   provisional decisions/questions without changing the event. It still accepts only
-  submitted requests. Organiser replies/resubmission are not implemented; do not
-  expose an unfinished clarification loop or bypass it with direct status updates.
+  submitted requests. Organiser replies/resubmission are not implemented; the current
+  UI can save/display questions but cannot complete the response loop. Do not mark
+  that loop complete or bypass it with direct status updates.
   reviewed_at/by record the review action even if clarification is still outstanding.
   Per-field questions are in field_decisions.note, not the legacy review_note.
+- `changeRequestReviewQueryService.ts` loads the event, exact version and embedded
+  requests together, restricted to the signed-in assigned coordinator. Review forms
+  do not poll: manual reload discards unsaved choices; failed saves require reloading.
+  ChangeRequestSummary exposes per-field questions/reasons and provisional decisions
+  to the organiser. Status wording is shared in changeRequestDisplay.ts.
+  See `docs/us7-review-ui.md` for all 37 new test cases and the file-by-file change log.
+  Existing US6 confirmed-event eligibility remains a recorded follow-up.
 - Database checks live in `supabase/tests/`; run
   `bash supabase/tests/run_change_request_review.sh` with Docker running. Synthetic
   fixtures and Auth helpers are for the disposable container only, not shared Supabase.

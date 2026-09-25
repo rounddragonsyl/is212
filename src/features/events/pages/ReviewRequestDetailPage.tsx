@@ -12,6 +12,7 @@ import { getEventRequest, listReviewDecisions } from '../eventReviewService'
 import { orDash } from '../formatters'
 import { LOCKED_STATUSES } from '../eventChangeRequestService'
 import { ChangeRequestList } from '../components/ChangeRequestList'
+import { ChangeRequestReviewPanel } from '../components/ChangeRequestReviewPanel'
 import type { ReviewDecision } from '../types'
 
 export function ReviewRequestDetailPage() {
@@ -39,12 +40,13 @@ export function ReviewRequestDetailPage() {
   const history = useRequestResource(
     `history:${id}:${profile?.id}:${profile?.role}:${userLoading}`, readHistory,
   )
+  const refreshHistory = history.refresh
 
   // A decision changes both the status and the trail, so both reload together.
   const refreshAll = useCallback(() => {
     refresh()
-    history.refresh()
-  }, [refresh, history.refresh])
+    refreshHistory()
+  }, [refresh, refreshHistory])
 
   return (
     <PageContainer>
@@ -91,11 +93,14 @@ export function ReviewRequestDetailPage() {
             </Card>
 
             <Card title="Requested changes" description="Changes proposed by the organiser for this event.">
-              <ChangeRequestList
+              {profile?.role === 'coordinator' ? <ChangeRequestReviewPanel
+                key={`${request.id}:${profile.id}`} eventId={request.id} onReviewed={refreshAll}
+              /> : <ChangeRequestList
+                key={`${request.id}:${profile?.id}:${profile?.role}`}
                 eventId={request.id}
                 organiserId={request.organiserId}
                 currentUserId={profile?.id}
-              />
+              />}
             </Card>
 
             {profile?.role === 'coordinator' && (
