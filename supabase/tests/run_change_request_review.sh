@@ -24,10 +24,20 @@ if [ "$ready" != true ]; then echo 'Temporary database did not become ready.' >&
   for migration in "$repo_root"/supabase/migrations/*.sql; do cat "$migration"; printf '\n'; done
   cat "$repo_root/supabase/tests/change_request_review.sql"
   cat "$repo_root/supabase/migrations/0008_change_request_review.sql"
+  # Replay later replacements too: replaying 0008 alone would restore an old RPC.
+  cat "$repo_root/supabase/migrations/0010_change_request_field_clarification.sql"
   cat <<'SQL'
 select pg_temp.assert_true(
   not exists ((select * from public.event_change_requests except select * from requests_before_repeat)
     union all (select * from requests_before_repeat except select * from public.event_change_requests)),
   'AC-007.13.3: rerunning migration preserves saved review decisions');
+SQL
+  cat "$repo_root/supabase/tests/change_request_field_clarification.sql"
+  cat "$repo_root/supabase/migrations/0010_change_request_field_clarification.sql"
+  cat <<'SQL'
+select pg_temp.assert_true(
+  not exists ((select * from public.event_change_requests except select * from field_reviews_before_repeat)
+    union all (select * from field_reviews_before_repeat except select * from public.event_change_requests)),
+  'AC-007.13.5: rerunning field clarification migration preserves existing and provisional decisions');
 SQL
 } | docker exec -i "$container" psql -X -U postgres -v ON_ERROR_STOP=1

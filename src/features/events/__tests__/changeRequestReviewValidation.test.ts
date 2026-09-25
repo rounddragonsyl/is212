@@ -84,10 +84,57 @@ describe('AC-007.7: request clarification', () => {
       .toEqual({ ok: false, reason: CHANGE_REVIEW_MESSAGES.clarificationRequired })
   })
 
-  test('AC-007.7.3: cannot combine clarification with approval decisions', () => {
+  test('AC-007.7.3: legacy whole-request clarification rejects a field-decision payload', () => {
     expect(validateChangeRequestReview(proposed, {
       action: 'clarify', note: 'Please explain.', decisions: [approveName, approveAttendance],
     })).toEqual({ ok: false, reason: CHANGE_REVIEW_MESSAGES.invalidReview })
+  })
+
+  test('AC-007.7.9: mixed approval, rejection and clarification saves decisions but prepares no event changes', () => {
+    const decisions = [approveName,
+      { field: 'expectedAttendance', decision: 'rejected', note: 'Capacity limit.' },
+      { field: 'equipmentRequirements', decision: 'clarification_requested', note: '  How many projectors?  ' },
+    ]
+    expect(validateChangeRequestReview({ ...proposed, equipmentRequirements: 'Projectors' }, {
+      action: 'decide', decisions,
+    })).toEqual({ ok: true, review: { status: 'clarification_requested', approvedChanges: {}, decisions: [
+      { ...approveName, note: '' }, decisions[1], { ...decisions[2], note: 'How many projectors?' },
+    ] } })
+  })
+
+  test('AC-007.7.10: retains separate questions for multiple fields', () => {
+    const decisions = [
+      { field: 'name', decision: 'clarification_requested', note: 'Which title?' },
+      { field: 'expectedAttendance', decision: 'clarification_requested', note: 'Does this include staff?' },
+    ]
+    expect(validateChangeRequestReview(proposed, { action: 'decide', decisions }))
+      .toEqual({ ok: true, review: { status: 'clarification_requested', decisions, approvedChanges: {} } })
+  })
+
+  test.each([
+    ['AC-007.7.11', '  '], ['AC-007.7.12', undefined],
+  ])('%s: each clarification field needs its own nonblank question', (_id, note) => {
+    expect(validateChangeRequestReview(proposed, { action: 'decide', decisions: [
+      approveName, { field: 'expectedAttendance', decision: 'clarification_requested', note },
+    ] })).toEqual({ ok: false, reason: CHANGE_REVIEW_MESSAGES.clarificationRequired })
+  })
+
+  test.each([
+    ['AC-007.7.13', [approveName, { field: 'purpose', decision: 'clarification_requested', note: 'Why?' }]],
+    ['AC-007.7.14', [approveName, { field: 'name', decision: 'clarification_requested', note: 'Which?' }]],
+    ['AC-007.7.15', [{ field: 'name', decision: 'clarification_requested', note: 'Which?' }]],
+  ])('%s: clarification still requires exactly one decision for every proposed field', (_id, decisions) => {
+    expect(validateChangeRequestReview(proposed, { action: 'decide', decisions }))
+      .toEqual({ ok: false, reason: CHANGE_REVIEW_MESSAGES.incompleteDecisions })
+  })
+
+  test('AC-007.7.16: provisional decisions do not mutate the original proposal or input', () => {
+    const changes = Object.freeze({ ...proposed })
+    const decision = Object.freeze({ field: 'expectedAttendance', decision: 'clarification_requested', note: '  Why?  ' })
+    const input = Object.freeze({ action: 'decide', decisions: Object.freeze([Object.freeze(approveName), decision]) })
+    expect(validateChangeRequestReview(changes, input)).toMatchObject({ ok: true, review: { approvedChanges: {} } })
+    expect(decision.note).toBe('  Why?  ')
+    expect(changes).toEqual(proposed)
   })
 })
 

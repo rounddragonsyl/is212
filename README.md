@@ -92,20 +92,21 @@ listed above remain separate follow-up work.
 
 `src/features/events/changeRequestReviewValidation.ts` prepares a review without
 reading or writing Supabase. It reuses US6's `ProposedEventChanges` field names.
-For a decision, every proposed field must appear exactly once as approved or rejected;
-each rejected field needs a reason/follow-up. The result contains individual decisions
-and only the accepted values, with an overall approved/partially approved/rejected
-outcome. Requesting clarification instead requires a message and prepares no changes.
-This is the proposed interaction for US7; clarification leaves the whole request
-unresolved, rather than mixing approval and clarification in the same action.
+Every proposed field must appear exactly once as approved, rejected or
+clarification_requested. Rejected fields need reasons and clarification fields need
+questions. If any field needs clarification, all decisions are provisional and no event
+values are prepared or applied. Only a review containing exclusively approved/rejected
+fields can finalise as approved, partially_approved or rejected. The legacy whole-request
+`action: clarify` payload is still accepted for compatibility; the planned checklist uses
+`action: decide` with a separate decision and note for each field.
 
 `changeRequestReviewService.ts` now calls this helper before saving through migration
-`0008`'s database review operation. Review UI integration, notifications and arrangement
+`0008`'s database review operation, extended by `0010`. Review UI integration, notifications and arrangement
 revalidation remain. Checking the proposal's shape here
 does not establish that a proposed date or attendance is valid; the database operation
 validates the event produced by the accepted subset before saving it.
 
-The 19 automated tests in
+The original 19 automated tests in
 `src/features/events/__tests__/changeRequestReviewValidation.test.ts` use the agreed
 `AC-007.Y.Z` format and the AC order in the supplied Jira export:
 
@@ -129,9 +130,10 @@ responsible for current assignment, request state, resulting-event validation an
 atomic writes. Stale/denied reviews show a reload message; a lost response asks the
 user to check the saved status before retrying, since the transaction may have committed.
 No review screen calls this service yet, and shared Supabase has not been updated by
-this change. It requires migration `0008` to be applied through the team's database process.
+this change. Field-level clarification requires migration `0010` after the preceding
+migrations, applied through the team's database process.
 
-The 18 mocked tests in `src/features/events/__tests__/changeRequestReviewService.test.ts`
+The original 18 mocked tests in `src/features/events/__tests__/changeRequestReviewService.test.ts`
 use these additional IDs, preserving the earlier unit and SQL allocations:
 
 | Criterion | Case IDs | Coverage |
@@ -152,6 +154,42 @@ Supabase client. The placeholders allow that import without a local `.env`; they
 not provide a working database connection or turn mocked tests into integration tests.
 The proposed additional Supabase mock in that test file was not adopted. US4 application
 behaviour and test expectations remain unchanged.
+
+### Field-level clarification (backend only)
+
+`0010_change_request_field_clarification.sql` replaces the review function without
+rewriting migration `0008` or existing data. For example, two approved fields, one
+rejected field and one clarification field are saved together in `field_decisions`,
+but the request remains `clarification_requested` and the entire event (including
+`updated_at`) stays unchanged. Blank questions, duplicates and missing/extra fields
+are refused. `reviewed_by`/`reviewed_at` identify the latest review action, not proof
+that the request has reached a final outcome. Field questions live in each decision's
+`note`; `review_note` is retained for legacy whole-request clarification.
+
+Only a submitted request can be reviewed. A request awaiting clarification cannot
+be finalised by repeating the RPC call. The organiser-response/resubmission operation
+and UI are still pending; this backend step does not complete that loop or expose
+new controls. That follow-up must retain questions/responses, return the request to
+submitted for review, and protect against stale request as well as event versions.
+Do not bypass it with a direct browser status update.
+
+Planned organiser labels: Submitted → Pending review; Clarification requested →
+Clarification required; Approved / Rejected / Partially approved are final outcomes.
+Withdrawn remains a separate historical outcome. These labels are not yet implemented.
+
+This step adds 11 application tests (validator now 27; service now 21) and 18 SQL checks:
+
+| File | New case IDs | Coverage |
+| --- | --- | --- |
+| `changeRequestReviewValidation.test.ts` | AC-007.7.9–16 | Mixed decisions, separate questions, required notes, complete field coverage and input preservation |
+| `changeRequestReviewService.test.ts` | AC-007.7.17–19 | Field payload retained, empty question blocked, inconsistent server outcome rejected |
+| `supabase/tests/change_request_field_clarification.sql` | AC-007.2.22–23; .7.20–30; .8.1–2; .9.15; .13.4 | Permissions, provisional decisions, unchanged event, final-only application and recorded actor/time |
+| `supabase/tests/run_change_request_review.sh` | AC-007.13.5 | Migration rerun preserves provisional and final decisions |
+
+Verified for this step: **276 application tests and 65 disposable-database checks
+passed**, along with TypeScript checking and the production build. Lint has no errors;
+the existing review-page hook dependency warning and build bundle-size warning remain.
+This is local verification, not deployment to or testing against shared Supabase.
 
 ### US7 database review operation
 
@@ -196,13 +234,15 @@ bash supabase/tests/run_change_request_review.sh
 ```
 
 The script creates a disposable PostgreSQL 17 container, applies the migrations,
-runs `supabase/tests/change_request_review.sql`, and reruns `0008` to verify record
-preservation. It removes its container on exit, opens no host ports and never reads
+runs `supabase/tests/change_request_review.sql`, and replays `0008` then `0010` to
+verify record preservation without leaving the old RPC installed. It then runs
+`change_request_field_clarification.sql` and reruns `0010` to check preservation of
+provisional decisions. It removes its container on exit, opens no host ports and never reads
 `.env`. `supabase/tests/bootstrap.sql` simulates Supabase Auth identities and grants;
 RLS/constraints/functions run in PostgreSQL, but live Supabase Auth/API is not tested.
 Do not run these fixture files in shared Supabase. They are not part of `npm test` or CI.
 
-Verified locally: **47 SQL checks** (43 US7 checks and 4 shared-workflow regressions),
+At the original database-foundation checkpoint: **47 SQL checks** (43 US7 checks and 4 shared-workflow regressions),
 plus **230 application tests**, lint and production build. SQL case IDs continue the
 unit-test allocations: AC-007.2.1–18, .5.13–19, .6.3–4, .7.4–6, .9.3–11, .10.1,
 and .13.1–3. Four `REGRESSION-US1/US4/US6` checks protect other stories rather than
