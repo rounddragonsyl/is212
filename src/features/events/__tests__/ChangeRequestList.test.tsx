@@ -1,11 +1,12 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, expect, test, vi } from 'vitest'
 import { ChangeRequestList } from '../components/ChangeRequestList'
 import { changeRequest, eventId } from './fixtures/changeRequestReview'
 
-const mocks = vi.hoisted(() => ({ load: vi.fn(), withdraw: vi.fn() }))
+const mocks = vi.hoisted(() => ({ load: vi.fn(), withdraw: vi.fn(), reply: vi.fn() }))
 vi.mock('../eventChangeRequestService', () => ({ getMyChangeRequests: mocks.load, withdrawChangeRequest: mocks.withdraw }))
+vi.mock('../changeRequestReplyService', () => ({ saveChangeRequestReply: mocks.reply, CHANGE_REPLY_SERVICE_MESSAGES: { failed: 'Reload.' } }))
 beforeEach(() => {
   vi.resetAllMocks()
   mocks.load.mockResolvedValue([changeRequest])
@@ -55,4 +56,36 @@ test('AC-007.7.35: failed loading cannot hide questions behind an empty-list mes
   expect(screen.queryByText('No changes have been requested for this event.')).not.toBeInTheDocument()
   await user.click(screen.getByRole('button', { name: 'Retry loading change requests' }))
   expect(await screen.findByText('Pending review')).toBeInTheDocument()
+})
+
+const awaitingReply = { ...changeRequest, status: 'clarification_requested' as const, reviewVersion: 1, fieldDecisions: [
+  { field: 'name' as const, decision: 'approved' as const, note: '' },
+  { field: 'expectedAttendance' as const, decision: 'clarification_requested' as const, note: 'Includes staff?' },
+] }
+test('AC-007.7.75: only the owning organiser sees the reply controls', async () => {
+  mocks.load.mockResolvedValue([awaitingReply])
+  render(<ChangeRequestList eventId={eventId} organiserId="owner" currentUserId="someone-else" />)
+  await screen.findByText('Includes staff?')
+  expect(screen.queryByRole('form')).not.toBeInTheDocument()
+})
+test('AC-007.7.76: sending replies reloads status and removes the completed reply form', async () => {
+  mocks.load.mockResolvedValueOnce([awaitingReply]).mockResolvedValue([changeRequest])
+  mocks.reply.mockResolvedValue({ ok: true, status: 'submitted' })
+  const user = setup()
+  await user.type(await screen.findByRole('textbox'), 'Yes.')
+  await user.click(screen.getByRole('button', { name: 'Send replies for review' }))
+  expect(await screen.findByRole('status')).toHaveTextContent('Replies sent for review')
+  expect(screen.queryByRole('form')).not.toBeInTheDocument()
+  expect(mocks.load).toHaveBeenCalledTimes(2)
+})
+test('AC-007.7.77: focus preserves answers and manual reload replaces the displayed questions', async () => {
+  mocks.load.mockResolvedValue([awaitingReply])
+  const user = setup()
+  await user.type(await screen.findByRole('textbox'), 'Still typing')
+  fireEvent.focus(window)
+  expect(mocks.load).toHaveBeenCalledTimes(1)
+  expect(screen.getByRole('textbox')).toHaveValue('Still typing')
+  await user.click(screen.getByRole('button', { name: 'Reload change requests' }))
+  expect(await screen.findByRole('textbox')).toHaveValue('')
+  expect(mocks.load).toHaveBeenCalledTimes(2)
 })

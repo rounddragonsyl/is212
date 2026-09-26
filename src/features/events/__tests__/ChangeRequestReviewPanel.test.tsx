@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, expect, test, vi } from 'vitest'
 import { ChangeRequestReviewPanel } from '../components/ChangeRequestReviewPanel'
-import { changeRequest, eventId, reviewContext } from './fixtures/changeRequestReview'
+import { changeRequest, eventId, reviewContext, replyRound } from './fixtures/changeRequestReview'
 
 const mocks = vi.hoisted(() => ({ load: vi.fn(), save: vi.fn() }))
 vi.mock('../changeRequestReviewQueryService', () => ({
@@ -90,4 +90,12 @@ test('AC-007.9.16: successful finalisation reloads the outcome and refreshes the
   await waitFor(() => expect(screen.queryByRole('form')).not.toBeInTheDocument())
   expect(mocks.load).toHaveBeenCalledTimes(2)
   expect(onReviewed).toHaveBeenCalledTimes(1)
+})
+
+test('AC-007.13.9: coordinator sees saved question and answer alongside the next review form', async () => {
+  mocks.load.mockResolvedValue({ ok: true, context: { ...reviewContext, requests: [{ ...changeRequest, replyHistory: [replyRound] }] } })
+  setup()
+  expect(await screen.findByText('Yes, including ten staff.')).toBeInTheDocument()
+  expect(screen.getByText('Includes staff?')).toBeInTheDocument()
+  expect(screen.getByRole('form', { name: 'Review change request' })).toBeInTheDocument()
 })

@@ -17,3 +17,11 @@ export const changeRequestRow = {
   reason: changeRequest.reason, status: changeRequest.status, submitted_at: changeRequest.submittedAt,
   reviewed_at: null, review_note: null, field_decisions: null,
 }
+
+export const replyRound = {
+  requestVersion: 1,
+  fieldDecisions: [{ field: 'expectedAttendance' as const, decision: 'clarification_requested' as const, note: 'Includes staff?' }],
+  reviewNote: null, reviewedBy: coordinatorId, reviewedAt: '2026-09-26T01:00:00Z',
+  reply: { replies: [{ field: 'expectedAttendance' as const, message: 'Yes, including ten staff.' }] },
+  repliedBy: 'owner', repliedAt: '2026-09-26T02:00:00Z',
+}
