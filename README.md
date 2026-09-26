@@ -193,7 +193,8 @@ Only a submitted request can be reviewed. A request awaiting clarification canno
 be finalised by repeating the RPC call. Migration `0013_change_request_replies.sql` now provides the organiser reply operation.
 It retains questions/responses and returns the request to submitted without changing
 the event. Request versions prevent stale replies and stale coordinator decisions.
-The reply UI and display of answer history are still pending.
+The organiser reply UI and shared answer-history display are now connected. Live
+verification is still pending.
 Do not bypass it with a direct browser status update.
 
 Implemented organiser labels: Submitted → Pending review; Clarification requested →
@@ -577,7 +578,8 @@ There is no autosave: users must save changes before navigating away.
 
 Apply `0013_change_request_replies.sql` after `0011` before using this code against
 Supabase: organiser and coordinator reads now select `review_version`. This file has
-been verified in a disposable PostgreSQL container, **not applied to shared Supabase**.
+been verified in a disposable PostgreSQL container. Jaydon reported applying it to shared
+Supabase on 27 September; the browser reply loop still needs live verification.
 Number `0012` is reserved for the separate US4 review PR; `0013` does not depend on it.
 
 `changeRequestReplyService.ts` validates all answers and calls `reply_to_change_request`.
@@ -597,4 +599,13 @@ See [reply change log and test cases](docs/us7-reply-preparation.md). This incre
 adds 22 Vitest tests (11 previously prepared validation tests, 9 service tests and
 2 review-service tests) and 18 database checks. One existing query test also checks
 request-version mapping. Totals: **335 application tests; 86 database checks**.
-The UI reply form, answer-history display and live verification remain next steps.
+The reply form and answer-history display are now connected; live verification is next.
+
+The owning organiser can answer each outstanding question in Requested changes. Sending
+returns the request for review and retains the questions/answers for both roles. The list
+uses **Reload change requests**, which clears unsaved answers, instead of refreshing while
+someone types. Failed saves preserve the typed answers and require reload before retry.
+The coordinator can read the history above the review form. No new migration beyond 0013
+is needed for this UI step. It adds **14 UI tests**, bringing the application total to **349**;
+the database suite remains at 86. See the reply change log for each case and the manual
+walkthrough. The separate pending status-label PR remains independent.

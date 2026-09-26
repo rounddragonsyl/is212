@@ -16,7 +16,7 @@ export const CHANGE_REPLY_MESSAGES = {
   empty: 'Enter an answer for every clarification question.',
 } as const
 
-/** Pure preparation only. The future save operation must check ownership, status and
+/** Pure preparation only. The save operation also checks ownership, status and
  * the request version again, and retain the questions/answers before another review. */
 export function validateChangeRequestReply(
   request: Pick<EventChangeRequest, 'status' | 'proposedChanges' | 'fieldDecisions' | 'reviewNote'>,

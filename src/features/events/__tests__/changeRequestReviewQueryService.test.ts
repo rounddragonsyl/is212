@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 import { CHANGE_REVIEW_LOAD_MESSAGES as messages, getChangeRequestReviewContext } from '../changeRequestReviewQueryService'
-import { changeRequestRow, coordinatorId, eventId, reviewContext } from './fixtures/changeRequestReview'
+import { changeRequestRow, coordinatorId, eventId, reviewContext, replyRound } from './fixtures/changeRequestReview'
 
 const mocks = vi.hoisted(() => ({ getUser: vi.fn(), from: vi.fn() }))
 vi.mock('../../../lib/supabase', () => ({ supabase: { auth: { getUser: mocks.getUser }, from: mocks.from } }))
@@ -48,13 +48,13 @@ describe('AC-007.3 — comparison data', () => {
     const decision = { field: 'name', decision: 'clarification_requested', note: 'Which title?' }
     const read = query({ ...row, event_change_requests: [
       changeRequestRow,
-      { ...changeRequestRow, id: 'newer', review_version: 4, submitted_at: '2026-09-26T01:00:00Z', field_decisions: [decision] },
+      { ...changeRequestRow, id: 'newer', review_version: 4, reply_history: [replyRound], submitted_at: '2026-09-26T01:00:00Z', field_decisions: [decision] },
     ] })
     const result = await getChangeRequestReviewContext(eventId)
     expect(result).toMatchObject({ ok: true, context: {
       eventUpdatedAt: reviewContext.eventUpdatedAt, eventStatus: 'confirmed',
       currentValues: { name: 'Original title', expectedAttendance: 50, registrationRequired: false, description: '' },
-      requests: [{ id: 'newer', reviewVersion: 4, fieldDecisions: [decision] }, { id: changeRequestRow.id, fieldDecisions: [] }],
+      requests: [{ id: 'newer', reviewVersion: 4, replyHistory: [replyRound], fieldDecisions: [decision] }, { id: changeRequestRow.id, fieldDecisions: [] }],
     } })
     expect(mocks.from).toHaveBeenCalledTimes(1)
     expect(read.select.mock.calls[0][0]).toContain('event_change_requests(')
