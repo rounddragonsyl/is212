@@ -57,6 +57,7 @@ SQL
   cat "$repo_root/supabase/migrations/0011_change_request_legacy_status_constraint.sql"
   cat "$repo_root/supabase/migrations/0011_change_request_legacy_status_constraint.sql"
   cat "$repo_root/supabase/tests/change_request_legacy_status_constraint.sql"
+  cat "$repo_root/supabase/tests/direct_event_review.sql"
   cat "$repo_root/supabase/migrations/0013_change_request_replies.sql"
   cat "$repo_root/supabase/tests/change_request_replies.sql"
   echo 'create temp table replies_before_repeat as select * from public.event_change_requests;'

@@ -55,7 +55,7 @@ test('AC-007.7.35: failed loading cannot hide questions behind an empty-list mes
   await screen.findByRole('alert')
   expect(screen.queryByText('No changes have been requested for this event.')).not.toBeInTheDocument()
   await user.click(screen.getByRole('button', { name: 'Retry loading change requests' }))
-  expect(await screen.findByText('Pending review')).toBeInTheDocument()
+  expect(await screen.findByText('In review')).toBeInTheDocument()
 })
 
 const awaitingReply = { ...changeRequest, status: 'clarification_requested' as const, reviewVersion: 1, fieldDecisions: [

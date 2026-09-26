@@ -220,7 +220,7 @@ describe('AC-002.3', () => {
     const banner = await screen.findByRole('status')
     expect(banner).toHaveTextContent('Your event request was submitted')
     expect(banner).toHaveTextContent('EVT-2026-0042')
-    expect(banner).toHaveTextContent('Submitted')
+    expect(banner).toHaveTextContent('In review')
   })
 
   test('AC-002.3.2: clears the form after a successful submission so the next request starts clean', async () => {

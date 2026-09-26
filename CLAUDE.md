@@ -56,6 +56,16 @@ Supabase (PostgreSQL + Auth + RLS) · Vitest + React Testing Library · GitHub A
 - dev_set_my_role() and the DevAuthPanel / DevRoleSwitcher components are scaffolding.
   Drop them before release.
 
+## Organiser status presentation
+- Use status/organiserStatusLabel.ts for event badges and submission results: submitted
+  and under_review display In review; submitted with a nonblank review note displays
+  Clarification required. Pass organiserView on shared badges/panels only for organisers.
+- Internal states remain unchanged. US4 submitted-request decisions use the atomic
+  review_submitted_event RPC from 0012 instead of a Start review button. It runs the
+  existing transitions and triggers together; older under_review rows retain their
+  existing path. Apply 0012 before deploying this UI. Change-request submitted
+  displays In review via changeRequestDisplay.ts. Replies will return to that same label.
+
 ## Event status values
 draft, submitted, under_review, approved, planning, confirmed, completed, cancelled,
 rejected. Review transitions belong in eventReviewService. Explicit draft submission

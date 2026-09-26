@@ -21,12 +21,13 @@ beforeEach(() => {
 })
 
 describe('AC-004.2 — accept or reject via a button', () => {
-  test('AC-004.2.22: a submitted request offers Start review, not an immediate decision', () => {
+  test('AC-004.2.22: a submitted request offers immediate decisions without Start review', () => {
     render(<ReviewActions eventId={EVENT_ID} status="submitted" onReviewed={vi.fn()} />)
 
-    expect(screen.getByRole('button', { name: 'Start review' })).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Approve' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Reject' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Start review' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Approve' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Reject' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Return for more detail' })).toBeEnabled()
   })
 
   test('AC-004.2.23: a request under review offers Approve, Reject and Return buttons', () => {

@@ -66,7 +66,7 @@ export function ReviewRequestsPage() {
       ) : (
         <ul className="space-y-4">
           {requests.map((request) => (
-            <RequestListItem key={request.id} request={request} />
+            <RequestListItem key={request.id} request={request} organiserView={profile?.role === 'organiser'} />
           ))}
         </ul>
       )}

@@ -121,7 +121,7 @@ describe('AC-004.2 / AC-004.3 — coordinator accepts/rejects with a reason', ()
 
     const result = await transitionEventStatus({
       id: EVENT_ID,
-      from: 'submitted',
+      from: 'draft',
       to: 'approved',
       actor: coordinator,
     })
