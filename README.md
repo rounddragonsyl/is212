@@ -104,8 +104,8 @@ visibility and the other live review paths still need verification.
 The database runner now reproduces the legacy constraint before applying `0011`
 twice. Three additional checks in `supabase/tests/change_request_legacy_status_constraint.sql`
 verify partial approval (`AC-007.5.38`), clarification (`AC-007.7.36`) and preservation
-of all request rows on repeated application (`AC-007.13.6`). All **68 local database
-checks passed**. These checks supplement the 37 UI tests below.
+of all request rows on repeated application (`AC-007.13.6`). These **68 local database
+checks passed** before the reply increment described below. These checks supplement the 37 UI tests below.
 
 The coordinator review screen is now connected on `/requests/:id`, in Requested
 changes. See [the UI change log and all 37 new test cases](docs/us7-review-ui.md) for
@@ -190,10 +190,10 @@ that the request has reached a final outcome. Field questions live in each decis
 `note`; `review_note` is retained for legacy whole-request clarification.
 
 Only a submitted request can be reviewed. A request awaiting clarification cannot
-be finalised by repeating the RPC call. The organiser-response/resubmission operation
-and UI are still pending. The review screen now saves/displays questions, but does not
-complete that loop. The follow-up must retain questions/responses, return the request to
-submitted for review, and protect against stale request as well as event versions.
+be finalised by repeating the RPC call. Migration `0013_change_request_replies.sql` now provides the organiser reply operation.
+It retains questions/responses and returns the request to submitted without changing
+the event. Request versions prevent stale replies and stale coordinator decisions.
+The reply UI and display of answer history are still pending.
 Do not bypass it with a direct browser status update.
 
 Implemented organiser labels: Submitted → Pending review; Clarification requested →
@@ -572,3 +572,29 @@ application-wide timezone policy still needs coordination with the submission fe
 The page tests use mocked services and the query tests use mocked Supabase. They do not
 prove live persistence, RLS, or trigger behaviour. No fake database is shipped in the app.
 There is no autosave: users must save changes before navigating away.
+
+### Organiser reply backend (US7)
+
+Apply `0013_change_request_replies.sql` after `0011` before using this code against
+Supabase: organiser and coordinator reads now select `review_version`. This file has
+been verified in a disposable PostgreSQL container, **not applied to shared Supabase**.
+Number `0012` is reserved for the separate US4 review PR; `0013` does not depend on it.
+
+`changeRequestReplyService.ts` validates all answers and calls `reply_to_change_request`.
+Only the owning organiser can reply, with exactly one nonblank answer per outstanding
+field question (or a note for a legacy whole-request question). Replies cannot revise
+proposed values. Questions, answers, actors and timestamps are appended to `reply_history`;
+this is clarification history, not the complete US7 activity-history feature.
+The database rejects a reply if another request for the event is already submitted.
+The service never silently retries an uncertain write.
+
+The request version is passed through both query services into coordinator saves.
+Older clients can still review a first-round request without it; after an answer has
+been saved, a matching version is mandatory. The existing event-version check remains.
+This branch does not include the pending status-label/Start review PR.
+
+See [reply change log and test cases](docs/us7-reply-preparation.md). This increment
+adds 22 Vitest tests (11 previously prepared validation tests, 9 service tests and
+2 review-service tests) and 18 database checks. One existing query test also checks
+request-version mapping. Totals: **335 application tests; 86 database checks**.
+The UI reply form, answer-history display and live verification remain next steps.

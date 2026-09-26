@@ -218,6 +218,7 @@ export type ProposedEventChanges = Partial<{
 }>
 
 export interface EventChangeRequest {
+  reviewVersion?: number
   id: string
   eventId: string
   proposedChanges: ProposedEventChanges

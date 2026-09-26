@@ -48,13 +48,13 @@ describe('AC-007.3 — comparison data', () => {
     const decision = { field: 'name', decision: 'clarification_requested', note: 'Which title?' }
     const read = query({ ...row, event_change_requests: [
       changeRequestRow,
-      { ...changeRequestRow, id: 'newer', submitted_at: '2026-09-26T01:00:00Z', field_decisions: [decision] },
+      { ...changeRequestRow, id: 'newer', review_version: 4, submitted_at: '2026-09-26T01:00:00Z', field_decisions: [decision] },
     ] })
     const result = await getChangeRequestReviewContext(eventId)
     expect(result).toMatchObject({ ok: true, context: {
       eventUpdatedAt: reviewContext.eventUpdatedAt, eventStatus: 'confirmed',
       currentValues: { name: 'Original title', expectedAttendance: 50, registrationRequired: false, description: '' },
-      requests: [{ id: 'newer', fieldDecisions: [decision] }, { id: changeRequestRow.id, fieldDecisions: [] }],
+      requests: [{ id: 'newer', reviewVersion: 4, fieldDecisions: [decision] }, { id: changeRequestRow.id, fieldDecisions: [] }],
     } })
     expect(mocks.from).toHaveBeenCalledTimes(1)
     expect(read.select.mock.calls[0][0]).toContain('event_change_requests(')
