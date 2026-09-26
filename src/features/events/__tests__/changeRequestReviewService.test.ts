@@ -86,6 +86,15 @@ describe('AC-007.5 — persist complete and partial decisions', () => {
     mocks.rpc.mockResolvedValue({ data: null, error: null })
     expect(await saveChangeRequestReview(request, version, approved)).toEqual({ ok: false, reason: messages.failed })
   })
+  test('AC-007.5.39: includes the displayed request version when reviewing a reply', async () => {
+    await saveChangeRequestReview({ ...request, reviewVersion: 4 }, version, approved)
+    expect(mocks.rpc.mock.calls[0][1].p_review).toEqual({ ...approved, requestVersion: 4 })
+  })
+  test('AC-007.5.40: an outdated request version requires reloading the replies', async () => {
+    mocks.rpc.mockResolvedValue({ data: null, error: { code: '22000', message: 'Request changed; reload before reviewing' } })
+    expect(await saveChangeRequestReview({ ...request, reviewVersion: 2 }, version, approved))
+      .toEqual({ ok: false, reason: messages.reload })
+  })
 })
 
 describe('AC-007.6 — rejection explanations', () => {

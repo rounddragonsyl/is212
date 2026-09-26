@@ -20,6 +20,7 @@ function describeReviewError(error: { code?: string; message?: string }): string
     'Event details changed; reload before reviewing',
     'This request is no longer pending review',
     'This event can no longer be changed',
+    'Request changed; reload before reviewing',
   ].includes(error.message ?? '')) return CHANGE_REVIEW_SERVICE_MESSAGES.reload
   if (['22000', '22003', '22007', '22008', '22P02', '23514'].includes(error.code ?? '')) {
     return CHANGE_REVIEW_SERVICE_MESSAGES.invalidEvent
@@ -33,7 +34,7 @@ function describeReviewError(error: { code?: string; message?: string }): string
  * assignment/state and reads proposed values from the stored request in one transaction.
  */
 export async function saveChangeRequestReview(
-  request: Pick<EventChangeRequest, 'id' | 'proposedChanges'>,
+  request: Pick<EventChangeRequest, 'id' | 'proposedChanges' | 'reviewVersion'>,
   eventUpdatedAt: string,
   input: unknown,
 ): Promise<SaveChangeRequestReviewResult> {
@@ -57,7 +58,7 @@ export async function saveChangeRequestReview(
     const { data, error } = await supabase.rpc('review_event_change_request', {
       p_request_id: request.id,
       p_event_updated_at: eventUpdatedAt,
-      p_review: payload,
+      p_review: request.reviewVersion === undefined ? payload : { ...payload, requestVersion: request.reviewVersion },
     })
     if (error) return { ok: false, reason: describeReviewError(error) }
     if (data !== review.status) return { ok: false, reason: CHANGE_REVIEW_SERVICE_MESSAGES.failed }

@@ -130,6 +130,7 @@ export async function requestEventChange(
 }
 
 export interface EventChangeRequestRow {
+  review_version?: number
   id: string
   event_id: string
   proposed_changes: ProposedEventChanges
@@ -144,6 +145,7 @@ export interface EventChangeRequestRow {
 // matches camelCase variables to snake_case
 export function toEventChangeRequest(row: EventChangeRequestRow): EventChangeRequest {
   return {
+    reviewVersion: row.review_version,
     id: row.id,
     eventId: row.event_id,
     proposedChanges: row.proposed_changes,
@@ -161,7 +163,7 @@ export function toEventChangeRequest(row: EventChangeRequestRow): EventChangeReq
 export async function getMyChangeRequests(eventId: string): Promise<EventChangeRequest[]> {
   const { data, error } = await supabase
     .from('event_change_requests')
-    .select('id, event_id, proposed_changes, reason, status, submitted_at, reviewed_at, review_note, field_decisions')
+    .select('id, event_id, proposed_changes, reason, status, submitted_at, reviewed_at, review_note, field_decisions, review_version')
     .eq('event_id', eventId)
     .order('submitted_at', { ascending: false })
 
