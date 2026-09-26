@@ -78,7 +78,7 @@ Draft saves in eventDraftService must never change an existing request's status.
   baseline's `event_change_requests_status_check`. Apply `0011` after `0010` to
   consolidate these into the six-status rule. Without it, clarification and partial
   approval fail even with the current RPC. The runner reproduces the mismatch and
-  checks the fix; it now has 68 database checks. Never rerun 0007 after later migrations
+  checks the fix; the reply increment brings the runner to 86 database checks. Never rerun 0007 after later migrations
   as a deployment shortcut: it restores the older, broader access policies.
 - `0007_event_change_requests.sql` captures the shared US6 table, policies and timestamp
   trigger. It preserves existing rows and does not implement US7 review decisions.
@@ -100,7 +100,7 @@ Draft saves in eventDraftService must never change an existing request's status.
   Pass the exact event `updated_at` shown to the reviewer,
   never refresh it just before saving. Only decisions/notes go to the RPC, not proposed
   values or reviewer identity. Do not automatically retry a lost review response.
-  Its 21 mocked tests continue the existing AC allocations; see README. Choose the
+  Its 23 mocked tests continue the existing AC allocations; see README. Choose the
   RPC payload by the presence of decisions, not by status: field-level clarification
   also uses action=decide. Legacy whole-request action=clarify remains supported.
 - `0008_change_request_review.sql` adds coordinator assignment and the atomic review
@@ -111,9 +111,8 @@ Draft saves in eventDraftService must never change an existing request's status.
   silently to shared Supabase. Notifications/revalidation are pending.
 - `0010_change_request_field_clarification.sql` replaces the review RPC to save mixed
   provisional decisions/questions without changing the event. It still accepts only
-  submitted requests. Organiser replies/resubmission are not implemented; the current
-  UI can save/display questions but cannot complete the response loop. Do not mark
-  that loop complete or bypass it with direct status updates.
+  submitted requests. Organiser replies/resubmission are implemented in 0013, and the reply UI/history are now connected. The browser loop still needs live
+  verification; never bypass the reply operation with direct status updates.
   reviewed_at/by record the review action even if clarification is still outstanding.
   Per-field questions are in field_decisions.note, not the legacy review_note.
 - `changeRequestReviewQueryService.ts` loads the event, exact version and embedded
@@ -126,7 +125,7 @@ Draft saves in eventDraftService must never change an existing request's status.
 - Database checks live in `supabase/tests/`; run
   `bash supabase/tests/run_change_request_review.sh` with Docker running. Synthetic
   fixtures and Auth helpers are for the disposable container only, not shared Supabase.
-  61 US7 SQL case IDs continue the unit-test allocations (see README), with four
+  82 US7 SQL case IDs continue the unit-test allocations (see README), with four
   additional cross-story regression checks. These tests are separate from Vitest/CI.
 
 ## Review decisions and email (US4)
@@ -147,3 +146,29 @@ Draft saves in eventDraftService must never change an existing request's status.
 
 ## Out of scope for the first release
 Reporting, analytics, recurring events, multi-session events, dashboards.
+
+## Organiser clarification reply increment
+- `0013_change_request_replies.sql` follows 0011; 0012 is reserved in another PR and
+  is not a dependency. Apply 0013 before deploying the readers of review_version.
+  Jaydon reported applying 0013 to shared Supabase on 27 September. Live UI checks remain.
+- Only the owning organiser may call reply_to_change_request. All outstanding field
+  questions require answers; legacy whole-request questions accept a note. Answers
+  cannot edit proposed values. The request returns to submitted, the event stays unchanged.
+- review_version increments on every request update. Pass the displayed version to
+  reply and review calls; never refresh it silently before writing. Requests with reply
+  history cannot be reviewed by an old client that omits the version.
+- reply_history retains questions/answers/actors/times per reply round. It is not yet
+  the complete US7 activity log. Reply form/history UI are connected; live verification remains pending.
+- See docs/us7-reply-preparation.md for each changed file and new test case.
+  Reply validation: AC-007.7.37–47; reply service: .48–56; SQL replies: .57–66,
+  plus AC-007.2.32–35, .8.3, .9.17, .13.7–8. Review-service tests: .5.39–40.
+
+- Reply UI: ChangeRequestReplyForm is owner-only in ChangeRequestList, for clarification
+  status only. No polling/focus refresh in that list while typing. Explicit reload discards
+  text; failed writes retain text and lock retry until reload. Other status panels still poll.
+- ChangeRequestReplyHistory is shared through ChangeRequestSummary by organiser and
+  coordinator. Query services select reply_history and map missing fixture values to [].
+  Do not replace retained questions with the latest field_decisions when rendering history.
+- UI tests: AC-007.7.67–74 form, .75–77 list; AC-007.13.9 coordinator panel,
+  .13.10–11 shared history. Existing AC-007.3.1 also verifies history mapping.
+  349 app tests; database suite unchanged at 86. See docs/us7-reply-preparation.md.

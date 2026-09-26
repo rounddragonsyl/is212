@@ -24,7 +24,7 @@ export async function getChangeRequestReviewContext(eventId: string): Promise<Ch
     const { data: session, error: authError } = await supabase.auth.getUser()
     if (authError || !session?.user) return { ok: false, reason: CHANGE_REVIEW_LOAD_MESSAGES.unavailable }
     const { data, error } = await supabase.from('events')
-      .select('id, coordinator_id, status, updated_at, name, purpose, event_type, description, proposed_start, proposed_end, expected_attendance, programme, layout_preference, accessibility_requirements, equipment_requirements, registration_required, special_arrangements, event_change_requests(id, event_id, proposed_changes, reason, status, submitted_at, reviewed_at, review_note, field_decisions)')
+      .select('id, coordinator_id, status, updated_at, name, purpose, event_type, description, proposed_start, proposed_end, expected_attendance, programme, layout_preference, accessibility_requirements, equipment_requirements, registration_required, special_arrangements, event_change_requests(id, event_id, proposed_changes, reason, status, submitted_at, reviewed_at, review_note, field_decisions, review_version, reply_history)')
       .eq('id', eventId)
       .eq('coordinator_id', session.user.id)
       .maybeSingle()

@@ -1,3 +1,4 @@
+import { ChangeRequestReplyHistory } from './ChangeRequestReplyHistory'
 import { CHANGE_FIELD_LABELS, formatChangeValue } from '../changeRequestDisplay'
 import { ChangeRequestStatusBadge } from './ChangeRequestStatusBadge'
 import { formatDateTime } from '../formatters'
@@ -15,7 +16,7 @@ export function ChangeRequestSummary({ request }: { request: EventChangeRequest 
     <ul className="mt-3 space-y-3 text-sm text-slate-700">
       {(Object.entries(request.proposedChanges) as [keyof ProposedEventChanges, unknown][]).map(([field, value]) => {
         const decision = request.fieldDecisions.find((item) => item.field === field)
-        const label = decision?.decision === 'clarification_requested' ? 'Clarification required'
+        const label = decision?.decision === 'clarification_requested' ? (request.status === 'submitted' && request.replyHistory?.length ? 'Reply received — awaiting review' : 'Clarification required')
           : decision?.decision === 'approved' ? (unresolved ? 'Approved provisionally' : 'Approved')
             : (unresolved ? 'Rejected provisionally' : 'Rejected')
         return <li key={field} className="whitespace-pre-wrap">
@@ -33,5 +34,6 @@ export function ChangeRequestSummary({ request }: { request: EventChangeRequest 
     {request.status === 'clarification_requested' && <p className="mt-3 text-sm text-blue-800">
       This request is awaiting clarification. No proposed changes have been applied to the event.
     </p>}
+    <ChangeRequestReplyHistory rounds={request.replyHistory ?? []} />
   </>
 }

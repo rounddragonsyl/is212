@@ -1,3 +1,4 @@
+import type { ChangeRequestReplyRound } from './changeRequestReplyTypes'
 export const EVENT_STATUSES = [
   'draft',
   'submitted',
@@ -219,6 +220,8 @@ export type ProposedEventChanges = Partial<{
 }>
 
 export interface EventChangeRequest {
+  reviewVersion?: number
+  replyHistory?: ChangeRequestReplyRound[]
   id: string
   eventId: string
   proposedChanges: ProposedEventChanges
