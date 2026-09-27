@@ -223,3 +223,17 @@ Reporting, analytics, recurring events, multi-session events, dashboards.
 - AC-007.1.1–17 in change_request_notifications.sql; .18 migration replay in runner.
   No live emails sent; migration not applied to shared Supabase. UI/delivery evidence
   is still required for AC1, separately from this trigger subtask. See docs/us7-notification-trigger.md.
+
+## US7 retained review history (latest increment)
+- 0017 records future review actions in event_change_review_history in the same transaction
+  as the review. Snapshot proposal, decisions, actor name/ID and time; never derive history
+  from mutable current request fields. No historical backfill or browser writes.
+- Staff identity history is restricted to current assigned coordinator / Operations Manager.
+  Only coordinator query embeds it; organiser query and shared summary do not expose it.
+- ChangeRequestReviewHistory displays entries below each coordinator request summary,
+  newest version first. Clarification decisions are explicitly provisional.
+- Apply 0017 before updated coordinator queries. Not applied to shared Supabase this round.
+- AC-007.13.12–26 SQL/runner; .27–31 UI/query. See docs/us7-review-history.md.
+- Progress correction to older sections: reply flow and revalidation were user-tested;
+  0016 was applied and email queuing reported by Jaydon. Actual notification delivery is
+  still unverified. Organiser notifications are deferred; do not reconfigure the shared sender.

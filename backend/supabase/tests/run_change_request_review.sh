@@ -89,4 +89,13 @@ select pg_temp.assert_true(
     union all (select * from notification_settings_before_repeat except select * from public.change_request_notification_settings)),
   'AC-007.1.18: migration replay preserves notifications and channel settings');
 SQL
+  cat "$repo_root/supabase/tests/change_request_review_history.sql"
+  echo 'create temp table history_before_replay as select * from public.event_change_review_history;'
+  cat "$repo_root/supabase/migrations/0017_change_request_review_history.sql"
+  cat <<'SQL'
+select pg_temp.assert_true(not exists(
+ (select * from public.event_change_review_history except select * from history_before_replay)
+ union all (select * from history_before_replay except select * from public.event_change_review_history)),
+ 'AC-007.13.26: migration replay preserves review history');
+SQL
 } | docker exec -i "$container" psql -X -U postgres -v ON_ERROR_STOP=1

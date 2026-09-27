@@ -715,3 +715,21 @@ live delivery verification remain open. Unassigned requests are not broadcast; U
 handle notification/backlog when assigning later. No migration has been applied to shared
 Supabase by the agent and no live email was sent. All 132 local database checks pass, including 18 new cases. See
 [contract and test details](docs/us7-notification-trigger.md).
+
+### US7 retained review-decision history (AC13)
+
+Apply `backend/supabase/migrations/0017_change_request_review_history.sql` before running
+this coordinator UI. New review actions preserve their outcome, field decisions, proposed
+values, reviewer and time. Expand **Review decision history** below a change request to
+see them. Earlier clarification actions survive replies and final review. Tracking starts
+when the migration is applied; there is no fabricated historical backfill.
+
+History is readable by the assigned coordinator and Operations Manager, with browser
+writes prohibited. The existing organiser clarification conversation remains available.
+See [review-history changes and test cases](docs/us7-review-history.md): AC-007.13.12–26
+are 15 database checks; .27–31 are five app tests. This increment requires live verification.
+
+Latest progress supersedes older remaining-work notes: significance, the revalidation
+hook, clarification replies and coordinator notification triggers are implemented. Jaydon
+reported a queued email in shared Supabase; delivery is not yet verified. Organiser
+notifications are deferred. The story still needs final verification and team review.
