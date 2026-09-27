@@ -656,3 +656,46 @@ The coordinator can read the history above the review form. No new migration bey
 is needed for this UI step. It adds **14 UI tests**, bringing the application total to **349**;
 the database suite remains at 86. See the reply change log for each case and the manual
 walkthrough. The separate pending status-label PR remains independent.
+
+### Significant-change display (US7 AC11, 27 September)
+
+`changeRequestSignificance.ts` classifies the stored proposal. Start/end date-time,
+attendance, room layout, accessibility or equipment requirement fields make the request
+significant; other supported fields alone make it ordinary. Room layout and accessibility
+are the current mapping for venue requirements. The classifier uses field presence,
+including removal of an optional requirement, with no threshold or free-text interpretation.
+It assumes proposed_changes is the stored diff; it does not compare historical proposals
+against today's event, which may already reflect an approved change.
+
+Both roles see the label and the affected significant fields through ChangeRequestSummary.
+The classification describes the request, not which changes were approved; it remains on
+rejected and partially approved requests too. No new database column/migration or lifecycle
+transition is introduced. The future AC12 database hook must evaluate the accepted changes
+itself; a browser label must never authorise or trigger revalidation.
+
+13 new tests (AC-007.11.1–13); **368 app tests pass** with the merged status/reply work.
+No SQL changes; the combined database runner still has 95 checks, last verified during
+conflict resolution. See [classification changes, tests and walkthrough](docs/us7-significance.md).
+
+### Approved-change revalidation hook (US7 AC12)
+
+Migration `0015_change_request_revalidation.sql` adds a protected pending-work table,
+`event_change_revalidations`. The review transaction queues accepted significant fields
+on final approval/partial approval only. Dates and attendance flag venue and equipment;
+layout/accessibility flag venue; equipment requirements flag equipment. Rejected fields,
+ordinary-only approvals and unresolved clarifications create no work. Each request can
+produce one row. Queue failure rolls back the review and event update.
+
+Only the assigned coordinator and Operations Manager may read these records; browsers
+cannot write them. This is the agreed stub for later booking/equipment integration, **not
+actual availability checking or automatic cancellation/rescheduling**. There is no completion
+API/worker yet, and no automatic lifecycle transition. No historical decisions are backfilled.
+The database derives its flags independently of the AC11 browser label.
+
+Jaydon reported applying 0015 to shared Supabase on 27 September and verified that
+approving an equipment change request creates a pending revalidation record. Other live
+paths are not claimed as verified by this walkthrough; local SQL coverage is listed below.
+All 114 local database checks pass, including 19 new tests of the hook and its
+permissions/atomicity/replay behavior. See
+[revalidation contract, tests and manual check](docs/us7-revalidation.md). Coordinator
+submission notifications and the full change-review activity log remain outstanding.
