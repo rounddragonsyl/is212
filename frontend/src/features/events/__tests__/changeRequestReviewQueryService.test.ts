@@ -69,3 +69,18 @@ describe('AC-007.3 — comparison data', () => {
     await expect(getChangeRequestReviewContext(eventId)).resolves.toEqual({ ok: false, reason: messages.failed })
   })
 })
+
+test('AC-007.13.31: embeds and maps retained history newest version first', async () => {
+  const history = { id: 'old', request_version: 1, outcome: 'clarification_requested',
+    proposed_changes: { name: 'Historical title' }, field_decisions: [], review_note: 'Explain?',
+    reviewer_name: 'Jane', reviewed_at: '2026-09-27T01:00:00Z' }
+  const read = query({ ...row, event_change_requests: [{ ...changeRequestRow,
+    event_change_review_history: [history, { ...history, id: 'new', request_version: 3, outcome: 'approved' }],
+  }] })
+  const result = await getChangeRequestReviewContext(eventId)
+  expect(read.select.mock.calls[0][0]).toContain('event_change_review_history(')
+  expect(result).toMatchObject({ ok: true, context: { requests: [{ reviewHistory: [
+    { id: 'new', requestVersion: 3, outcome: 'approved' },
+    { id: 'old', reviewerName: 'Jane', proposedChanges: { name: 'Historical title' }, reviewNote: 'Explain?' },
+  ] }] } })
+})

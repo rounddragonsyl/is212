@@ -1,3 +1,4 @@
+import { ChangeRequestReviewHistory } from './ChangeRequestReviewHistory'
 import { useEffect, useState } from 'react'
 import { getChangeRequestReviewContext, CHANGE_REVIEW_LOAD_MESSAGES } from '../changeRequestReviewQueryService'
 import { CHANGE_STATUS_LABELS } from '../changeRequestDisplay'
@@ -46,6 +47,7 @@ export function ChangeRequestReviewPanel({ eventId, onReviewed }: {
             : <ul className="space-y-5">{context.requests.map((request) => <li key={request.id}
               className="rounded-xl border border-slate-200 p-4 sm:p-5">
               <ChangeRequestSummary request={request} />
+              <ChangeRequestReviewHistory entries={request.reviewHistory ?? []} />
               {canReview && request.status === 'submitted' && <ChangeRequestReviewForm
                 key={`${revision}:${request.id}`} request={request} context={context}
                 onSaved={(status) => {

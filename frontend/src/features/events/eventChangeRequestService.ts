@@ -131,6 +131,16 @@ export async function requestEventChange(
 }
 
 export interface EventChangeRequestRow {
+  event_change_review_history?: {
+    id: string
+    request_version: number
+    outcome: Exclude<ChangeRequestStatus, 'submitted' | 'withdrawn'>
+    proposed_changes: ProposedEventChanges
+    field_decisions: ChangeRequestFieldDecision[]
+    review_note: string | null
+    reviewer_name: string
+    reviewed_at: string
+  }[]
   review_version?: number
   reply_history?: ChangeRequestReplyRound[] | null
   id: string
@@ -147,6 +157,11 @@ export interface EventChangeRequestRow {
 // matches camelCase variables to snake_case
 export function toEventChangeRequest(row: EventChangeRequestRow): EventChangeRequest {
   return {
+    reviewHistory: (row.event_change_review_history ?? []).map((entry) => ({
+      id: entry.id, requestVersion: entry.request_version, outcome: entry.outcome,
+      proposedChanges: entry.proposed_changes, fieldDecisions: entry.field_decisions,
+      reviewNote: entry.review_note, reviewerName: entry.reviewer_name, reviewedAt: entry.reviewed_at,
+    })).sort((a, b) => b.requestVersion - a.requestVersion),
     reviewVersion: row.review_version,
     replyHistory: row.reply_history ?? [],
     id: row.id,

@@ -219,7 +219,19 @@ export type ProposedEventChanges = Partial<{
   specialArrangements: string
 }>
 
+export interface ChangeRequestReviewHistoryEntry {
+  id: string
+  requestVersion: number
+  outcome: Exclude<ChangeRequestStatus, 'submitted' | 'withdrawn'>
+  proposedChanges: ProposedEventChanges
+  fieldDecisions: ChangeRequestFieldDecision[]
+  reviewNote: string | null
+  reviewerName: string
+  reviewedAt: string
+}
+
 export interface EventChangeRequest {
+  reviewHistory?: ChangeRequestReviewHistoryEntry[]
   reviewVersion?: number
   replyHistory?: ChangeRequestReplyRound[]
   id: string
