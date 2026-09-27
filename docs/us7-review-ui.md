@@ -129,8 +129,9 @@ manually change its status to work around this.
   lint and the production build passed. The existing bundle-size warning remains.
   The initial UI increment did not rerun SQL checks; the subsequent constraint fix
   ran all 68 database checks successfully.
-- Organiser replies/resubmission, notifications, significant-change classification,
-  arrangement revalidation and full change-review activity history still need work.
+- Subsequent increments added organiser replies/history and the significant-change display
+  (see us7-reply-preparation.md and us7-significance.md). Notifications, database
+  revalidation and full change-review activity history remain.
 - Existing US6 `LOCKED_STATUSES` wrongly includes confirmed and omits completed.
   The Jira description permits confirmed requests and blocks completed ones. Coordinate
   that correction with its owner; this increment leaves that submission rule untouched.
