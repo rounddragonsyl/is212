@@ -40,6 +40,9 @@ export function canActorTransition(
   from: EventStatus,
   to: EventStatus,
 ): boolean {
+  // One UI action uses 0012's atomic RPC for the existing two database transitions.
+  if (actor.role === 'coordinator' && from === 'submitted'
+    && ['approved', 'rejected', 'submitted'].includes(to)) return true
   if (!canTransition(from, to)) return false
 
   if (actor.role === 'coordinator') {
@@ -64,7 +67,6 @@ export interface ReviewAction {
 
 /** The actions a coordinator should see for a request in this status, in priority order. */
 const REVIEW_ACTIONS: readonly ReviewAction[] = [
-  { to: 'under_review', label: 'Start review', tone: 'primary' },
   { to: 'approved', label: 'Approve', tone: 'primary' },
   { to: 'submitted', label: 'Return for more detail', tone: 'neutral' },
   { to: 'rejected', label: 'Reject', tone: 'danger' },

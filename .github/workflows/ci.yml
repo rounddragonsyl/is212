@@ -33,6 +33,9 @@ jobs:
 
       - name: Test
         run: npm run test
+        env:
+          VITE_SUPABASE_URL: https://example.supabase.co
+          VITE_SUPABASE_ANON_KEY: ci-placeholder-anon-key
 
       # The build needs the VITE_ variables to exist, not to be real: src/lib/supabase.ts
       # throws at import time when they are missing.

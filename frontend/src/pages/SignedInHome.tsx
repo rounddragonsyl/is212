@@ -121,7 +121,7 @@ export function SignedInHome({ profile }: { profile: UserProfile }) {
                         {orDash(request.reference)} · {formatDateTime(request.proposedStart)}
                       </span>
                     </span>
-                    <StatusBadge status={request.status} />
+                    <StatusBadge status={request.status} organiserView={isOrganiser} reviewNote={request.reviewNote} />
                   </Link>
                 </li>
               ))}

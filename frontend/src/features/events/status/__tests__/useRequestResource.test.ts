@@ -4,7 +4,7 @@ import { STATUS_REFRESH_MS, useRequestResource } from '../useRequestResource'
 
 afterEach(() => { vi.useRealTimers() })
 
-test('AC-003.2-02: refreshes status periodically and on focus, stopping after unmount', async () => {
+test('AC-003.2.2: refreshes status periodically and on focus, stopping after unmount', async () => {
   vi.useFakeTimers()
   const read = vi.fn().mockResolvedValue({ ok: true, value: 'submitted' })
   const { result, unmount } = renderHook(() => useRequestResource('owner', read))
@@ -20,7 +20,7 @@ test('AC-003.2-02: refreshes status periodically and on focus, stopping after un
   expect(read).toHaveBeenCalledTimes(3)
 })
 
-test('AC-003.2-03: queues manual refresh while an older status read is pending', async () => {
+test('AC-003.2.3: queues manual refresh while an older status read is pending', async () => {
   let resolve!: (value: { ok: true; value: string }) => void
   const read = vi.fn()
     .mockImplementationOnce(() => new Promise((done) => { resolve = done }))
@@ -33,7 +33,7 @@ test('AC-003.2-03: queues manual refresh while an older status read is pending',
   expect(result.current.value).toBe('approved')
 })
 
-test('AC-003.6-03: clears previously visible data if access is revoked', async () => {
+test('AC-003.6.3: clears previously visible data if access is revoked', async () => {
   const read = vi.fn().mockResolvedValue({ ok: true, value: 'private request' })
   const { result } = renderHook(() => useRequestResource('owner', read))
   await waitFor(() => expect(result.current.value).toBe('private request'))
@@ -43,7 +43,7 @@ test('AC-003.6-03: clears previously visible data if access is revoked', async (
   expect(result.current.error).toBe('Request unavailable')
 })
 
-test('AC-003.6-04: ignores an old account response after the account changes', async () => {
+test('AC-003.6.4: ignores an old account response after the account changes', async () => {
   let resolve!: (value: { ok: true; value: string }) => void
   const first = vi.fn(() => new Promise<{ ok: true; value: string }>((done) => { resolve = done }))
   const second = vi.fn().mockResolvedValue({ ok: true, value: 'new account' })
@@ -56,7 +56,7 @@ test('AC-003.6-04: ignores an old account response after the account changes', a
   expect(result.current.value).toBe('new account')
 })
 
-test('AC-003.2-04: reports network failures and permits retry', async () => {
+test('AC-003.2.4: reports network failures and permits retry', async () => {
   const read = vi.fn().mockRejectedValue(new Error('network'))
   const { result } = renderHook(() => useRequestResource('owner', read))
   await waitFor(() => expect(result.current.error).toContain('Please try again'))

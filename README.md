@@ -53,7 +53,312 @@ supabase link --project-ref <your-project-ref>
 supabase db push
 ```
 
-Apply migrations **in order**, `0001` through `0005`.
+Apply migrations **in order**, `0001` through `0008`, including both `0005` files
+before `0006`. The two files currently share a version prefix, so the CLI path above
+needs that version collision resolved before it can be relied on; use the SQL Editor
+for the existing sequence in the meantime.
+
+### Change-request database baseline
+
+[`0007_event_change_requests.sql`](backend/supabase/migrations/0007_event_change_requests.sql)
+records the existing US6 change-request table, four access policies and automatic
+`updated_at` trigger from the shared Supabase exports. It stores proposed changes
+separately from `events`; applying it does not approve requests or update event details.
+It contains no exported test records. On an existing installation, it preserves rows
+and recreates the named policies/trigger; `CREATE TABLE IF NOT EXISTS` does not repair
+differences in an existing table's columns or constraints. Check the existing schema
+before applying it. Authenticated SELECT/INSERT/UPDATE privileges are explicit, and
+the coordinator policy uses the project's `current_user_role()` helper.
+
+This is a baseline, not completed US7 security or review functionality. Coordinator
+assignment, individual decisions/partial approval, clarification, notifications and
+arrangement revalidation remain to be implemented. The baseline policies also do not
+prevent forged review fields on insert, edits to other columns during withdrawal,
+ineligible event statuses, or duplicate pending requests. Those protections need a
+follow-up migration and authenticated database tests. An index enforcing uniqueness
+is not included because the supplied exports did not include index definitions.
+
+The supplied live event-read policies also differ from `0005_request_status.sql`:
+coordinators currently see drafts in that export. This migration does not replace
+event policies or reconcile that separate discrepancy. Do not rerun all earlier
+migrations on the shared database merely to install this baseline.
+
+Verification on 21 September 2026: applied all repository migrations in order to a
+disposable PostgreSQL 17 container, then passed 19 SQL assertions covering RLS setup,
+owner/coordinator/anonymous access, invalid inputs, withdrawal, unchanged event records,
+and preservation of request values when rerunning `0007`. Supabase's `auth.users`,
+`auth.uid()` and database roles/default grants were represented by a local test setup;
+this exercised real PostgreSQL policies and constraints, not the live Supabase Auth/API.
+These were one-off local checks, not new Vitest cases or checks added to CI. The existing
+211 application tests also passed. Live Supabase verification and the security gaps
+listed above remain separate follow-up work.
+
+## Organiser-facing review labels (26 September)
+
+Event requests display **In review** to organisers immediately after submission and
+throughout coordinator review. Returned event requests show **Clarification required**
+when submitted with an outstanding review note, including on home/list badges. Draft
+and final outcome labels are unchanged. Submission confirmation/guidance use the same
+wording. Change requests also display **In review** for internal status `submitted`.
+Database status values and staff labels are unchanged. A follow-up in this PR removes
+US4's Start review button: submitted requests offer Approve, Reject and Return for
+more detail immediately. Apply migration `0012_review_submitted_event.sql` before
+using those direct decisions. See [the direct-review change log](docs/direct-event-review.md).
+
+This presentation change reuses the existing status-panel, submission and change-list
+cases; no new test IDs are allocated. Request summaries now include the existing
+`review_note` column so list badges can distinguish clarification from review.
+
+## US7 review rules and service
+
+### Shared database status-rule correction
+
+Live setup correction (25 September): the shared table retained an older CHECK
+constraint named `event_change_requests_status_valid`, which only allowed four
+statuses. Migration `0008` replaced `status_check`, so the legacy rule still blocked
+clarification and partial approval. Apply
+[`0011_change_request_legacy_status_constraint.sql`](backend/supabase/migrations/0011_change_request_legacy_status_constraint.sql)
+after `0010` to consolidate both names into the six-status constraint without changing
+rows or access policies. The UI's generic validation message did not identify this
+database setup mismatch. Jaydon reported applying `0008`, `0010` and `0011` to shared
+Supabase and successfully saving a field clarification on 25 September. Organiser-side
+visibility and the other live review paths still need verification.
+
+The database runner now reproduces the legacy constraint before applying `0011`
+twice. Three additional checks in `backend/supabase/tests/change_request_legacy_status_constraint.sql`
+verify partial approval (`AC-007.5.38`), clarification (`AC-007.7.36`) and preservation
+of all request rows on repeated application (`AC-007.13.6`). These **68 local database
+checks passed** before the reply increment described below. These checks supplement the 37 UI tests below.
+
+The coordinator review screen is now connected on `/requests/:id`, in Requested
+changes. See [the UI change log and all 37 new test cases](docs/us7-review-ui.md) for
+the files changed, testing instructions and remaining work. This is still a partial
+US7 implementation: organiser replies, notifications and arrangement revalidation
+are not complete.
+
+`src/features/events/changeRequestReviewValidation.ts` prepares a review without
+reading or writing Supabase. It reuses US6's `ProposedEventChanges` field names.
+Every proposed field must appear exactly once as approved, rejected or
+clarification_requested. Rejected fields need reasons and clarification fields need
+questions. If any field needs clarification, all decisions are provisional and no event
+values are prepared or applied. Only a review containing exclusively approved/rejected
+fields can finalise as approved, partially_approved or rejected. The legacy whole-request
+`action: clarify` payload is still accepted for compatibility; the planned checklist uses
+`action: decide` with a separate decision and note for each field.
+
+`changeRequestReviewService.ts` now calls this helper before saving through migration
+`0008`'s database review operation, extended by `0010`. Review UI integration, notifications and arrangement
+revalidation remain. Checking the proposal's shape here
+does not establish that a proposed date or attendance is valid; the database operation
+validates the event produced by the accepted subset before saving it.
+
+The original 19 automated tests in
+`src/features/events/__tests__/changeRequestReviewValidation.test.ts` use the agreed
+`AC-007.Y.Z` format and the AC order in the supplied Jira export:
+
+| Criterion | Case IDs | Coverage in this step |
+| --- | --- | --- |
+| 5 — approve/reject, including agreed clarification #104 | AC-007.5.1–AC-007.5.12 | Full/partial decisions, missing/duplicate decisions and malformed proposals |
+| 6 — rejection reason | AC-007.6.1–AC-007.6.2 | Explanation required and retained per rejected field |
+| 7 — request clarification | AC-007.7.1–AC-007.7.3 | Follow-up message, no approved values, incompatible actions rejected |
+| 9 — apply only approved values | AC-007.9.1–AC-007.9.2 | Prepared values preserve explicit false/empty values and do not mutate input |
+
+These tests cover pure logic, not completed ACs or communication to the organiser.
+If Jira criteria are reordered, update the mapping with the team before adding cases.
+
+### US7 review service
+
+`saveChangeRequestReview(request, eventUpdatedAt, input)` sends decisions or a
+clarification message to `review_event_change_request`. Supply the exact `updated_at`
+of the event displayed to the reviewer; do not refresh it just before saving. The
+service sends no proposed event values or reviewer identity. The database remains
+responsible for current assignment, request state, resulting-event validation and
+atomic writes. Stale/denied reviews show a reload message; a lost response asks the
+user to check the saved status before retrying, since the transaction may have committed.
+The coordinator review form calls this service. Shared Supabase has not been updated
+by this UI change. Field-level clarification requires migration `0010` after the preceding
+migrations, applied through the team's database process.
+
+The original 18 mocked tests in `src/features/events/__tests__/changeRequestReviewService.test.ts`
+use these additional IDs, preserving the earlier unit and SQL allocations:
+
+| Criterion | Case IDs | Coverage |
+| --- | --- | --- |
+| 2 — assigned coordinator | AC-007.2.19–21 | Missing/expired session and server permission denial |
+| 5 — decisions | AC-007.5.20–27 | Full/partial approval, incomplete decisions, stale/already-decided request, failure handling |
+| 6 — rejection reason | AC-007.6.5 | Blank explanation blocks saving |
+| 7 — clarification | AC-007.7.7–8 | Message-only action and required explanation |
+| 9 — approved values | AC-007.9.12–14 | Comparison version required and invalid resulting event rejected |
+| 10 — rejection | AC-007.10.2 | Full rejection uses the RPC without direct event writes |
+
+These tests verify the service contract, not live database permissions.
+
+CI supplies placeholder `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` values to
+both the Test and Build steps. The existing US4 `ReviewActions` tests mock the review
+function but import the original service for its messages, which also initialises the
+Supabase client. The placeholders allow that import without a local `.env`; they do
+not provide a working database connection or turn mocked tests into integration tests.
+The proposed additional Supabase mock in that test file was not adopted. US4 application
+behaviour and test expectations remain unchanged.
+
+### Field-level clarification
+
+`0010_change_request_field_clarification.sql` replaces the review function without
+rewriting migration `0008` or existing data. For example, two approved fields, one
+rejected field and one clarification field are saved together in `field_decisions`,
+but the request remains `clarification_requested` and the entire event (including
+`updated_at`) stays unchanged. Blank questions, duplicates and missing/extra fields
+are refused. `reviewed_by`/`reviewed_at` identify the latest review action, not proof
+that the request has reached a final outcome. Field questions live in each decision's
+`note`; `review_note` is retained for legacy whole-request clarification.
+
+Only a submitted request can be reviewed. A request awaiting clarification cannot
+be finalised by repeating the RPC call. Migration `0013_change_request_replies.sql` now provides the organiser reply operation.
+It retains questions/responses and returns the request to submitted without changing
+the event. Request versions prevent stale replies and stale coordinator decisions.
+The organiser reply UI and shared answer-history display are now connected. Live
+verification is still pending.
+Do not bypass it with a direct browser status update.
+
+Implemented organiser labels: Submitted → In review; Clarification requested →
+Clarification required; Approved / Rejected / Partially approved are final outcomes.
+Withdrawn remains a separate historical outcome.
+
+This step adds 11 application tests (validator now 27; service now 21) and 18 SQL checks:
+
+| File | New case IDs | Coverage |
+| --- | --- | --- |
+| `changeRequestReviewValidation.test.ts` | AC-007.7.9–16 | Mixed decisions, separate questions, required notes, complete field coverage and input preservation |
+| `changeRequestReviewService.test.ts` | AC-007.7.17–19 | Field payload retained, empty question blocked, inconsistent server outcome rejected |
+| `backend/supabase/tests/change_request_field_clarification.sql` | AC-007.2.22–23; .7.20–30; .8.1–2; .9.15; .13.4 | Permissions, provisional decisions, unchanged event, final-only application and recorded actor/time |
+| `backend/supabase/tests/run_change_request_review.sh` | AC-007.13.5 | Migration rerun preserves provisional and final decisions |
+
+Verified for this step: **276 application tests and 65 disposable-database checks
+passed**, along with TypeScript checking and the production build. Lint has no errors;
+the existing review-page hook dependency warning and build bundle-size warning remain.
+This is local verification, not deployment to or testing against shared Supabase.
+
+### US7 database review operation
+
+[`0008_change_request_review.sql`](backend/supabase/migrations/0008_change_request_review.sql)
+adds `events.coordinator_id` and `event_change_requests.field_decisions`, plus
+`partially_approved` and `clarification_requested` request statuses. Existing events
+start unassigned; there is no automatic assignment or assignment screen in this change.
+An authenticated Operations Manager can call
+`assign_event_coordinator(p_event_id, p_coordinator_id)` to assign/reassign an event.
+Direct attempts by other signed-in roles to change that field are blocked.
+
+`review_event_change_request(p_request_id, p_event_updated_at, p_review)` accepts the
+same `action: decide` / `action: clarify` structure as the TypeScript validator. Pass
+the event's `updated_at` from the comparison screen as the expected version. The
+function locks the event and request, checks the current assigned coordinator and
+pending status, and rejects stale event details. It loads proposed values from the
+stored request (never from the reviewer), applies only approved fields, and stamps
+the decisions, actor and time in the same transaction. An error rolls back both writes.
+Rejected fields require explanations; clarification stores its message and changes no
+event details. Timestamps without offsets are interpreted in Singapore time.
+
+This is **change-request** review, separate from US4's original event approval.
+US4's event-status actions are preserved. Direct browser edits of submitted event
+details are now blocked, so updates to those details must use the review operation.
+Draft editing/submission remains allowed. Change-request access is restricted to its
+organiser and the assigned coordinator; insert/update column permissions prevent
+spoofed reviewer metadata and proposal edits during withdrawal.
+
+The function validates the resulting required fields, date interval and attendance,
+but does not yet classify significant changes, flag arrangements for revalidation,
+send notifications, or provide clarification-response/resubmission UI. It does not
+change event lifecycle status or implement a full audit-history screen. The existing
+US6 UI still blocks confirmed events and needs its eligibility rule corrected during
+integration. Duplicate pending-request prevention remains a client precheck, not a
+database uniqueness guarantee. Reconcile these dependencies before calling US7 done;
+the review UI can be tested with existing requests in an assigned event. This migration
+has only been verified here against disposable local databases.
+
+Run the database checks with Docker Desktop running:
+
+```bash
+bash backend/supabase/tests/run_change_request_review.sh
+```
+
+The script creates a disposable PostgreSQL 17 container, applies the migrations,
+runs `backend/supabase/tests/change_request_review.sql`, and replays `0008` then `0010` to
+verify record preservation without leaving the old RPC installed. It then runs
+`change_request_field_clarification.sql` and reruns `0010` to check preservation of
+provisional decisions. It removes its container on exit, opens no host ports and never reads
+`.env`. `backend/supabase/tests/bootstrap.sql` simulates Supabase Auth identities and grants;
+RLS/constraints/functions run in PostgreSQL, but live Supabase Auth/API is not tested.
+Do not run these fixture files in shared Supabase. They are not part of `npm test` or CI.
+
+At the original database-foundation checkpoint: **47 SQL checks** (43 US7 checks and 4 shared-workflow regressions),
+plus **230 application tests**, lint and production build. SQL case IDs continue the
+unit-test allocations: AC-007.2.1–18, .5.13–19, .6.3–4, .7.4–6, .9.3–11, .10.1,
+and .13.1–3. Four `REGRESSION-US1/US4/US6` checks protect other stories rather than
+claiming additional US7 ACs. Coverage includes access, reassignment, partial decisions,
+invalid/stale reviews, a forced final-save failure with rollback, and rerun preservation.
+Concurrent sessions have not yet been exercised by this suite.
+
+## US4 review decisions and notifications (AC-004.4, AC-004.5)
+
+Migration `0009_review_decisions.sql` (run after `0008`) adds two tables, both written only
+by the `events_record_review_decision` trigger, which fires after an event's status change
+has passed every existing transition rule:
+
+- `event_review_decisions` retains every approve, reject and return with its reason, the
+  reviewer (`decided_by`, plus a `decided_by_name` snapshot) and time. The event row's
+  `review_note`/`reviewed_by` hold only the latest decision; this table is the trail.
+  It is append-only (no write privilege for any signed-in role) and readable only by
+  coordinators and operations managers, matching 0005's rule that reviewer identity is
+  internal. Coordinators see it on the request page under **Decision history**.
+- `notification_outbox` queues the organiser's email for approvals and rejections in the
+  same transaction as the decision. No browser role can read it. Returns are logged but
+  not emailed, because AC-004.4 names approved/rejected; widening that is one line in the
+  trigger.
+
+Emails are sent by the Edge Function `backend/supabase/functions/send-review-notifications`, which
+sends through the project Gmail account over SMTP (port 465; Supabase blocks 25 and 587).
+Gmail needs no custom domain and can reach any organiser's address. The credentials live
+only in Supabase secrets, never in the browser bundle. To enable it:
+
+1. On the Gmail account, turn on 2-Step Verification, then create an app password
+   (Google Account → Security → App passwords). Use that 16-character password, not the
+   account password.
+2. Deploy and configure:
+
+```bash
+supabase functions deploy send-review-notifications
+supabase secrets set GMAIL_USER=connectsphere212@gmail.com GMAIL_APP_PASSWORD=<app password>
+```
+
+3. Add a Database Webhook (Dashboard → Database → Webhooks) on **INSERT** into
+   `public.notification_outbox` that calls the function.
+
+The function claims each row before sending, so repeated or overlapping calls do not send
+duplicates, and it retries a failed send up to five times; the reason for a failure is
+kept in `last_error`. Gmail allows a few hundred messages a day, well above project needs.
+
+US4 test allocations (all criteria, in Jira order):
+
+| Criterion | Unit tests (Vitest) | Database checks |
+| --- | --- | --- |
+| AC-004.1 — coordinator views full details | AC-004.1.1–.3 (`eventReviewService.test.ts`), AC-004.1.4–.6 (`RequestDetails.test.tsx`) | — |
+| AC-004.2 — accept or reject via a button | AC-004.2.1–.16 (`statusRules.test.ts`), AC-004.2.17–.21 (`eventReviewService.test.ts`), AC-004.2.22–.26 (`ReviewActions.test.tsx`) | — |
+| AC-004.3 — reason entered in an input box | AC-004.3.1–.2 (`eventReviewService.test.ts`), AC-004.3.3–.5 (`ReviewActions.test.tsx`) | — |
+| AC-004.4 — organiser emailed with outcome and reason | — (database behaviour) | AC-004.4.1–.5 |
+| AC-004.5 — decision, reason and reviewer retained | AC-004.5.1–.3 (`eventReviewService.test.ts`), AC-004.5.4–.6 (`DecisionHistory.test.tsx`) | AC-004.5.7–.12 |
+
+Actual email delivery through Gmail is verified manually against the live project (the
+queued message arrives in the organiser's inbox), since it depends on an external service.
+
+The database checks run against a **disposable** database only:
+
+```bash
+psql "$DB_URL" -v ON_ERROR_STOP=1 -f backend/supabase/tests/review_decisions_test.sql
+```
+
+They cover the recorded actor and reason, retention across a later decision, forgery and
+editing attempts, organiser visibility, refused transitions, the queued email contents,
+and an organiser with no email address. The script rolls back its fixtures.
 
 ## Roles
 
@@ -143,7 +448,7 @@ frontend/                            React app (Vite, Tailwind, Vitest)
             ├── components/
             └── __tests__/
 backend/
-└── supabase/migrations/             database schema, RLS, triggers
+└── backend/supabase/migrations/             database schema, RLS, triggers
 ```
 
 The split follows where code runs, not a separate API server. The browser talks to
@@ -184,7 +489,7 @@ Save Draft Event Request is **US-001**. Its criteria follow the Jira order:
 | AC-001.5 | Saving or editing a draft does not submit it for review |
 | AC-001.6 | Treat the request as submitted only after an explicit submission action |
 
-Each automated case has a unique ID, for example `AC-001.2-01`. The final number
+Each automated case has a unique ID, for example `AC-001.2.1`. The final number
 identifies a test case, not another acceptance criterion. IDs are unique across the
 story's test files, including each parameterised input row. Within each file, group
 tests by criterion and sort numerically by story, criterion, then case number. Keep existing IDs stable
@@ -196,12 +501,12 @@ Current automated case ranges:
 
 | Criterion | Case IDs | Count |
 | --- | --- | ---: |
-| AC-001.1 | AC-001.1-01 through AC-001.1-12 | 12 |
-| AC-001.2 | AC-001.2-01 through AC-001.2-22 | 22 |
-| AC-001.3 | AC-001.3-01 through AC-001.3-02 | 2 |
-| AC-001.4 | AC-001.4-01 through AC-001.4-34 | 34 |
-| AC-001.5 | AC-001.5-01 through AC-001.5-04 | 4 |
-| AC-001.6 | AC-001.6-01 through AC-001.6-09 | 9 |
+| AC-001.1 | AC-001.1.1 through AC-001.1.12 | 12 |
+| AC-001.2 | AC-001.2.1 through AC-001.2.22 | 22 |
+| AC-001.3 | AC-001.3.1 through AC-001.3.2 | 2 |
+| AC-001.4 | AC-001.4.1 through AC-001.4.34 | 34 |
+| AC-001.5 | AC-001.5.1 through AC-001.5.4 | 4 |
+| AC-001.6 | AC-001.6.1 through AC-001.6.9 | 9 |
 
 Run `npm run test -- --reporter=verbose` to see individual case IDs and results.
 Automated tests live in
@@ -301,3 +606,39 @@ application-wide timezone policy still needs coordination with the submission fe
 The page tests use mocked services and the query tests use mocked Supabase. They do not
 prove live persistence, RLS, or trigger behaviour. No fake database is shipped in the app.
 There is no autosave: users must save changes before navigating away.
+
+### Organiser reply backend (US7)
+
+Apply `0013_change_request_replies.sql` after `0011` before using this code against
+Supabase: organiser and coordinator reads now select `review_version`. This file has
+been verified in a disposable PostgreSQL container. Jaydon reported applying it to shared
+Supabase on 27 September; the browser reply loop still needs live verification.
+Number `0012` is reserved for the separate US4 review PR; `0013` does not depend on it.
+
+`changeRequestReplyService.ts` validates all answers and calls `reply_to_change_request`.
+Only the owning organiser can reply, with exactly one nonblank answer per outstanding
+field question (or a note for a legacy whole-request question). Replies cannot revise
+proposed values. Questions, answers, actors and timestamps are appended to `reply_history`;
+this is clarification history, not the complete US7 activity-history feature.
+The database rejects a reply if another request for the event is already submitted.
+The service never silently retries an uncertain write.
+
+The request version is passed through both query services into coordinator saves.
+Older clients can still review a first-round request without it; after an answer has
+been saved, a matching version is mandatory. The existing event-version check remains.
+This branch does not include the pending status-label/Start review PR.
+
+See [reply change log and test cases](docs/us7-reply-preparation.md). This increment
+adds 22 Vitest tests (11 previously prepared validation tests, 9 service tests and
+2 review-service tests) and 18 database checks. One existing query test also checks
+request-version mapping. Totals: **335 application tests; 86 database checks**.
+The reply form and answer-history display are now connected; live verification is next.
+
+The owning organiser can answer each outstanding question in Requested changes. Sending
+returns the request for review and retains the questions/answers for both roles. The list
+uses **Reload change requests**, which clears unsaved answers, instead of refreshing while
+someone types. Failed saves preserve the typed answers and require reload before retry.
+The coordinator can read the history above the review form. No new migration beyond 0013
+is needed for this UI step. It adds **14 UI tests**, bringing the application total to **349**;
+the database suite remains at 86. See the reply change log for each case and the manual
+walkthrough. The separate pending status-label PR remains independent.

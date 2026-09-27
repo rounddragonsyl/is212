@@ -4,7 +4,7 @@ import type { EventRequestDetail, EventStatus } from '../types'
 
 const STATUS_DESCRIPTIONS: Record<EventStatus, string> = {
   draft: 'Your event request has not been submitted yet.',
-  submitted: 'Your event request has been submitted and is awaiting review.',
+  submitted: 'Your event request is in review.',
   under_review: 'Your event request is currently being reviewed.',
   approved: 'Your event request has been approved. Event arrangements are being prepared; the event is not yet confirmed.',
   planning: 'Your event arrangements are being prepared; the event is not yet confirmed.',
@@ -14,13 +14,13 @@ const STATUS_DESCRIPTIONS: Record<EventStatus, string> = {
   cancelled: 'This event has been cancelled.',
 }
 
-export function RequestStatusPanel({ request }: { request: EventRequestDetail }) {
+export function RequestStatusPanel({ request, organiserView = false }: { request: EventRequestDetail; organiserView?: boolean }) {
   const note = request.reviewNote?.trim()
   const returned = request.status === 'submitted' && Boolean(note)
   return (
     <Card title="Current status">
       <div aria-live="polite" className="space-y-4">
-        <StatusBadge status={request.status} />
+        <StatusBadge status={request.status} organiserView={organiserView} reviewNote={request.reviewNote} />
         <p className="text-sm text-slate-700">
           {returned
             ? 'Your event request has been returned for clarification or amendment. See the requested information below.'

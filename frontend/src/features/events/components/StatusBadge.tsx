@@ -1,3 +1,4 @@
+import { organiserStatusLabel } from '../status/organiserStatusLabel'
 import { EVENT_STATUS_LABELS } from '../types'
 import type { EventStatus } from '../types'
 
@@ -15,12 +16,14 @@ const TONES: Record<EventStatus, string> = {
   rejected: 'bg-red-50 text-red-700',
 }
 
-export function StatusBadge({ status }: { status: EventStatus }) {
+export function StatusBadge({ status, organiserView = false, reviewNote }: {
+  status: EventStatus; organiserView?: boolean; reviewNote?: string | null
+}) {
   return (
     <span
       className={`inline-flex shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ${TONES[status]}`}
     >
-      {EVENT_STATUS_LABELS[status]}
+      {organiserView ? organiserStatusLabel(status, reviewNote) : EVENT_STATUS_LABELS[status]}
     </span>
   )
 }

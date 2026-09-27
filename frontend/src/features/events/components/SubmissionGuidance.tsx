@@ -1,11 +1,11 @@
 const STEPS = [
   {
     title: 'You submit',
-    detail: 'Your request is stored with a unique reference and the status Submitted.',
+    detail: 'Your request is stored with a unique reference and the status In review.',
   },
   {
     title: 'A coordinator reviews',
-    detail: 'The request moves to Under review while a coordinator checks the details.',
+    detail: 'A coordinator checks the details and may ask you for clarification.',
   },
   {
     title: 'A venue is matched',
@@ -14,7 +14,7 @@ const STEPS = [
 ] as const
 
 /**
- * Sets expectations against the real status values in EVENT_STATUS_LABELS, so the page
+ * Uses organiser-facing status wording, so the page
  * never promises a workflow the system does not actually implement.
  */
 export function SubmissionGuidance() {

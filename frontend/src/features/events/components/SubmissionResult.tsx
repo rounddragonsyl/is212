@@ -1,4 +1,4 @@
-import { EVENT_STATUS_LABELS } from '../types'
+import { organiserStatusLabel } from '../status/organiserStatusLabel'
 import type { SubmitEventRequestResult } from '../types'
 
 interface SubmissionResultProps {
@@ -31,7 +31,7 @@ export function SubmissionResult({ result }: SubmissionResultProps) {
       <p className="font-semibold">Your event request was submitted</p>
       <p className="mt-1">
         Reference <span className="font-mono font-semibold">{result.event.reference}</span> ·
-        status {EVENT_STATUS_LABELS[result.event.status]}
+        status {organiserStatusLabel(result.event.status)}
       </p>
       <p className="mt-1 text-xs">
         Quote this reference when you contact a coordinator about the request.

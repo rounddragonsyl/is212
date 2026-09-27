@@ -13,7 +13,7 @@ locally for test traceability; the export does not assign acceptance criterion I
 | --- | --- |
 | AC-24.1: view accessible request status | Existing `/requests` and `/requests/:id`, including organiser drafts; service tests |
 | AC-24.2: see updates | `useRequestResource`: initial read, 30-second polling, focus and manual refresh; hook tests |
-| AC-24.3: clearly identify current status | `RequestStatusPanel` reuses all nine existing status labels; component tests |
+| AC-24.3: clearly identify current status | `RequestStatusPanel` shows organisers In review for submitted/under_review, and Clarification required for a returned request; internal states are unchanged; component tests |
 | AC-24.4: show rejection/return reasons | Shared `review_note`, with fallback for missing legacy rejection notes; component tests |
 | AC-24.5: outstanding clarification/amendment | Submitted request with a nonblank review note; component tests |
 | AC-24.6: restrict requests/internal data | Migration 0005, explicit service projection, missing/forbidden response, account-change and revoked-access tests |
