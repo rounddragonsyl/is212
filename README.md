@@ -699,3 +699,19 @@ All 114 local database checks pass, including 19 new tests of the hook and its
 permissions/atomicity/replay behavior. See
 [revalidation contract, tests and manual check](docs/us7-revalidation.md). Coordinator
 submission notifications and the full change-review activity log remain outstanding.
+
+### US7 notification trigger (AC1 / SCRUM-54)
+
+`backend/supabase/migrations/0016_change_request_notifications.sql` records new change
+request submissions and clarification replies for the assigned coordinator. In-app records
+are stored in `change_request_notifications`; only the current assigned recipient can read
+them. US7 channel configuration is in `change_request_notification_settings`: in-app on,
+email off by default. Enabling email queues through the existing `notification_outbox` and
+sender without changing US4 behavior. No browser can write records or channel settings.
+
+This increment is the trigger only, as agreed: **no notification UI or new sender**. Record
+creation is not proof of end-user delivery. Shared notification ownership/integration and
+live delivery verification remain open. Unassigned requests are not broadcast; US17 must
+handle notification/backlog when assigning later. No migration has been applied to shared
+Supabase by the agent and no live email was sent. All 132 local database checks pass, including 18 new cases. See
+[contract and test details](docs/us7-notification-trigger.md).

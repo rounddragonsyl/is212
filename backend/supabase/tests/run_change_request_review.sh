@@ -77,4 +77,16 @@ select pg_temp.assert_true(
     union all (select * from revalidation_before_repeat except select * from public.event_change_revalidations)),
   'AC-007.12.19: replaying the hook migration preserves existing pending checks');
 SQL
+  cat "$repo_root/supabase/tests/change_request_notifications.sql"
+  echo 'create temp table notifications_before_repeat as select * from public.change_request_notifications;'
+  echo 'create temp table notification_settings_before_repeat as select * from public.change_request_notification_settings;'
+  cat "$repo_root/supabase/migrations/0016_change_request_notifications.sql"
+  cat <<'SQL'
+select pg_temp.assert_true(
+  not exists ((select * from public.change_request_notifications except select * from notifications_before_repeat)
+    union all (select * from notifications_before_repeat except select * from public.change_request_notifications))
+  and not exists ((select * from public.change_request_notification_settings except select * from notification_settings_before_repeat)
+    union all (select * from notification_settings_before_repeat except select * from public.change_request_notification_settings)),
+  'AC-007.1.18: migration replay preserves notifications and channel settings');
+SQL
 } | docker exec -i "$container" psql -X -U postgres -v ON_ERROR_STOP=1
