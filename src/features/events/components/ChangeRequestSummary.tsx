@@ -1,4 +1,5 @@
 import { ChangeRequestReplyHistory } from './ChangeRequestReplyHistory'
+import { ChangeRequestSignificance } from './ChangeRequestSignificance'
 import { CHANGE_FIELD_LABELS, formatChangeValue } from '../changeRequestDisplay'
 import { ChangeRequestStatusBadge } from './ChangeRequestStatusBadge'
 import { formatDateTime } from '../formatters'
@@ -12,6 +13,7 @@ export function ChangeRequestSummary({ request }: { request: EventChangeRequest 
       <ChangeRequestStatusBadge status={request.status} />
       <span className="text-xs text-slate-500">Requested {formatDateTime(request.submittedAt)}</span>
     </div>
+    <ChangeRequestSignificance proposedChanges={request.proposedChanges} />
     <p className="mt-3 whitespace-pre-wrap text-sm text-slate-700"><strong>Organiser’s reason: </strong>{request.reason}</p>
     <ul className="mt-3 space-y-3 text-sm text-slate-700">
       {(Object.entries(request.proposedChanges) as [keyof ProposedEventChanges, unknown][]).map(([field, value]) => {
