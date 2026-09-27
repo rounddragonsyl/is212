@@ -208,3 +208,18 @@ Reporting, analytics, recurring events, multi-session events, dashboards.
   revalidation record on 27 September. Other live paths still need verification.
   Tests AC-007.12.1–18 in change_request_revalidation.sql,
   .19 replay in runner. See docs/us7-revalidation.md. Notifications/full review audit remain.
+
+## US7 notification trigger (AC1 / SCRUM-54)
+- 0016_change_request_notifications.sql is trigger-only by Jaydon's scope decision. No
+  shared notification UI or new sender. It records assigned-coordinator notifications
+  on initial submission and clarification reply -> submitted; unique request/version/recipient.
+- change_request_notification_settings controls this type's channels: in-app true, email
+  false by default. Only admin configuration; no browser write grants. Email uses the
+  existing notification_outbox and unchanged send-review-notifications worker.
+- RLS limits in-app reads to recipient + current assigned coordinator. No recipient
+  details/proposals in the generic email body; queued mail is not rerouted on reassignment.
+- Unassigned requests create no notification; US17 later assignment/backlog remains a
+  dependency. No existing-data backfill. Record failure rolls back submission.
+- AC-007.1.1–17 in change_request_notifications.sql; .18 migration replay in runner.
+  No live emails sent; migration not applied to shared Supabase. UI/delivery evidence
+  is still required for AC1, separately from this trigger subtask. See docs/us7-notification-trigger.md.
