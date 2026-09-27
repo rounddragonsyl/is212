@@ -178,3 +178,33 @@ Reporting, analytics, recurring events, multi-session events, dashboards.
 - UI tests: AC-007.7.67–74 form, .75–77 list; AC-007.13.9 coordinator panel,
   .13.10–11 shared history. Existing AC-007.3.1 also verifies history mapping.
   349 app tests; database suite unchanged at 86. See docs/us7-reply-preparation.md.
+
+## Significant-change display (US7 AC11)
+- classifyChangeRequest in changeRequestSignificance.ts is pure and derived from the
+  stored proposal keys. Significant: proposedStart, proposedEnd, expectedAttendance,
+  layoutPreference, accessibilityRequirements, equipmentRequirements. Layout/accessibility
+  represent venue requirements in the current model. Other supported fields alone are ordinary.
+- A blank optional requirement still counts as a change. No free-text inference, size
+  threshold or comparison against current event values. Historical outcome does not change
+  the classification. Show the affected fields through ChangeRequestSignificance in the
+  shared request summary, separately from the request status badge.
+- This is a UI flag, not an enforcement mechanism or persisted database flag. AC12 must
+  derive revalidation needs from accepted fields in the database; do not trust this label.
+- Tests AC-007.11.1–10 in changeRequestSignificance.test.ts; .11–13 in
+  ChangeRequestSignificance.test.tsx. 368 app tests total; no new SQL tests/migration.
+  See docs/us7-significance.md. Notifications, AC12 and complete review audit history remain.
+
+## US7 AC12 revalidation hook
+- 0015_change_request_revalidation.sql adds event_change_revalidations, populated by an
+  AFTER UPDATE trigger within the existing final-review transaction. Only accepted significant
+  fields count. No queue for rejection, ordinary-only approval or provisional clarification.
+- Dates/attendance flag both arrangements; layout/accessibility venue only; equipment fields
+  equipment only. Derive from stored decisions/proposal, not a client classification flag.
+- Assigned coordinator and Operations Manager have RLS SELECT; browser writes are revoked.
+  One row per request. Queue failure rolls back event and review. No historical backfill.
+- This is a pending integration hook, not real booking/equipment checks. No completion API,
+  worker or automatic lifecycle transition. Downstream owners must implement those separately.
+- Jaydon applied 0015 to shared Supabase and reported a successful equipment-approval
+  revalidation record on 27 September. Other live paths still need verification.
+  Tests AC-007.12.1–18 in change_request_revalidation.sql,
+  .19 replay in runner. See docs/us7-revalidation.md. Notifications/full review audit remain.
