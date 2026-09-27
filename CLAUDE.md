@@ -146,6 +146,8 @@ Draft saves in eventDraftService must never change an existing request's status.
 - Database checks: `backend/supabase/tests/review_decisions_test.sql`, disposable databases only.
 
 ## House style
+- Shared event date/time displays use Asia/Singapore explicitly in formatters.ts;
+  do not depend on the browser or CI machine timezone.
 - No `any`. Prefer explicit types.
 - Comment *why*, not *what*. We are examined orally on our design decisions.
 - Small components. Extract when a file passes ~150 lines.

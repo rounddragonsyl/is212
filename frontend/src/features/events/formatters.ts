@@ -1,6 +1,7 @@
 /** PURE MODULE — display formatting only. Kept out of components so it is testable. */
 
 const DATE_TIME = new Intl.DateTimeFormat('en-GB', {
+  timeZone: 'Asia/Singapore',
   dateStyle: 'medium',
   timeStyle: 'short',
 })
