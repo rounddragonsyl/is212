@@ -1,0 +1,13 @@
+-- 0014_drop_dev_set_my_role.sql — close the Sprint 1 role-switching scaffold.
+--
+-- dev_set_my_role (0003) let any signed-in user change their own role, so one test account
+-- could click through all five roles. It was the exact escalation that
+-- prevent_role_self_assignment exists to stop, reopened on purpose for speed.
+--
+-- Hiding the DevRoleSwitcher in production builds never closed it: the function stayed
+-- callable from the browser console by any authenticated user. Dropping it is the control.
+--
+-- From Sprint 2 each role has its own account, and roles are assigned by an administrator
+-- from the SQL editor, where auth.uid() is null and the trigger lets the update through.
+-- IF EXISTS keeps this safe on a database where it was already dropped by hand.
+drop function if exists public.dev_set_my_role(text);

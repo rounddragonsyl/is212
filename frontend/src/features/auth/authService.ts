@@ -1,6 +1,6 @@
 import { supabase } from '../../lib/supabase'
 import { isUserRole } from './types'
-import type { AppSession, AuthResult, UserProfile, UserRole } from './types'
+import type { AppSession, AuthResult, UserProfile } from './types'
 
 /**
  * The only module that talks to Supabase about sessions and profiles.
@@ -65,14 +65,4 @@ export async function getMyProfile(userId: string): Promise<UserProfile | null> 
   if (!isUserRole(data.role)) return null
 
   return { id: data.id, fullName: data.full_name, role: data.role }
-}
-
-/**
- * DEVELOPMENT SCAFFOLDING — pairs with dev_set_my_role in 0003_roles.sql, which is dropped
- * before release. Normal role assignment is an administrator's job: the database trigger
- * prevent_role_self_assignment refuses a direct update from a signed-in user.
- */
-export async function devSetMyRole(role: UserRole): Promise<AuthResult> {
-  const { error } = await supabase.rpc('dev_set_my_role', { new_role: role })
-  return error ? { ok: false, reason: error.message } : { ok: true }
 }
