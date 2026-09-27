@@ -1,5 +1,9 @@
 # US7 retained review history (AC13)
 
+Review timestamps use Singapore time through the shared event formatter, independently
+of the viewer's device timezone. AC-007.13.27 retains its fixed 09:00 SGT assertion
+for the 01:00 UTC fixture; run it under UTC as well as Asia/Singapore.
+
 Migration 0017 records future coordinator review actions in event_change_review_history.
 It preserves the outcome, proposed values, field decisions/comments, reviewer ID/name
 and time for each request version. Clarification rounds remain after replies and final
