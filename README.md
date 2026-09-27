@@ -20,12 +20,15 @@ database verification and draft access-policy work remain pending.
 
 ## Setup
 
+All npm commands run from `frontend/`:
+
 ```bash
+cd frontend
 npm install
 cp .env.example .env    # Windows: copy .env.example .env
 ```
 
-Fill in `.env` from **Supabase dashboard → Project Settings → API**:
+Fill in `frontend/.env` from **Supabase dashboard → Project Settings → API**:
 
 | Variable | Where to find it |
 | --- | --- |
@@ -38,12 +41,14 @@ is compiled into the browser bundle.
 ## Applying the migration
 
 **Option A — dashboard (no CLI).** Open SQL Editor in your Supabase project, paste the
-contents of [`supabase/migrations/0001_events.sql`](supabase/migrations/0001_events.sql)
+contents of [`backend/supabase/migrations/0001_events.sql`](backend/supabase/migrations/0001_events.sql)
 and run it. The script is idempotent, so re-running it is safe.
 
-**Option B — Supabase CLI.**
+**Option B — Supabase CLI.** The CLI looks for a `supabase/` folder in the current
+directory, so run it from `backend/`:
 
 ```bash
+cd backend
 supabase link --project-ref <your-project-ref>
 supabase db push
 ```
@@ -55,7 +60,7 @@ for the existing sequence in the meantime.
 
 ### Change-request database baseline
 
-[`0007_event_change_requests.sql`](supabase/migrations/0007_event_change_requests.sql)
+[`0007_event_change_requests.sql`](backend/supabase/migrations/0007_event_change_requests.sql)
 records the existing US6 change-request table, four access policies and automatic
 `updated_at` trigger from the shared Supabase exports. It stores proposed changes
 separately from `events`; applying it does not approve requests or update event details.
@@ -112,7 +117,7 @@ Live setup correction (25 September): the shared table retained an older CHECK
 constraint named `event_change_requests_status_valid`, which only allowed four
 statuses. Migration `0008` replaced `status_check`, so the legacy rule still blocked
 clarification and partial approval. Apply
-[`0011_change_request_legacy_status_constraint.sql`](supabase/migrations/0011_change_request_legacy_status_constraint.sql)
+[`0011_change_request_legacy_status_constraint.sql`](backend/supabase/migrations/0011_change_request_legacy_status_constraint.sql)
 after `0010` to consolidate both names into the six-status constraint without changing
 rows or access policies. The UI's generic validation message did not identify this
 database setup mismatch. Jaydon reported applying `0008`, `0010` and `0011` to shared
@@ -120,7 +125,7 @@ Supabase and successfully saving a field clarification on 25 September. Organise
 visibility and the other live review paths still need verification.
 
 The database runner now reproduces the legacy constraint before applying `0011`
-twice. Three additional checks in `supabase/tests/change_request_legacy_status_constraint.sql`
+twice. Three additional checks in `backend/supabase/tests/change_request_legacy_status_constraint.sql`
 verify partial approval (`AC-007.5.38`), clarification (`AC-007.7.36`) and preservation
 of all request rows on repeated application (`AC-007.13.6`). These **68 local database
 checks passed** before the reply increment described below. These checks supplement the 37 UI tests below.
@@ -225,8 +230,8 @@ This step adds 11 application tests (validator now 27; service now 21) and 18 SQ
 | --- | --- | --- |
 | `changeRequestReviewValidation.test.ts` | AC-007.7.9–16 | Mixed decisions, separate questions, required notes, complete field coverage and input preservation |
 | `changeRequestReviewService.test.ts` | AC-007.7.17–19 | Field payload retained, empty question blocked, inconsistent server outcome rejected |
-| `supabase/tests/change_request_field_clarification.sql` | AC-007.2.22–23; .7.20–30; .8.1–2; .9.15; .13.4 | Permissions, provisional decisions, unchanged event, final-only application and recorded actor/time |
-| `supabase/tests/run_change_request_review.sh` | AC-007.13.5 | Migration rerun preserves provisional and final decisions |
+| `backend/supabase/tests/change_request_field_clarification.sql` | AC-007.2.22–23; .7.20–30; .8.1–2; .9.15; .13.4 | Permissions, provisional decisions, unchanged event, final-only application and recorded actor/time |
+| `backend/supabase/tests/run_change_request_review.sh` | AC-007.13.5 | Migration rerun preserves provisional and final decisions |
 
 Verified for this step: **276 application tests and 65 disposable-database checks
 passed**, along with TypeScript checking and the production build. Lint has no errors;
@@ -235,7 +240,7 @@ This is local verification, not deployment to or testing against shared Supabase
 
 ### US7 database review operation
 
-[`0008_change_request_review.sql`](supabase/migrations/0008_change_request_review.sql)
+[`0008_change_request_review.sql`](backend/supabase/migrations/0008_change_request_review.sql)
 adds `events.coordinator_id` and `event_change_requests.field_decisions`, plus
 `partially_approved` and `clarification_requested` request statuses. Existing events
 start unassigned; there is no automatic assignment or assignment screen in this change.
@@ -273,15 +278,15 @@ has only been verified here against disposable local databases.
 Run the database checks with Docker Desktop running:
 
 ```bash
-bash supabase/tests/run_change_request_review.sh
+bash backend/supabase/tests/run_change_request_review.sh
 ```
 
 The script creates a disposable PostgreSQL 17 container, applies the migrations,
-runs `supabase/tests/change_request_review.sql`, and replays `0008` then `0010` to
+runs `backend/supabase/tests/change_request_review.sql`, and replays `0008` then `0010` to
 verify record preservation without leaving the old RPC installed. It then runs
 `change_request_field_clarification.sql` and reruns `0010` to check preservation of
 provisional decisions. It removes its container on exit, opens no host ports and never reads
-`.env`. `supabase/tests/bootstrap.sql` simulates Supabase Auth identities and grants;
+`.env`. `backend/supabase/tests/bootstrap.sql` simulates Supabase Auth identities and grants;
 RLS/constraints/functions run in PostgreSQL, but live Supabase Auth/API is not tested.
 Do not run these fixture files in shared Supabase. They are not part of `npm test` or CI.
 
@@ -310,7 +315,7 @@ has passed every existing transition rule:
   not emailed, because AC-004.4 names approved/rejected; widening that is one line in the
   trigger.
 
-Emails are sent by the Edge Function `supabase/functions/send-review-notifications`, which
+Emails are sent by the Edge Function `backend/supabase/functions/send-review-notifications`, which
 sends through the project Gmail account over SMTP (port 465; Supabase blocks 25 and 587).
 Gmail needs no custom domain and can reach any organiser's address. The credentials live
 only in Supabase secrets, never in the browser bundle. To enable it:
@@ -348,7 +353,7 @@ queued message arrives in the organiser's inbox), since it depends on an externa
 The database checks run against a **disposable** database only:
 
 ```bash
-psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/review_decisions_test.sql
+psql "$DB_URL" -v ON_ERROR_STOP=1 -f backend/supabase/tests/review_decisions_test.sql
 ```
 
 They cover the recorded actor and reason, retention across a later decision, forgery and
@@ -405,9 +410,11 @@ Adding the user creates their `organiser` profile automatically, through the
 > sign-in. That raced the session lookup — a new user saw *No organiser profile* until they
 > reloaded — and let the client take part in choosing its own role. Creating it in a trigger
 > on `auth.users` fixes both: the row exists before any session can, and the client never
-> inserts into `profiles`. See [`0005_profile_on_signup.sql`](supabase/migrations/0005_profile_on_signup.sql).
+> inserts into `profiles`. See [`0005_profile_on_signup.sql`](backend/supabase/migrations/0005_profile_on_signup.sql).
 
 ## Running
+
+From `frontend/`:
 
 ```bash
 npm run dev        # Vite dev server
@@ -422,27 +429,35 @@ npm run build      # typecheck + production build
 ## Project structure
 
 ```
-src/
-├── lib/supabase.ts              single Supabase client
-├── components/ui/               shared presentational components
-├── components/layout/           app shell, navigation, footer
-└── features/
-    ├── auth/                    session plumbing (US-002 owns the real story)
-    └── events/                  one folder per backlog component
-        ├── types.ts
-        ├── validation.ts        PURE functions — no React, no Supabase, no I/O
-        ├── useEventRequestForm.ts form state and separate save/submit actions
-        ├── draftValidation.ts   incomplete draft validation, separate from submission
-        ├── eventService.ts      submits new event requests to Supabase
-        ├── eventDraftQueryService.ts lists and loads a signed-in organiser’s drafts
-        ├── eventDraftService.ts saves new drafts and updates existing owned drafts
-        ├── components/
-        └── __tests__/
-supabase/migrations/             database schema, RLS, triggers
+frontend/                            React app (Vite, Tailwind, Vitest)
+├── package.json, vite.config.ts, tsconfig.json, .env
+└── src/
+    ├── lib/supabase.ts              single Supabase client
+    ├── components/ui/               shared presentational components
+    ├── components/layout/           app shell, navigation, footer
+    └── features/
+        ├── auth/                    session plumbing (US-002 owns the real story)
+        └── events/                  one folder per backlog component
+            ├── types.ts
+            ├── validation.ts        PURE functions — no React, no Supabase, no I/O
+            ├── useEventRequestForm.ts form state and separate save/submit actions
+            ├── draftValidation.ts   incomplete draft validation, separate from submission
+            ├── eventService.ts      submits new event requests to Supabase
+            ├── eventDraftQueryService.ts lists and loads a signed-in organiser’s drafts
+            ├── eventDraftService.ts saves new drafts and updates existing owned drafts
+            ├── components/
+            └── __tests__/
+backend/
+└── backend/supabase/migrations/             database schema, RLS, triggers
 ```
 
+The split follows where code runs, not a separate API server. The browser talks to
+Supabase directly, so the backend is the database itself: its schema, its RLS policies
+and its triggers. That is why the business rules enforced in `backend/` are the real
+control, and the checks in `frontend/` are there for the user's benefit.
+
 Future features (`venues`, `bookings`, `equipment`, `registration`, `notifications`)
-become sibling folders under `src/features/`. The folder name is simultaneously a backlog
+become sibling folders under `frontend/src/features/`. The folder name is simultaneously a backlog
 component, a C4 component and a directory, so tracing a requirement to its implementation
 is one step.
 
@@ -495,8 +510,8 @@ Current automated case ranges:
 
 Run `npm run test -- --reporter=verbose` to see individual case IDs and results.
 Automated tests live in
-[`draftValidation.test.ts`](src/features/events/__tests__/draftValidation.test.ts) and
-[`eventDraftService.test.ts`](src/features/events/__tests__/eventDraftService.test.ts),
+[`draftValidation.test.ts`](frontend/src/features/events/__tests__/draftValidation.test.ts) and
+[`eventDraftService.test.ts`](frontend/src/features/events/__tests__/eventDraftService.test.ts),
 with form tests in `EventRequestForm.test.tsx` and draft-submission tests in `eventService.test.ts`.
 `eventDraftQueryService.test.ts`, `draftFormValues.test.ts` and `DraftPages.test.tsx`
 cover listing, restored values and the list-to-editor workflow.
@@ -511,7 +526,7 @@ They do not connect to Supabase or prove the complete user flow or RLS enforceme
 | AC-001.1, AC-001.4, AC-001.5 — save/edit without submission | Service and form tests check draft saves, repeated edits, guarded updates and failures | Live database tests |
 | AC-001.3 — identifiable Draft | Form and page tests verify Draft indicators after saving and in the list | Browser and live database verification |
 
-Run the draft checks with:
+Run the draft checks from `frontend/` with:
 
 ```bash
 npm run test -- src/features/events/__tests__

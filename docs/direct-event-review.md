@@ -35,7 +35,7 @@ This is US4 initial event review; US7 change-request review already worked direc
 | AC-004.3.6 | Clarification requires a reason before contacting the database. |
 | AC-004.3.7 | Rejection requires a reason before contacting the database. |
 
-`supabase/tests/direct_event_review.sql` adds nine real PostgreSQL checks:
+`backend/supabase/tests/direct_event_review.sql` adds nine real PostgreSQL checks:
 
 | ID | Check |
 | --- | --- |
