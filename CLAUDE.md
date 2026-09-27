@@ -59,8 +59,8 @@ Supabase (PostgreSQL + Auth + RLS) · Vitest + React Testing Library · GitHub A
   signed-in user from changing their own role.
 - Hiding UI from a role is a courtesy. The RLS policy is the control. Every role-gated
   screen must have a matching policy, or it is not actually protected.
-- dev_set_my_role() and the DevAuthPanel / DevRoleSwitcher components are scaffolding.
-  Drop them before release.
+- There is no in-app role switcher. dev_set_my_role() was dropped in 0014; test each role
+  with its own account (README "Test accounts"). Do not reintroduce a self-service role change.
 
 ## Organiser status presentation
 - Use status/organiserStatusLabel.ts for event badges and submission results: submitted
