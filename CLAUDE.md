@@ -8,9 +8,15 @@ Roles: Event Organiser, Event Coordinator, Venue Staff, Technical Support Staff,
 React 18 + TypeScript + Vite · Tailwind · React Hook Form + Zod
 Supabase (PostgreSQL + Auth + RLS) · Vitest + React Testing Library · GitHub Actions
 
+## Repository layout
+- frontend/ is the React app. Run every npm command from there.
+- backend/supabase/migrations/ holds the database schema, RLS policies and triggers.
+  There is no API server: the browser talks to Supabase directly, so the database is the
+  backend.
+
 ## Architecture rules — follow these without being asked
-- Feature folders: src/features/<feature>/ with types.ts, validation.ts, <x>Service.ts,
-  components/, __tests__/
+- Feature folders: frontend/src/features/<feature>/ with types.ts, validation.ts,
+  <x>Service.ts, components/, __tests__/
 - validation.ts holds PURE functions only. No React, no Supabase, no I/O.
 - Only <x>Service.ts talks to Supabase. Components never import the Supabase client.
 - Business rules are validated in the client (UX) AND constrained in the database
@@ -53,8 +59,8 @@ Supabase (PostgreSQL + Auth + RLS) · Vitest + React Testing Library · GitHub A
   signed-in user from changing their own role.
 - Hiding UI from a role is a courtesy. The RLS policy is the control. Every role-gated
   screen must have a matching policy, or it is not actually protected.
-- dev_set_my_role() and the DevAuthPanel / DevRoleSwitcher components are scaffolding.
-  Drop them before release.
+- There is no in-app role switcher. dev_set_my_role() was dropped in 0014; test each role
+  with its own account (README "Test accounts"). Do not reintroduce a self-service role change.
 
 ## Organiser status presentation
 - Use status/organiserStatusLabel.ts for event badges and submission results: submitted
@@ -122,8 +128,8 @@ Draft saves in eventDraftService must never change an existing request's status.
   to the organiser. Status wording is shared in changeRequestDisplay.ts.
   See `docs/us7-review-ui.md` for all 37 new test cases and the file-by-file change log.
   Existing US6 confirmed-event eligibility remains a recorded follow-up.
-- Database checks live in `supabase/tests/`; run
-  `bash supabase/tests/run_change_request_review.sh` with Docker running. Synthetic
+- Database checks live in `backend/supabase/tests/`; run
+  `bash backend/supabase/tests/run_change_request_review.sh` with Docker running. Synthetic
   fixtures and Auth helpers are for the disposable container only, not shared Supabase.
   82 US7 SQL case IDs continue the unit-test allocations (see README), with four
   additional cross-story regression checks. These tests are separate from Vitest/CI.
@@ -135,9 +141,9 @@ Draft saves in eventDraftService must never change an existing request's status.
   client insert path or a write policy to either table.
 - The decision log is staff-only (coordinator, operations_manager); reviewer identity stays
   internal. The outbox is service-role only.
-- Emails are sent by the Edge Function `supabase/functions/send-review-notifications`
+- Emails are sent by the Edge Function `backend/supabase/functions/send-review-notifications`
   (Deno, not part of the Vite build). Provider keys live in Supabase secrets, never `VITE_`.
-- Database checks: `supabase/tests/review_decisions_test.sql`, disposable databases only.
+- Database checks: `backend/supabase/tests/review_decisions_test.sql`, disposable databases only.
 
 ## House style
 - No `any`. Prefer explicit types.

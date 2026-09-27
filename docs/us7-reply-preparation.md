@@ -60,7 +60,7 @@ All 11 tests live in `src/features/events/__tests__/changeRequestReplyValidation
 AC-007.5.40 maps a stale request to the reload message.
 Existing query case AC-007.3.1 also verifies that the loaded version survives mapping.
 
-`supabase/tests/change_request_replies.sql` (real disposable PostgreSQL):
+`backend/supabase/tests/change_request_replies.sql` (real disposable PostgreSQL):
 
 | ID | Check |
 | --- | --- |
