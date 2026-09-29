@@ -22,6 +22,7 @@ on conflict (code) do nothing;
 create table if not exists public.venues (
   id            uuid primary key default gen_random_uuid(),
   name          text not null unique,
+  location      text not null default '',
   capacity      integer not null check (capacity > 0),
   layout        text not null,
   accessibility text[] not null default '{}',
