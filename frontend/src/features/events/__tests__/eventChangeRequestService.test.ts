@@ -86,7 +86,7 @@ test('AC-006.2.5: a second pending request on the same event is refused', async 
 // written in the backlog, LOCKED_STATUSES needs to change in eventChangeRequestService.ts
 // and this list needs to change with it — confirm with the team before treating this as final.
 test.each(LOCKED_STATUSES.map((status) => [status] as const))(
-  'AC-006.5.%#: blocks a change request when the event status is %s',
+  'AC-006.5.%$: blocks a change request when the event status is %s',
   async (status) => {
     mocks.from.mockReturnValueOnce(eventStatusQuery(status))
     const result = await requestEventChange(eventId, proposedChanges, reason)
