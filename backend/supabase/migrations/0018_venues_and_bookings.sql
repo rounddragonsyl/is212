@@ -25,8 +25,8 @@ create table if not exists public.venues (
   location      text not null default '',
   capacity      integer not null check (capacity > 0),
   layout        text not null,
-  accessibility text[] not null default '{}',
-  facility      jsonb not null default '{}'::jsonb,
+  accessibility text default '{}',
+  facility      jsonb default '{}'::jsonb,
   status        text not null default 'active'
     check (status in ('active', 'under_maintenance', 'retired')),
   created_at    timestamptz not null default now(),
