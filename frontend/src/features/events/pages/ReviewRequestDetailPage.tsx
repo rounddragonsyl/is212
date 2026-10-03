@@ -14,6 +14,7 @@ import { LOCKED_STATUSES } from '../eventChangeRequestService'
 import { ChangeRequestList } from '../components/ChangeRequestList'
 import { ChangeRequestReviewPanel } from '../components/ChangeRequestReviewPanel'
 import type { ReviewDecision } from '../types'
+import { EQUIPMENT_EDITABLE_STATUSES } from '../../equipment/validation'
 
 export function ReviewRequestDetailPage() {
   const { id = '' } = useParams()
@@ -113,6 +114,20 @@ export function ReviewRequestDetailPage() {
                   status={request.status}
                   onReviewed={refreshAll}
                 />
+              </Card>
+            )}
+
+            {profile?.role === 'coordinator' && EQUIPMENT_EDITABLE_STATUSES.includes(request.status) && (
+              <Card
+                title="Equipment requirements"
+                description="Turn the organiser's equipment request into catalogue items for Technical Support."
+              >
+                <Link
+                  to={`/requests/${request.id}/equipment`}
+                  className="text-sm font-medium text-indigo-700 hover:underline"
+                >
+                  Open equipment requirements
+                </Link>
               </Card>
             )}
 

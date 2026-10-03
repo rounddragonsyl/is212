@@ -729,6 +729,22 @@ writes prohibited. The existing organiser clarification conversation remains ava
 See [review-history changes and test cases](docs/us7-review-history.md): AC-007.13.12–26
 are 15 database checks; .27–31 are five app tests. This increment requires live verification.
 
+## US13 equipment requirements (SCRUM-19)
+
+Apply `backend/supabase/migrations/0020_event_equipment_requirements.sql` after 0019.
+The assigned Event Coordinator records catalogue equipment lines for an approved,
+planning or confirmed event at `/requests/:id/equipment`, with the Organiser's request
+shown alongside. Technical Support sees every line and its notifications at `/equipment`.
+Recording reserves nothing. US14 reserves through 0019 and links each requirement with
+`booking_line_id`. Removing a requirement, or changing a held line's type or quantity,
+cancels the line's reserved allocations.
+
+Tests: AC-013.1–6 have 57 app tests and 56 database checks, giving totals of **446 app
+tests** and **203 database checks**. Manual E2E: AC-013.1.25 and .4.19 passed on shared
+Supabase (3 October); .6.22 is deferred until US14 can create reservations.
+See [test cases and results](docs/test-cases/US13_test_cases.md) and
+[design, US14 contract and change log](docs/us13-equipment-requirements.md).
+
 Latest progress supersedes older remaining-work notes: significance, the revalidation
 hook, clarification replies and coordinator notification triggers are implemented. Jaydon
 reported a queued email in shared Supabase; delivery is not yet verified. Organiser

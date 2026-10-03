@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 import { EquipmentRequirementsEditor } from '../components/EquipmentRequirementsEditor'
@@ -62,7 +62,8 @@ describe('AC-013.1: assigned-coordinator editing with the organiser request show
     setup(context([line]))
     expect(await screen.findByRole('heading', { name: "Organiser's equipment request" })).toBeInTheDocument()
     expect(screen.getByText('2 projectors, 4 mics')).toBeInTheDocument()
-    expect(screen.getByText('Projector')).toBeInTheDocument()
+    // Scoped to the list: the catalogue picker also offers "Projector".
+    expect(within(screen.getByRole('list', { name: 'Equipment requirements' })).getByText('Projector')).toBeInTheDocument()
   })
   test('AC-013.1.10: says so when the organiser listed no equipment', async () => {
     const { unmount } = setup(context([], null))

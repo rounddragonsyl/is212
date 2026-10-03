@@ -12,6 +12,8 @@ import { LandingPage } from './pages/LandingPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { SubmitEventChangesPage } from './features/events/pages/SubmitEventChangesPage'
 import { VenueSearchPage } from './features/venues/pages/VenueSearchPage'
+import { EventEquipmentPage } from './features/equipment/pages/EventEquipmentPage'
+import { TechSupportEquipmentPage } from './features/equipment/pages/TechSupportEquipmentPage'
 
 /**
  * Routes are declared here rather than scattered across features, so the sitemap is one
@@ -38,6 +40,8 @@ export default function App() {
             <Route path="*" element={<NotFoundPage />} />
             <Route path="/requests/:id/request-change" element={<SubmitEventChangesPage />} />
             <Route path="/venues/search" element={<VenueSearchPage />} />
+            <Route path="/requests/:id/equipment" element={<EventEquipmentPage />} />
+            <Route path="/equipment" element={<TechSupportEquipmentPage />} />
           </Route>
         </Routes>
       </BrowserRouter>
