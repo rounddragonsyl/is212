@@ -75,10 +75,13 @@ function describeCell(cell: OccupiedCell): string {
 }
 
 function availabilityReasons(input: SuitabilityInput): SuitabilityReason[] {
-  const { venue, occupied } = input
+  const { venue, timing, occupied } = input
   const reasons: SuitabilityReason[] = []
   if (venue.status === 'under_maintenance') {
     reasons.push({ code: 'venue_status', message: 'The venue is under maintenance.' })
+  }
+  if (timing === 'missing') {
+    reasons.push({ code: 'timing', message: 'The event has no start and end time, so availability cannot be checked.' })
   }
 
   const blocked = occupied.filter((cell) => cell.kind === 'maintenance')
