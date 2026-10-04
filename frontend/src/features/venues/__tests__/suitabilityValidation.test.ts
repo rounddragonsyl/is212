@@ -38,5 +38,3 @@ describe('AC-018.1 — identify suitable venues', () => {
   })
 })
 
-describe('AC-018.3 — venues that do not meet requirements are marked unsuitable', () => {
-})
