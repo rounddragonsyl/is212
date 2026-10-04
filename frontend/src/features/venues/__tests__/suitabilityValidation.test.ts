@@ -24,6 +24,8 @@ function assess(overrides: Partial<Parameters<typeof evaluateVenueSuitability>[0
     expectedAttendance: 60,
     requirements: { layout: null, accessibility: [], facilities: [] },
     layoutLabel,
+    timing: 'ok',
+    occupied: [],
     ...overrides,
   })
 }
@@ -61,6 +63,15 @@ describe('AC-018.1 — identify suitable venues', () => {
       accessibility: [' hearing_loop ', '', 'hearing_loop'],
       facilities: ['projector', ' '],
     })).toEqual({ layout: null, accessibility: ['hearing_loop'], facilities: ['projector'] })
+  })  
+  test('AC-018.1.13: blacked-out venues are listed after suitable and unsuitable ones', () => {
+    const blocked = assess({
+      venue: venue({ id: 'a', name: 'Alpha' }),
+      occupied: [{ date: '2041-03-10', slot: 'AM', kind: 'maintenance' }],
+    })
+    const small = assess({ venue: venue({ id: 'b', name: 'Beta' }), expectedAttendance: 150 })
+    const fine = assess({ venue: venue({ id: 'c', name: 'Gamma' }) })
+    expect(sortAssessments([blocked, small, fine]).map((a) => a.venue.name)).toEqual(['Gamma', 'Beta', 'Alpha'])
   })
 })
 
@@ -114,5 +125,44 @@ describe('AC-018.3 — venues that do not meet requirements are marked unsuitabl
     expect(result.verdict).toBe('suitable')
     expect(result.reasons).toEqual([])
   })
-  
+})
+
+describe('AC-018.4 — venues taken by bookings or maintenance are blacked out', () => {
+  test('AC-018.4.1: a venue blocked by Venue Staff on a slot the booking needs is unavailable, naming the slot', () => {
+    const result = assess({ occupied: [{ date: '2041-03-10', slot: 'AM', kind: 'maintenance' }] })
+    expect(result.verdict).toBe('unavailable')
+    expect(result.reasons).toEqual([{ code: 'blocked', message: 'Blocked by Venue Staff on 10 Mar 2041 (AM).' }])
+  })  
+  test('AC-018.4.2: a venue already booked for the event or its setup/turnaround slots is unavailable', () => {
+    const result = assess({ occupied: [
+      { date: '2041-03-09', slot: 'NIGHT', kind: 'buffer' },
+      { date: '2041-03-10', slot: 'AM', kind: 'event' },
+    ] })
+    expect(result.verdict).toBe('unavailable')
+    expect(result.reasons).toEqual([
+      { code: 'booked', message: 'Already booked on 9 Mar 2041 (Night), 10 Mar 2041 (AM).' },
+    ])
+  })  
+  test('AC-018.4.3: a venue marked under maintenance is unavailable', () => {
+    const result = assess({ venue: venue({ status: 'under_maintenance' }) })
+    expect(result.verdict).toBe('unavailable')
+    expect(result.reasons).toEqual([{ code: 'venue_status', message: 'The venue is under maintenance.' }])
+  })  
+  test('AC-018.4.4: without event times, availability cannot be checked, so the venue is not offered as free', () => {
+    const result = assess({ timing: 'missing' })
+    expect(result.verdict).toBe('unavailable')
+    expect(result.reasons).toEqual([
+      { code: 'timing', message: 'The event has no start and end time, so availability cannot be checked.' },
+    ])
+  })  
+  test('AC-018.4.5: event times outside every bookable slot make the venue unavailable', () => {
+    const result = assess({ timing: 'outside_slots' })
+    expect(result.verdict).toBe('unavailable')
+    expect(result.reasons).toEqual([{ code: 'timing', message: 'The event times fall outside every bookable slot.' }])
+  })  
+  test('AC-018.4.6: an unavailable venue stays unavailable even if also unsuitable, and both reasons are kept', () => {
+    const result = assess({ expectedAttendance: 150, occupied: [{ date: '2041-03-10', slot: 'AM', kind: 'maintenance' }] })
+    expect(result.verdict).toBe('unavailable')
+    expect(result.reasons.map((reason) => reason.code)).toEqual(['blocked', 'capacity'])
+  })
 })
