@@ -1,9 +1,10 @@
 import { supabase } from '../../lib/supabase'
 import { claimsForEvent } from './slots'
-import type { SlotCell, TimeSlot } from './slots'
+import type { SlotCell, SlotCode, TimeSlot } from './slots'
 import { evaluateVenueSuitability, normaliseRequirements, sortAssessments } from './suitabilityValidation'
 import type {
-  LayoutType, SuitabilityEvent, SuitabilityResult, TimingState, VenueAssessment, VenueProfile, VenueRequirements,
+  LayoutType, OccupiedCell, SuitabilityEvent, SuitabilityResult, TimingState,
+  VenueAssessment, VenueProfile, VenueRequirements,
 } from './suitabilityTypes'
 import type { VenueStatus } from './types'
 
@@ -154,6 +155,43 @@ function bookingCells(event: SuitabilityEvent, slots: TimeSlot[]): { timing: Tim
   return { timing: cells.length === 0 ? 'outside_slots' : 'ok', cells }
 }
 
+
+interface ClaimRow {
+  venue_id: string
+  slot_date: string
+  slot: SlotCode
+  kind: OccupiedCell['kind']
+  venue_bookings: { event_id: string } | null
+}
+
+/** Other bookings' and blocks' claims on the cells this event's booking would need. */
+async function occupiedCellsByVenue(
+  venueIds: string[],
+  cells: SlotCell[],
+): Promise<Map<string, OccupiedCell[]>> {
+  const byVenue = new Map<string, OccupiedCell[]>()
+  if (venueIds.length === 0 || cells.length === 0) return byVenue
+
+  const dates = cells.map((cell) => cell.date).sort()
+  const { data } = await supabase
+    .from('venue_slot_claims')
+    .select('venue_id, slot_date, slot, kind, venue_bookings(event_id)')
+    .in('venue_id', venueIds)
+    .gte('slot_date', dates[0])
+    .lte('slot_date', dates[dates.length - 1])
+
+  const wanted = new Set(cells.map((cell) => `${cell.date}|${cell.slot}`))
+  for (const row of (data ?? []) as unknown as ClaimRow[]) {
+    if (!wanted.has(`${row.slot_date}|${row.slot}`)) continue
+    const list = byVenue.get(row.venue_id) ?? []
+    list.push({ date: row.slot_date, slot: row.slot, kind: row.kind })
+    byVenue.set(row.venue_id, list)
+  }
+  return byVenue
+}
+
+
+
 /** AC-018.1/.3/.4. Every non-retired venue assessed for one event: verdict and reasons.
  *  Retired venues are left out entirely; they are not an option to consider. */
 export async function assessVenuesForEvent(
@@ -175,7 +213,8 @@ export async function assessVenuesForEvent(
   }
   const venues = ((venueRows ?? []) as VenueRow[]).map(toVenue)
 
-  const { timing } = bookingCells(event, slots)
+  const { timing, cells } = bookingCells(event, slots)
+  const occupied = await occupiedCellsByVenue(venues.map((venue) => venue.id), cells)
 
   const labels = new Map((await loadLayoutTypes()).map((type) => [type.code, type.label]))
   const layoutLabel = (code: string) => labels.get(code) ?? code
@@ -188,7 +227,7 @@ export async function assessVenuesForEvent(
       requirements,
       layoutLabel,
       timing,
-      occupied: [],
+      occupied: occupied.get(venue.id) ?? [],
     }))),
   }
 }
