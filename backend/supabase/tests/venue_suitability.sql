@@ -2,6 +2,10 @@
 reset role;
 select set_config('request.jwt.claim.sub', '', false);
 
+insert into auth.users (id, email, raw_user_meta_data) values
+ ('b18a0000-0000-0000-0000-000000000001', 'venue18@example.test', '{"full_name":"Suitability Venue Staff"}');
+update public.profiles set role = 'venue_staff' where id = 'b18a0000-0000-0000-0000-000000000001';
+
 insert into public.venues (id, name, location, capacity, layout, accessibility) values
  ('b18a0000-0000-0000-0000-0000000000f1', 'Layout Hall', 'Level 4', 30, 'Theatre',
   '{wheelchair_access,hearing_loop}');
@@ -43,6 +47,14 @@ select pg_temp.assert_true(exists (select 1 from public.layout_types where code 
 select pg_temp.expect_error($q$insert into public.layout_types (code, label) values ('stage', 'Stage')$q$,
   '42501', 'AC-018.3.9: the layout catalogue cannot be changed from the browser');
 reset role;
+
+
+-- ===== Capacity per layout =====
+select pg_temp.assert_true(
+  public.layout_code('U-Shape') = 'u_shape' and public.layout_code('  u shape ') = 'u_shape'
+  and public.layout_code('U_SHAPE') = 'u_shape' and public.layout_code('   ') is null
+  and public.layout_code(null) is null,
+  'AC-018.3.11: differently written names for one layout resolve to the same code');
 
 create temp table venues_before_replay as select * from public.venues;
 create temp table layout_types_before_replay as select * from public.layout_types;
