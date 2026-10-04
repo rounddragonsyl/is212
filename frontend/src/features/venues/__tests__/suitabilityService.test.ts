@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest'
-import { loadEventSuitability } from '../suitabilityService'
+import { SUITABILITY_MESSAGES, loadEventSuitability } from '../suitabilityService'
 
 const mocks = vi.hoisted(() => ({ from: vi.fn(), getUser: vi.fn() }))
 
@@ -66,14 +66,6 @@ describe('AC-018.1 — coordinators can identify suitable venues', () => {
         error: null,
       }),
     })
-    test('AC-018.1.15: before anything is saved, the requirements are empty', async () => {
-      tables({
-        events: query({ data: EVENT_ROW, error: null }),
-        event_venue_requirements: query({ data: null, error: null }),
-      })
-      const result = await loadEventSuitability(EVENT_ID)
-      expect(result.ok && result.value.requirements).toEqual({ layout: null, accessibility: [], facilities: [] })
-    })
     expect(await loadEventSuitability(EVENT_ID)).toEqual({
       ok: true,
       value: {
@@ -90,5 +82,21 @@ describe('AC-018.1 — coordinators can identify suitable venues', () => {
         requirements: { layout: 'theatre', accessibility: ['wheelchair_access'], facilities: ['projector'] },
       },
     })
+  })
+  test('AC-018.1.15: before anything is saved, the requirements are empty', async () => {
+    tables({
+      events: query({ data: EVENT_ROW, error: null }),
+      event_venue_requirements: query({ data: null, error: null }),
+    })
+    const result = await loadEventSuitability(EVENT_ID)
+    expect(result.ok && result.value.requirements).toEqual({ layout: null, accessibility: [], facilities: [] })
+  })
+  test('AC-018.1.16: someone not signed in is told to sign in', async () => {
+    mocks.getUser.mockResolvedValue({ data: { user: null }, error: null })
+    tables({
+      events: query({ data: EVENT_ROW, error: null }),
+      event_venue_requirements: query({ data: null, error: null }),
+    })
+    expect(await loadEventSuitability(EVENT_ID)).toEqual({ ok: false, reason: SUITABILITY_MESSAGES.notSignedIn })
   })
 })
