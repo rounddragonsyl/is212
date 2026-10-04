@@ -217,4 +217,9 @@ describe('AC-018.4 — venues taken by bookings or maintenance are blacked out',
     if (!result.ok) throw new Error(result.reason)
     expect(result.value.find((a) => a.venue.id === 'v-hall')?.verdict).toBe('suitable')
   })
+  test('AC-018.4.9: if bookings and blocks cannot be checked, an error is shown rather than every venue looking free', async () => {
+    assessTables({ venue_slot_claims: query({ data: null, error: { message: 'timeout' } }) })
+    expect(await assessVenuesForEvent(EVENT_ID, SLOTS))
+      .toEqual({ ok: false, reason: SUITABILITY_MESSAGES.availabilityFailed })
+  })
 })
