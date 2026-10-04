@@ -27,9 +27,12 @@ drop policy if exists event_venue_requirements_select on public.event_venue_requ
 create policy event_venue_requirements_select on public.event_venue_requirements
   for select to authenticated
   using (
-    public.current_user_role() = 'coordinator'
-    and exists (select 1 from public.events e
-                where e.id = event_venue_requirements.event_id and e.coordinator_id = auth.uid())
+    public.current_user_role() = 'venue_staff'
+    or (
+      public.current_user_role() = 'coordinator'
+      and exists (select 1 from public.events e
+                  where e.id = event_venue_requirements.event_id and e.coordinator_id = auth.uid())
+    )
   );
 
 -- Only the currently assigned coordinator writes, stamping themselves as the editor.
