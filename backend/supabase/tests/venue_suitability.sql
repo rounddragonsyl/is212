@@ -100,5 +100,11 @@ select pg_temp.assert_true(
    where venue_id = 'b18a0000-0000-0000-0000-0000000000f3' and layout = 'u_shape'),
   'AC-018.3.19: changing a venue''s capacity updates its primary layout capacity');
 
-create temp table venues_before_replay as select * from public.venues;
 create temp table layout_types_before_replay as select * from public.layout_types;
+create temp table venue_layouts_before_replay as select * from public.venue_layouts;
+-- A venue as shared Supabase holds them today: no layout row.
+alter table public.venues disable trigger venues_sync_primary_layout;
+insert into public.venues (id, name, location, capacity, layout)
+values ('b18a0000-0000-0000-0000-0000000000f9', 'Legacy Room', 'Level 9', 25, 'Boardroom');
+alter table public.venues enable trigger venues_sync_primary_layout;
+create temp table venues_before_replay as select * from public.venues;
