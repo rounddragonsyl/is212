@@ -185,3 +185,25 @@ describe('AC-018.1 — coordinators can identify suitable venues', () => {
     expect(result.value[1].reasons).toEqual([{ code: 'layout', message: 'Does not support the Theatre layout.' }])
   })
 })
+
+
+describe('AC-018.4 — venues taken by bookings or maintenance are blacked out', () => {
+  test('AC-018.4.7: a booking or block on a slot this event needs blacks the venue out; other slots do not', async () => {
+    assessTables({
+      venue_slot_claims: query({
+        data: [
+          { venue_id: 'v-hall', slot_date: '2041-03-10', slot: 'AM', kind: 'maintenance', venue_bookings: null },
+          { venue_id: 'v-small', slot_date: '2041-03-12', slot: 'AM', kind: 'event', venue_bookings: { event_id: 'other' } },
+        ],
+        error: null,
+      }),
+    })
+    const result = await assessVenuesForEvent(EVENT_ID, SLOTS)
+    if (!result.ok) throw new Error(result.reason)
+    const hall = result.value.find((a) => a.venue.id === 'v-hall')
+    const small = result.value.find((a) => a.venue.id === 'v-small')
+    expect(hall?.verdict).toBe('unavailable')
+    expect(hall?.reasons[0]).toEqual({ code: 'blocked', message: 'Blocked by Venue Staff on 10 Mar 2041 (AM).' })
+    expect(small?.reasons.map((reason) => reason.code)).not.toContain('booked')
+  })
+})
