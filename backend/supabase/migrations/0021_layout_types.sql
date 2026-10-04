@@ -19,4 +19,11 @@ insert into public.layout_types (code, label, sort_order) values
   ('reception', 'Reception (standing)', 7)
 on conflict (code) do nothing;
 
+alter table public.layout_types enable row level security;
+revoke all on public.layout_types from anon, authenticated;
+grant select on public.layout_types to authenticated;
+drop policy if exists layout_types_select_all on public.layout_types;
+create policy layout_types_select_all on public.layout_types
+  for select to authenticated using (true);
+
 commit;
