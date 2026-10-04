@@ -75,5 +75,18 @@ describe('AC-018.3 — venues that do not meet requirements are marked unsuitabl
     expect(result.verdict).toBe('unsuitable')
     expect(result.reasons).toEqual([{ code: 'facility', message: 'Missing facilities: Stage, Wi-Fi.' }])
   })
+  test('AC-018.3.31: every reason is listed, not just the first', () => {
+    const result = assess({
+      expectedAttendance: 150,
+      requirements: { layout: null, accessibility: ['hearing_loop'], facilities: ['stage'] },
+    })
+    expect(result.reasons.map((reason) => reason.code)).toEqual(['capacity', 'accessibility', 'facility'])
+  })
+
+  test('AC-018.3.32: when expected attendance is unknown, capacity is not judged', () => {
+    const result = assess({ expectedAttendance: null })
+    expect(result.verdict).toBe('suitable')
+    expect(result.reasons).toEqual([])
+  })
   
 })
