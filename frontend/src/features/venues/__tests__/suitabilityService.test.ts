@@ -129,4 +129,14 @@ describe('AC-018.1 — coordinators can identify suitable venues', () => {
     ]])
     expect(result).toEqual({ ok: true, value: { layout: 'theatre', accessibility: ['hearing_loop'], facilities: [] } })
   })
+  test('AC-018.1.20: a coordinator not assigned to the event is told only the assigned coordinator can save', async () => {
+    tables({ event_venue_requirements: query({ data: null, error: { code: '42501', message: 'denied' } }) })
+    expect(await saveVenueRequirements(EVENT_ID, { layout: null, accessibility: [], facilities: [] }))
+      .toEqual({ ok: false, reason: SUITABILITY_MESSAGES.saveDenied })
+  })
+  test('AC-018.1.21: a layout that is not in the catalogue is refused with a clear message', async () => {
+    tables({ event_venue_requirements: query({ data: null, error: { code: '23503', message: 'fk' } }) })
+    expect(await saveVenueRequirements(EVENT_ID, { layout: 'stage', accessibility: [], facilities: [] }))
+      .toEqual({ ok: false, reason: SUITABILITY_MESSAGES.unknownLayout })
+  })
 })
