@@ -5,7 +5,7 @@ begin;
 
 create table if not exists public.layout_types (
   code       text primary key check (code ~ '^[a-z0-9_]+$'),
-  label      text not null,
+  label      text not null check (length(btrim(label)) > 0),
   sort_order integer not null default 100
 );
 
