@@ -12,6 +12,10 @@ SQL statement before the assertion. A statement cannot see changes made by funct
 calls, so checking in the same statement either failed wrongly or passed without proving
 anything.
 
+Follow-up (agreed 4 October): AC-014.4 is met by the reserve form's return date. Changing
+it after reserving (A1) is tested in the database and service, but has no screen yet; new
+tests for that screen start at AC-014.4.12.
+
 AC-014.7.6 and .7.7 already passed before implementation. They guard protections from 0019
 and 0020 that 0021 must not reopen.
 

@@ -46,8 +46,11 @@ A1 to A10 are listed in the test-case file. The ones most worth confirming:
 - Topping up a partial reservation (#114).
 - Coordinator accept/decline of alternatives (#90); 0019's parts are left untouched.
 - Moving units between venues.
-- A screen to change the return date: the database function and service exist, but no UI
-  calls them yet.
+- **Follow-up (agreed 4 October):** a screen to change the return date *after* reserving.
+  AC-014.4 is met through the reserve form's return date field, which defaults to the last
+  day and can be changed. The after-reserving change (assumption A1) already works in the
+  database (`change_equipment_return_date`, AC-014.4.4–.4.8 and .12.5) and the service
+  (`changeReturnDate`, AC-014.4.11), but no screen calls it yet. New tests start at AC-014.4.12.
 
 ## Next free test IDs
 
