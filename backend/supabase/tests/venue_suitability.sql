@@ -81,5 +81,12 @@ select pg_temp.expect_error($q$insert into public.venue_layouts (venue_id, layou
   'AC-018.3.16: a coordinator cannot change venue layout capacities');
 reset role;
 
+insert into public.venues (id, name, location, capacity, layout) values
+ ('b18a0000-0000-0000-0000-0000000000f3', 'Horseshoe Room', 'Level 6', 40, 'U-Shape');
+select pg_temp.assert_true(
+  exists (select 1 from public.venue_layouts
+          where venue_id = 'b18a0000-0000-0000-0000-0000000000f3' and layout = 'u_shape' and capacity = 40),
+  'AC-018.3.17: a new venue''s primary layout is recorded with its capacity');
+
 create temp table venues_before_replay as select * from public.venues;
 create temp table layout_types_before_replay as select * from public.layout_types;
