@@ -75,8 +75,11 @@ function describeCell(cell: OccupiedCell): string {
 }
 
 function availabilityReasons(input: SuitabilityInput): SuitabilityReason[] {
-  const { occupied } = input
+  const { venue, occupied } = input
   const reasons: SuitabilityReason[] = []
+  if (venue.status === 'under_maintenance') {
+    reasons.push({ code: 'venue_status', message: 'The venue is under maintenance.' })
+  }
 
   const blocked = occupied.filter((cell) => cell.kind === 'maintenance')
   if (blocked.length > 0) {
