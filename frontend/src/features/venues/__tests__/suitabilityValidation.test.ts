@@ -57,6 +57,15 @@ describe('AC-018.3 — venues that do not meet requirements are marked unsuitabl
     expect(result.reasons).toEqual([
       { code: 'capacity', message: 'Holds 40 in the Classroom layout; 60 attendees are expected.' },
     ])
+  })  
+  test('AC-018.3.29: missing accessibility features are named', () => {
+    const result = assess({
+      requirements: { layout: null, accessibility: ['wheelchair_access', 'hearing_loop', 'lift_access'], facilities: [] },
+    })
+    expect(result.verdict).toBe('unsuitable')
+    expect(result.reasons).toEqual([
+      { code: 'accessibility', message: 'Missing accessibility: Hearing loop, Lift access.' },
+    ])
   })
   
 })
