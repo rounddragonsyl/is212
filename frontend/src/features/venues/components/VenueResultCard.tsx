@@ -1,12 +1,21 @@
 import { Card } from '../../../components/ui/Card'
+import type { VenueAssessment } from '../suitabilityTypes'
 import type { Venue } from '../types'
+import { SuitabilityBadge } from './SuitabilityBadge'
 
-export function VenueResultCard({ venue }: { venue: Venue }) {
+interface VenueResultCardProps {
+  venue: Venue
+  /** US18: present only when the search is for one of the coordinator's events. */
+  assessment?: VenueAssessment
+}
+
+export function VenueResultCard({ venue, assessment }: VenueResultCardProps) {
   const facilityEntries = Object.entries(venue.facility).filter(([, value]) => Boolean(value))
 
   return (
     <li>
       <Card title={venue.name}>
+        {assessment && <SuitabilityBadge assessment={assessment} />}
         <dl className="grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
           <div>
             <dt className="text-slate-500">Location</dt>
