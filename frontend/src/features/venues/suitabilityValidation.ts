@@ -6,7 +6,7 @@
  * the database; this module explains, venue by venue, why one does or does not fit.
  */
 import type { SuitabilityReason, VenueAssessment, VenueProfile, VenueRequirements } from './suitabilityTypes'
-import { ACCESSIBILITY_OPTIONS, featureLabel } from './venueFeatureCatalogue'
+import { ACCESSIBILITY_OPTIONS, FACILITY_OPTIONS, featureLabel } from './venueFeatureCatalogue'
 
 
 export interface SuitabilityInput {
@@ -51,6 +51,14 @@ function missingFeatureReasons(input: SuitabilityInput): SuitabilityReason[] {
     reasons.push({
       code: 'accessibility',
       message: `Missing accessibility: ${missingAccess.map((code) => featureLabel(ACCESSIBILITY_OPTIONS, code)).join(', ')}.`,
+    })
+  }
+  // Values may be counts or booleans; present when truthy, the same rule US8 search uses.
+  const missingFacilities = requirements.facilities.filter((code) => !venue.facility[code])
+  if (missingFacilities.length > 0) {
+    reasons.push({
+      code: 'facility',
+      message: `Missing facilities: ${missingFacilities.map((code) => featureLabel(FACILITY_OPTIONS, code)).join(', ')}.`,
     })
   }
   return reasons
