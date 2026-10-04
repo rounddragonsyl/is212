@@ -44,6 +44,5 @@ select pg_temp.expect_error($q$insert into public.layout_types (code, label) val
   '42501', 'AC-018.3.9: the layout catalogue cannot be changed from the browser');
 reset role;
 
-
-
 create temp table venues_before_replay as select * from public.venues;
+create temp table layout_types_before_replay as select * from public.layout_types;
