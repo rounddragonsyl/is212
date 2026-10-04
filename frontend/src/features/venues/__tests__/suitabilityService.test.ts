@@ -99,4 +99,11 @@ describe('AC-018.1 — coordinators can identify suitable venues', () => {
     })
     expect(await loadEventSuitability(EVENT_ID)).toEqual({ ok: false, reason: SUITABILITY_MESSAGES.notSignedIn })
   })
+  test('AC-018.1.17: an event that is missing, or not visible to this coordinator, is reported', async () => {
+    tables({
+      events: query({ data: null, error: null }),
+      event_venue_requirements: query({ data: null, error: null }),
+    })
+    expect(await loadEventSuitability(EVENT_ID)).toEqual({ ok: false, reason: SUITABILITY_MESSAGES.eventNotFound })
+  })
 })
