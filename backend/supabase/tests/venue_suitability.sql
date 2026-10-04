@@ -28,6 +28,8 @@ select pg_temp.assert_true(
    = array['theatre','classroom','boardroom','u_shape','banquet','cabaret','reception']
    from public.layout_types),
   'AC-018.3.5: the layout catalogue lists the seven standard layouts in display order');
+select pg_temp.expect_error($q$insert into public.layout_types (code, label) values ('U-Shape', 'Bad code')$q$,
+  '23514', 'AC-018.3.6: a layout code must be lowercase letters, digits and underscores');
 
 
 create temp table venues_before_replay as select * from public.venues;
