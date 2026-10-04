@@ -168,6 +168,16 @@ select pg_temp.assert_true(not exists (select 1 from public.event_venue_requirem
 reset role;
 
 
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-000000000003');
+select pg_temp.expect_error($q$update public.event_venue_requirements set layout = 'not_a_layout'
+  where event_id = 'b18a0000-0000-0000-0000-0000000000e1'$q$, '23503',
+  'AC-018.3.22: a required layout must be one of the catalogue layouts');
+reset role;
+
+
+
+
 create temp table layout_types_before_replay as select * from public.layout_types;
 create temp table venue_layouts_before_replay as select * from public.venue_layouts;
 -- A venue as shared Supabase holds them today: no layout row.
