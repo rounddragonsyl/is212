@@ -202,21 +202,23 @@ async function occupiedCellsByVenue(
 
 
 
-/** AC-018.1/.3/.4. Every non-retired venue assessed for one event: verdict and reasons.
- *  Retired venues are left out entirely; they are not an option to consider. */
+/** AC-018.1/.3/.4. Every non-retired venue (or just venueIds) assessed for one event: verdict
+ *  and reasons. Retired venues are left out entirely; they are not an option to consider. */
 export async function assessVenuesForEvent(
   eventId: string,
   slots: TimeSlot[],
+  venueIds?: string[],
 ): Promise<SuitabilityResult<VenueAssessment[]>> {
   const context = await loadEventSuitability(eventId)
   if (!context.ok) return context
   const { event, requirements } = context.value
 
-  const { data: venueRows, error: venueError } = await supabase
+  let venueQuery = supabase
     .from('venues')
     .select('id, name, location, status, accessibility, facility, venue_layouts(layout, capacity)')
     .neq('status', 'retired')
-    .order('name')
+  if (venueIds) venueQuery = venueQuery.in('id', venueIds)
+  const { data: venueRows, error: venueError } = await venueQuery.order('name')
   if (venueError) {
     console.error('[venues] assessVenuesForEvent', venueError)
     return { ok: false, reason: SUITABILITY_MESSAGES.unexpected }
