@@ -36,6 +36,19 @@ describe('AC-018.1 — identify suitable venues', () => {
     expect(result.verdict).toBe('suitable')
     expect(result.reasons).toEqual([])
   })
+  test('AC-018.1.10: the layouts that can hold the expected attendance are listed, smallest first', () => {
+    const result = assess({
+      venue: venue({ layouts: [
+        { layout: 'theatre', capacity: 100 },
+        { layout: 'classroom', capacity: 40 },
+        { layout: 'boardroom', capacity: 70 },
+      ] }),
+    })
+    expect(result.fittingLayouts).toEqual([
+      { layout: 'boardroom', capacity: 70 },
+      { layout: 'theatre', capacity: 100 },
+    ])
+  })
 })
 
 describe('AC-018.3 — venues that do not meet requirements are marked unsuitable', () => {
