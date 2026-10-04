@@ -1,5 +1,6 @@
 import { supabase } from '../../lib/supabase'
 import type { SuitabilityEvent, SuitabilityResult, VenueRequirements } from './suitabilityTypes'
+import { normaliseRequirements } from './suitabilityValidation'
 
 export const SUITABILITY_MESSAGES = {
   notSignedIn: 'You must be signed in to check venue suitability.',
@@ -80,4 +81,28 @@ export async function loadEventSuitability(
     ok: true,
     value: { event: toEvent(event as EventRow), requirements: toRequirements(requirements as RequirementsRow | null) },
   }
+}
+
+
+
+/** Upsert, so the first save and every later save are one call. The editor is the caller. */
+export async function saveVenueRequirements(
+  eventId: string,
+  input: VenueRequirements,
+): Promise<SuitabilityResult<VenueRequirements>> {
+  const userId = await currentUserId()
+  if (!userId) return { ok: false, reason: SUITABILITY_MESSAGES.notSignedIn }
+
+  const clean = normaliseRequirements(input)
+  const { data, error } = await supabase
+    .from('event_venue_requirements')
+    .upsert({ event_id: eventId, ...clean, updated_by: userId }, { onConflict: 'event_id' })
+    .select('layout, accessibility, facilities')
+    .single()
+
+  if (error || !data) {
+    console.error('[venues] saveVenueRequirements', error)
+    return { ok: false, reason: SUITABILITY_MESSAGES.saveFailed }
+  }
+  return { ok: true, value: toRequirements(data as RequirementsRow) }
 }
