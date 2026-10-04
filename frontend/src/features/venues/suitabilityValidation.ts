@@ -5,9 +5,11 @@
  * it from filtering. The hard rules (no double booking, no booking on a blocked slot) live in
  * the database; this module explains, venue by venue, why one does or does not fit.
  */
-import type { SuitabilityReason, VenueAssessment, VenueLayoutCapacity, VenueProfile, VenueRequirements } from './suitabilityTypes'
+import type {
+  OccupiedCell, SuitabilityReason, TimingState, VenueAssessment, VenueLayoutCapacity, VenueProfile, VenueRequirements,
+} from './suitabilityTypes'
 import { ACCESSIBILITY_OPTIONS, FACILITY_OPTIONS, featureLabel } from './venueFeatureCatalogue'
-
+import { SLOT_SHORT_LABELS, formatPlainDate } from './slotFormat'
 
 export interface SuitabilityInput {
   venue: VenueProfile
@@ -15,6 +17,9 @@ export interface SuitabilityInput {
   expectedAttendance: number | null
   requirements: VenueRequirements
   layoutLabel: (code: string) => string
+  timing: TimingState
+  /** Cells of this event's booking already held by another booking or a block. */
+  occupied: OccupiedCell[]
 }
 
 function capacityReasons(input: SuitabilityInput): SuitabilityReason[] {
@@ -53,6 +58,7 @@ function missingFeatureReasons(input: SuitabilityInput): SuitabilityReason[] {
       message: `Missing accessibility: ${missingAccess.map((code) => featureLabel(ACCESSIBILITY_OPTIONS, code)).join(', ')}.`,
     })
   }
+
   // Values may be counts or booleans; present when truthy, the same rule US8 search uses.
   const missingFacilities = requirements.facilities.filter((code) => !venue.facility[code])
   if (missingFacilities.length > 0) {
@@ -64,25 +70,47 @@ function missingFeatureReasons(input: SuitabilityInput): SuitabilityReason[] {
   return reasons
 }
 
+function describeCell(cell: OccupiedCell): string {
+  return `${formatPlainDate(cell.date)} (${SLOT_SHORT_LABELS[cell.slot]})`
+}
+
+function availabilityReasons(input: SuitabilityInput): SuitabilityReason[] {
+  const { occupied } = input
+  const reasons: SuitabilityReason[] = []
+
+  const blocked = occupied.filter((cell) => cell.kind === 'maintenance')
+  if (blocked.length > 0) {
+    reasons.push({ code: 'blocked', message: `Blocked by Venue Staff on ${blocked.map(describeCell).join(', ')}.` })
+  }
+  return reasons
+}
+
 export function fittingLayouts(venue: VenueProfile, attendance: number | null): VenueLayoutCapacity[] {
   return venue.layouts
     .filter((layout) => attendance === null || layout.capacity >= attendance)
     .sort((a, b) => a.capacity - b.capacity)
 }
 
+/** AC-018.1/.3/.4: one venue's verdict, with every reason rather than only the first. */
 export function evaluateVenueSuitability(input: SuitabilityInput): VenueAssessment {
-  const reasons = [...capacityReasons(input), ...missingFeatureReasons(input)]
-  return { venue: input.venue, verdict: reasons.length > 0 ? 'unsuitable' : 'suitable', reasons, fittingLayouts: fittingLayouts(input.venue, input.expectedAttendance) }
+  const unavailable = availabilityReasons(input)
+  const unsuitable = [...capacityReasons(input), ...missingFeatureReasons(input)]
+  const verdict = unavailable.length > 0 ? 'unavailable' : unsuitable.length > 0 ? 'unsuitable' : 'suitable'
+  return {
+    venue: input.venue,
+    verdict,
+    reasons: [...unavailable, ...unsuitable],
+    fittingLayouts: fittingLayouts(input.venue, input.expectedAttendance),
+  }
 }
 
-const VERDICT_ORDER = { suitable: 0, unsuitable: 1 } as const
+const VERDICT_ORDER = { suitable: 0, unsuitable: 1, unavailable: 2 } as const
 
-/** Suitable venues first, then unsuitable; alphabetical within each. */
+/** Suitable venues first, then unsuitable, then blacked out; alphabetical within each. */
 export function sortAssessments(assessments: VenueAssessment[]): VenueAssessment[] {
   return [...assessments].sort((a, b) =>
     VERDICT_ORDER[a.verdict] - VERDICT_ORDER[b.verdict] || a.venue.name.localeCompare(b.venue.name))
 }
-
 
 /** Drops blanks and repeats before saving, so the database's no-blank-code rule is never
  *  the first thing to notice. */
