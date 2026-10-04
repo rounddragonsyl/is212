@@ -131,6 +131,14 @@ select pg_temp.assert_true(
   'AC-018.1.2: the assigned coordinator can change the requirements, and the time of the change is recorded');
 reset role;
 
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-000000000004');  -- a coordinator not assigned to this event
+select pg_temp.assert_true(
+  not exists (select 1 from public.event_venue_requirements
+              where event_id = 'b18a0000-0000-0000-0000-0000000000e1'),
+  'AC-018.1.3: a coordinator not assigned to the event cannot read its requirements');
+reset role;
+
 
 create temp table layout_types_before_replay as select * from public.layout_types;
 create temp table venue_layouts_before_replay as select * from public.venue_layouts;
