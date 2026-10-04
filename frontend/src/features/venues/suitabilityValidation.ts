@@ -16,7 +16,16 @@ export interface SuitabilityInput {
 }
 
 function capacityReasons(input: SuitabilityInput): SuitabilityReason[] {
-  const { venue, expectedAttendance: attendance } = input
+  const { venue, expectedAttendance: attendance, requirements, layoutLabel } = input
+
+  if (requirements.layout) {
+    const layout = venue.layouts.find((candidate) => candidate.layout === requirements.layout)
+    if (!layout) {
+      return [{ code: 'layout', message: `Does not support the ${layoutLabel(requirements.layout)} layout.` }]
+    }
+    return []
+  }
+
   if (attendance === null || venue.layouts.length === 0) return []
   const largest = Math.max(...venue.layouts.map((layout) => layout.capacity))
   return largest < attendance
