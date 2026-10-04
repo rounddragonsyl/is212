@@ -42,7 +42,8 @@ function toEvent(row: EventRow): SuitabilityEvent {
   }
 }
 
-function toRequirements(row: RequirementsRow): VenueRequirements {
+function toRequirements(row: RequirementsRow | null): VenueRequirements {
+  if (!row) return { layout: null, accessibility: [], facilities: [] }
   return { layout: row.layout, accessibility: row.accessibility ?? [], facilities: row.facilities ?? [] }
 }
 
@@ -64,6 +65,6 @@ export async function loadEventSuitability(
 
   return {
     ok: true,
-    value: { event: toEvent(event as EventRow), requirements: toRequirements(requirements as RequirementsRow) },
+    value: { event: toEvent(event as EventRow), requirements: toRequirements(requirements as RequirementsRow | null)},
   }
 }
