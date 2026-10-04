@@ -11,7 +11,9 @@ docker run --detach --rm --name "$container" \
 
 ready=false
 for attempt in {1..30}; do
-  if docker exec "$container" pg_isready -U postgres >/dev/null 2>&1; then
+  # -h 127.0.0.1: the image's temporary setup server answers only on its socket, so
+  # waiting on TCP waits for the real server and avoids a restart race.
+  if docker exec "$container" pg_isready -U postgres -h 127.0.0.1 >/dev/null 2>&1; then
     ready=true
     break
   fi
