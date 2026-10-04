@@ -81,6 +81,11 @@ function availabilityReasons(input: SuitabilityInput): SuitabilityReason[] {
   const blocked = occupied.filter((cell) => cell.kind === 'maintenance')
   if (blocked.length > 0) {
     reasons.push({ code: 'blocked', message: `Blocked by Venue Staff on ${blocked.map(describeCell).join(', ')}.` })
+  }  
+  // A buffer cell is another booking's setup or turnaround: still taken, so still booked.
+  const booked = occupied.filter((cell) => cell.kind !== 'maintenance')
+  if (booked.length > 0) {
+    reasons.push({ code: 'booked', message: `Already booked on ${booked.map(describeCell).join(', ')}.` })
   }
   return reasons
 }
