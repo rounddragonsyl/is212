@@ -47,10 +47,17 @@ function toRequirements(row: RequirementsRow | null): VenueRequirements {
   return { layout: row.layout, accessibility: row.accessibility ?? [], facilities: row.facilities ?? [] }
 }
 
+async function currentUserId(): Promise<string | null> {
+  const { data, error } = await supabase.auth.getUser()
+  return error ? null : data?.user?.id ?? null
+}
+
 /** The event and the coordinator's saved requirements. */
 export async function loadEventSuitability(
   eventId: string,
 ): Promise<SuitabilityResult<{ event: SuitabilityEvent; requirements: VenueRequirements }>> {
+  if (!(await currentUserId())) return { ok: false, reason: SUITABILITY_MESSAGES.notSignedIn }
+
   const { data: event } = await supabase
     .from('events')
     .select('id, reference, name, proposed_start, proposed_end, expected_attendance, layout_preference, accessibility_requirements')
@@ -65,6 +72,6 @@ export async function loadEventSuitability(
 
   return {
     ok: true,
-    value: { event: toEvent(event as EventRow), requirements: toRequirements(requirements as RequirementsRow | null)},
+    value: { event: toEvent(event as EventRow), requirements: toRequirements(requirements as RequirementsRow | null) },
   }
 }
