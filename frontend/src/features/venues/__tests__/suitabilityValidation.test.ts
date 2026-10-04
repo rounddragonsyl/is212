@@ -14,6 +14,9 @@ function venue(overrides: Partial<VenueProfile> = {}): VenueProfile {
     layouts: [{ layout: 'theatre', capacity: 100 }, { layout: 'classroom', capacity: 40 }],
     accessibility: ['wheelchair_access'],
     facility: { projector: true, microphone: 2 },
+    layoutLabel,
+    timing: 'ok',
+    occupied: [],
     ...overrides,
   }
 }
@@ -114,5 +117,12 @@ describe('AC-018.3 — venues that do not meet requirements are marked unsuitabl
     expect(result.verdict).toBe('suitable')
     expect(result.reasons).toEqual([])
   })
-  
+})
+
+describe('AC-018.4 — venues taken by bookings or maintenance are blacked out', () => {
+  test('AC-018.4.1: a venue blocked by Venue Staff on a slot the booking needs is unavailable, naming the slot', () => {
+    const result = assess({ occupied: [{ date: '2041-03-10', slot: 'AM', kind: 'maintenance' }] })
+    expect(result.verdict).toBe('unavailable')
+    expect(result.reasons).toEqual([{ code: 'blocked', message: 'Blocked by Venue Staff on 10 Mar 2041 (AM).' }])
+  })
 })
