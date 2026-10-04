@@ -1,6 +1,11 @@
 import { supabase } from '../../lib/supabase'
-import type { SuitabilityEvent, SuitabilityResult, VenueRequirements } from './suitabilityTypes'
-import { normaliseRequirements } from './suitabilityValidation'
+import { claimsForEvent } from './slots'
+import type { SlotCell, TimeSlot } from './slots'
+import { evaluateVenueSuitability, normaliseRequirements, sortAssessments } from './suitabilityValidation'
+import type {
+  LayoutType, SuitabilityEvent, SuitabilityResult, TimingState, VenueAssessment, VenueProfile, VenueRequirements,
+} from './suitabilityTypes'
+import type { VenueStatus } from './types'
 
 export const SUITABILITY_MESSAGES = {
   notSignedIn: 'You must be signed in to check venue suitability.',
@@ -108,4 +113,82 @@ export async function saveVenueRequirements(
     return { ok: false, reason: SUITABILITY_MESSAGES.saveFailed }
   }
   return { ok: true, value: toRequirements(data as RequirementsRow) }
+}
+
+
+interface VenueRow {
+  id: string
+  name: string
+  location: string | null
+  status: VenueStatus
+  accessibility: string[] | null
+  facility: Record<string, unknown> | null
+  venue_layouts: { layout: string; capacity: number }[] | null
+}
+
+function toVenue(row: VenueRow): VenueProfile {
+  return {
+    id: row.id,
+    name: row.name,
+    location: row.location ?? '',
+    status: row.status,
+    accessibility: row.accessibility ?? [],
+    facility: row.facility ?? {},
+    layouts: row.venue_layouts ?? [],
+  }
+}
+
+export async function loadLayoutTypes(): Promise<LayoutType[]> {
+  const { data, error } = await supabase.from('layout_types').select('code, label').order('sort_order')
+  if (error) {
+    console.error('[venues] loadLayoutTypes', error)
+    return []
+  }
+  return (data ?? []) as LayoutType[]
+}
+
+/** The cells this event's booking would need (event + setup/turnaround), and whether its times allow any. */
+function bookingCells(event: SuitabilityEvent, slots: TimeSlot[]): { timing: TimingState; cells: SlotCell[] } {
+  if (!event.proposedStart || !event.proposedEnd) return { timing: 'missing', cells: [] }
+  const cells = claimsForEvent(new Date(event.proposedStart), new Date(event.proposedEnd), slots)
+  return { timing: cells.length === 0 ? 'outside_slots' : 'ok', cells }
+}
+
+/** AC-018.1/.3/.4. Every non-retired venue assessed for one event: verdict and reasons.
+ *  Retired venues are left out entirely; they are not an option to consider. */
+export async function assessVenuesForEvent(
+  eventId: string,
+  slots: TimeSlot[],
+): Promise<SuitabilityResult<VenueAssessment[]>> {
+  const context = await loadEventSuitability(eventId)
+  if (!context.ok) return context
+  const { event, requirements } = context.value
+
+  const { data: venueRows, error: venueError } = await supabase
+    .from('venues')
+    .select('id, name, location, status, accessibility, facility, venue_layouts(layout, capacity)')
+    .neq('status', 'retired')
+    .order('name')
+  if (venueError) {
+    console.error('[venues] assessVenuesForEvent', venueError)
+    return { ok: false, reason: SUITABILITY_MESSAGES.unexpected }
+  }
+  const venues = ((venueRows ?? []) as VenueRow[]).map(toVenue)
+
+  const { timing } = bookingCells(event, slots)
+
+  const labels = new Map((await loadLayoutTypes()).map((type) => [type.code, type.label]))
+  const layoutLabel = (code: string) => labels.get(code) ?? code
+
+  return {
+    ok: true,
+    value: sortAssessments(venues.map((venue) => evaluateVenueSuitability({
+      venue,
+      expectedAttendance: event.expectedAttendance,
+      requirements,
+      layoutLabel,
+      timing,
+      occupied: [],
+    }))),
+  }
 }
