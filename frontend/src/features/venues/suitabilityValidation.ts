@@ -5,7 +5,7 @@
  * it from filtering. The hard rules (no double booking, no booking on a blocked slot) live in
  * the database; this module explains, venue by venue, why one does or does not fit.
  */
-import type { VenueAssessment, VenueProfile, VenueRequirements } from './suitabilityTypes'
+import type { SuitabilityReason, VenueAssessment, VenueProfile, VenueRequirements } from './suitabilityTypes'
 
 export interface SuitabilityInput {
   venue: VenueProfile
@@ -15,6 +15,16 @@ export interface SuitabilityInput {
   layoutLabel: (code: string) => string
 }
 
+function capacityReasons(input: SuitabilityInput): SuitabilityReason[] {
+  const { venue, expectedAttendance: attendance } = input
+  if (attendance === null || venue.layouts.length === 0) return []
+  const largest = Math.max(...venue.layouts.map((layout) => layout.capacity))
+  return largest < attendance
+    ? [{ code: 'capacity', message: `Holds at most ${largest} in any layout; ${attendance} attendees are expected.` }]
+    : []
+}
+
 export function evaluateVenueSuitability(input: SuitabilityInput): VenueAssessment {
-  return { venue: input.venue, verdict: 'suitable', reasons: [], fittingLayouts: [] }
+  const reasons = capacityReasons(input)
+  return { venue: input.venue, verdict: reasons.length > 0 ? 'unsuitable' : 'suitable', reasons, fittingLayouts: [] }
 }
