@@ -13,4 +13,9 @@ create table if not exists public.event_venue_requirements (
   updated_at    timestamptz not null default now()
 );
 
+drop trigger if exists event_venue_requirements_set_updated_at on public.event_venue_requirements;
+create trigger event_venue_requirements_set_updated_at
+  before update on public.event_venue_requirements
+  for each row execute function public.set_updated_at();
+
 commit;
