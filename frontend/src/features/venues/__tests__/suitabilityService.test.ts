@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 import type { TimeSlot } from '../slots'
 import {
-  SUITABILITY_MESSAGES, assessVenuesForEvent, loadEventSuitability, saveVenueRequirements,
+  SUITABILITY_MESSAGES, assessVenueForBooking, assessVenuesForEvent, loadEventSuitability, saveVenueRequirements,
 } from '../suitabilityService'
 
 
@@ -245,5 +245,20 @@ describe('AC-018.4 — venues taken by bookings or maintenance are blacked out',
     if (!result.ok) throw new Error(result.reason)
     expect(result.value.every((a) => a.verdict === 'unavailable')).toBe(true)
     expect(result.value[0].reasons[0].code).toBe('timing')
+  })
+})
+
+describe('AC-018.2 — coordinators are alerted when booking an unsuitable venue', () => {
+  test('AC-018.2.1: before booking, the chosen venue alone is checked against the event', async () => {
+    const map = assessTables({ venues: query({ data: [VENUE_ROWS[0]], error: null }) })
+    const result = await assessVenueForBooking(EVENT_ID, 'v-small', SLOTS)
+    expect(map.venues.calls.in).toEqual([['id', ['v-small']]])
+    expect(result.ok && result.value.venue.id).toBe('v-small')
+  })
+
+  test('AC-018.2.2: a venue that no longer exists or is retired is reported, not treated as fine', async () => {
+    assessTables({ venues: query({ data: [], error: null }) })
+    expect(await assessVenueForBooking(EVENT_ID, 'v-gone', SLOTS))
+      .toEqual({ ok: false, reason: SUITABILITY_MESSAGES.venueNotFound })
   })
 })

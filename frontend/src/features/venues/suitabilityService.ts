@@ -11,6 +11,7 @@ import type { VenueStatus } from './types'
 export const SUITABILITY_MESSAGES = {
   notSignedIn: 'You must be signed in to check venue suitability.',
   eventNotFound: 'That event could not be found, or it is not assigned to you.',
+  venueNotFound: 'That venue could not be found, or it has been retired.',
   saveDenied: 'Only the coordinator assigned to this event can change its venue requirements.',
   unknownLayout: 'Choose a layout from the list.',
   saveFailed: 'The requirements could not be saved. Please try again.',
@@ -243,4 +244,19 @@ export async function assessVenuesForEvent(
       occupied: occupied.get(venue.id) ?? [],
     }))),
   }
+}
+
+
+/** AC-018.2: the one-venue check a booking screen runs before placing a hold or request. */
+export async function assessVenueForBooking(
+  eventId: string,
+  venueId: string,
+  slots: TimeSlot[],
+): Promise<SuitabilityResult<VenueAssessment>> {
+  const result = await assessVenuesForEvent(eventId, slots, [venueId])
+  if (!result.ok) return result
+  const [assessment] = result.value
+  return assessment
+    ? { ok: true, value: assessment }
+    : { ok: false, reason: SUITABILITY_MESSAGES.venueNotFound }
 }
