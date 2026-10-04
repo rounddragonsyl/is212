@@ -176,6 +176,8 @@ select pg_temp.expect_error($q$update public.event_venue_requirements set layout
 select pg_temp.expect_error($q$update public.event_venue_requirements set accessibility = array['']
   where event_id = 'b18a0000-0000-0000-0000-0000000000e1'$q$, '23514',
   'AC-018.3.23: a blank accessibility or facility requirement is refused');
+select pg_temp.expect_error($q$delete from public.event_venue_requirements$q$, '42501',
+  'AC-018.3.24: requirements are cleared by saving empty lists, never deleted');
 reset role;
 
 
