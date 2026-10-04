@@ -1,5 +1,8 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest'
-import { SUITABILITY_MESSAGES, loadEventSuitability, saveVenueRequirements } from '../suitabilityService'
+import type { TimeSlot } from '../slots'
+import {
+  SUITABILITY_MESSAGES, assessVenuesForEvent, loadEventSuitability, saveVenueRequirements,
+} from '../suitabilityService'
 
 
 
@@ -51,6 +54,38 @@ const EVENT_ROW = {
   expected_attendance: 60,
   layout_preference: 'Theatre style please',
   accessibility_requirements: 'Step-free access',
+}
+
+const SLOTS: TimeSlot[] = [
+  { code: 'AM', startsAt: '07:00:00', endsAt: '12:00:00', sortOrder: 1 },
+  { code: 'PM', startsAt: '13:00:00', endsAt: '18:00:00', sortOrder: 2 },
+  { code: 'NIGHT', startsAt: '19:00:00', endsAt: '24:00:00', sortOrder: 3 },
+]
+
+const VENUE_ROWS = [
+  {
+    id: 'v-small', name: 'Small Room', location: 'Level 1', status: 'active',
+    accessibility: [], facility: {}, venue_layouts: [{ layout: 'boardroom', capacity: 20 }],
+  },
+  {
+    id: 'v-hall', name: 'Main Hall', location: 'Level 2', status: 'active',
+    accessibility: ['wheelchair_access'], facility: { projector: true },
+    venue_layouts: [{ layout: 'theatre', capacity: 200 }],
+  },
+]
+
+/** Every table an assessment reads, each with a sensible default; override one per test. */
+function assessTables(overrides: Record<string, FakeQuery> = {}) {
+  const map: Record<string, FakeQuery> = {
+    events: query({ data: EVENT_ROW, error: null }),
+    event_venue_requirements: query({ data: null, error: null }),
+    venues: query({ data: VENUE_ROWS, error: null }),
+    venue_slot_claims: query({ data: [], error: null }),
+    layout_types: query({ data: [{ code: 'theatre', label: 'Theatre' }, { code: 'boardroom', label: 'Boardroom' }], error: null }),
+    ...overrides,
+  }
+  tables(map)
+  return map
 }
 
 beforeEach(() => {
@@ -138,5 +173,15 @@ describe('AC-018.1 — coordinators can identify suitable venues', () => {
     tables({ event_venue_requirements: query({ data: null, error: { code: '23503', message: 'fk' } }) })
     expect(await saveVenueRequirements(EVENT_ID, { layout: 'stage', accessibility: [], facilities: [] }))
       .toEqual({ ok: false, reason: SUITABILITY_MESSAGES.unknownLayout })
+  })
+  test('AC-018.1.22: every venue that is not retired is assessed, suitable first, with layout names from the catalogue', async () => {
+    const map = assessTables({
+      event_venue_requirements: query({ data: { layout: 'theatre', accessibility: [], facilities: [] }, error: null }),
+    })
+    const result = await assessVenuesForEvent(EVENT_ID, SLOTS)
+    if (!result.ok) throw new Error(result.reason)
+    expect(map.venues.calls.neq).toEqual([['status', 'retired']])
+    expect(result.value.map((a) => [a.venue.name, a.verdict])).toEqual([['Main Hall', 'suitable'], ['Small Room', 'unsuitable']])
+    expect(result.value[1].reasons).toEqual([{ code: 'layout', message: 'Does not support the Theatre layout.' }])
   })
 })
