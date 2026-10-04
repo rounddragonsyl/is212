@@ -58,11 +58,13 @@ export async function loadEventSuitability(
 ): Promise<SuitabilityResult<{ event: SuitabilityEvent; requirements: VenueRequirements }>> {
   if (!(await currentUserId())) return { ok: false, reason: SUITABILITY_MESSAGES.notSignedIn }
 
-  const { data: event } = await supabase
+  const { data: event, error: eventError } = await supabase
     .from('events')
     .select('id, reference, name, proposed_start, proposed_end, expected_attendance, layout_preference, accessibility_requirements')
     .eq('id', eventId)
     .maybeSingle()
+  // RLS hides events this coordinator may not see, so "not visible" looks the same as "missing".
+  if (eventError || !event) return { ok: false, reason: SUITABILITY_MESSAGES.eventNotFound }
 
   const { data: requirements } = await supabase
     .from('event_venue_requirements')
