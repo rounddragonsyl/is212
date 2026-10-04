@@ -10,7 +10,9 @@ create table if not exists public.event_venue_requirements (
   accessibility text[] not null default '{}',
   facilities    text[] not null default '{}',
   updated_by    uuid not null references public.profiles (id),
-  updated_at    timestamptz not null default now()
+  updated_at    timestamptz not null default now(),
+  constraint event_venue_requirements_no_blank_codes
+    check (not ('' = any (accessibility)) and not ('' = any (facilities)))
 );
 
 drop trigger if exists event_venue_requirements_set_updated_at on public.event_venue_requirements;
