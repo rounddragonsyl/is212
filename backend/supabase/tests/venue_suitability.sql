@@ -100,6 +100,89 @@ select pg_temp.assert_true(
    where venue_id = 'b18a0000-0000-0000-0000-0000000000f3' and layout = 'u_shape'),
   'AC-018.3.19: changing a venue''s capacity updates its primary layout capacity');
 
+-- ===== Event venue requirements =====
+select set_config('request.jwt.claim.sub', '', false);  -- fixtures are inserted as nobody, not as the last test user
+insert into public.events (id, organiser_id, coordinator_id, purpose, name, reference,
+                           proposed_start, proposed_end, expected_attendance, status)
+values ('b18a0000-0000-0000-0000-0000000000e1', '00000000-0000-0000-0000-000000000001',
+        '00000000-0000-0000-0000-000000000003', 'Suitability fixture', 'Workshop', 'EVT-B18-1',
+        '2041-02-01 01:00+00', '2041-02-01 04:00+00', 60, 'approved');
+
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-000000000003');  -- the assigned coordinator
+insert into public.event_venue_requirements (event_id, layout, accessibility, facilities, updated_by)
+values ('b18a0000-0000-0000-0000-0000000000e1', 'theatre', '{wheelchair_access}', '{projector}',
+        '00000000-0000-0000-0000-000000000003');
+select pg_temp.assert_true(
+  (select layout = 'theatre' and accessibility = '{wheelchair_access}' and facilities = '{projector}'
+   from public.event_venue_requirements where event_id = 'b18a0000-0000-0000-0000-0000000000e1'),
+  'AC-018.1.1: the assigned coordinator can record structured venue requirements for an event');
+reset role;
+
+update public.event_venue_requirements set updated_at = '2000-01-01'
+ where event_id = 'b18a0000-0000-0000-0000-0000000000e1';
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-000000000003');
+update public.event_venue_requirements set facilities = '{projector,microphone}'
+ where event_id = 'b18a0000-0000-0000-0000-0000000000e1';
+select pg_temp.assert_true(
+  (select facilities = '{projector,microphone}' and updated_at > '2000-01-01'
+   from public.event_venue_requirements where event_id = 'b18a0000-0000-0000-0000-0000000000e1'),
+  'AC-018.1.2: the assigned coordinator can change the requirements, and the time of the change is recorded');
+reset role;
+
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-000000000004');  -- a coordinator not assigned to this event
+select pg_temp.assert_true(
+  not exists (select 1 from public.event_venue_requirements
+              where event_id = 'b18a0000-0000-0000-0000-0000000000e1'),
+  'AC-018.1.3: a coordinator not assigned to the event cannot read its requirements');
+reset role;
+
+set role authenticated;
+select pg_temp.as_user('b18a0000-0000-0000-0000-000000000001');  -- venue staff
+select pg_temp.assert_true(
+  exists (select 1 from public.event_venue_requirements
+          where event_id = 'b18a0000-0000-0000-0000-0000000000e1'),
+  'AC-018.1.4: venue staff can read the requirements when reviewing a booking');
+select pg_temp.as_user('00000000-0000-0000-0000-000000000005');  -- operations manager
+select pg_temp.assert_true(
+  exists (select 1 from public.event_venue_requirements
+          where event_id = 'b18a0000-0000-0000-0000-0000000000e1'),
+  'AC-018.1.5: the operations manager can read the requirements');
+reset role;
+
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-000000000004');  -- not assigned
+select pg_temp.expect_error($q$insert into public.event_venue_requirements (event_id, layout, updated_by)
+  values ('b18a0000-0000-0000-0000-0000000000e1', 'banquet', '00000000-0000-0000-0000-000000000004')$q$,
+  '42501', 'AC-018.1.6: a coordinator not assigned to the event cannot create its requirements');
+select pg_temp.as_user('00000000-0000-0000-0000-000000000003');  -- assigned
+select pg_temp.expect_error($q$update public.event_venue_requirements
+  set updated_by = '00000000-0000-0000-0000-000000000004'
+  where event_id = 'b18a0000-0000-0000-0000-0000000000e1'$q$,
+  '42501', 'AC-018.1.7: requirements cannot be saved in another user''s name');
+select pg_temp.as_user('00000000-0000-0000-0000-000000000001');  -- the organiser
+select pg_temp.assert_true(not exists (select 1 from public.event_venue_requirements),
+  'AC-018.1.8: the organiser cannot see the coordinator''s internal requirements');
+reset role;
+
+
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-000000000003');
+select pg_temp.expect_error($q$update public.event_venue_requirements set layout = 'not_a_layout'
+  where event_id = 'b18a0000-0000-0000-0000-0000000000e1'$q$, '23503',
+  'AC-018.3.22: a required layout must be one of the catalogue layouts');
+select pg_temp.expect_error($q$update public.event_venue_requirements set accessibility = array['']
+  where event_id = 'b18a0000-0000-0000-0000-0000000000e1'$q$, '23514',
+  'AC-018.3.23: a blank accessibility or facility requirement is refused');
+select pg_temp.expect_error($q$delete from public.event_venue_requirements$q$, '42501',
+  'AC-018.3.24: requirements are cleared by saving empty lists, never deleted');
+reset role;
+
+
+
+
 create temp table layout_types_before_replay as select * from public.layout_types;
 create temp table venue_layouts_before_replay as select * from public.venue_layouts;
 -- A venue as shared Supabase holds them today: no layout row.
@@ -108,3 +191,4 @@ insert into public.venues (id, name, location, capacity, layout)
 values ('b18a0000-0000-0000-0000-0000000000f9', 'Legacy Room', 'Level 9', 25, 'Boardroom');
 alter table public.venues enable trigger venues_sync_primary_layout;
 create temp table venues_before_replay as select * from public.venues;
+create temp table requirements_before_replay as select * from public.event_venue_requirements;
