@@ -63,6 +63,15 @@ describe('AC-018.1 — identify suitable venues', () => {
       accessibility: [' hearing_loop ', '', 'hearing_loop'],
       facilities: ['projector', ' '],
     })).toEqual({ layout: null, accessibility: ['hearing_loop'], facilities: ['projector'] })
+  })  
+  test('AC-018.1.13: blacked-out venues are listed after suitable and unsuitable ones', () => {
+    const blocked = assess({
+      venue: venue({ id: 'a', name: 'Alpha' }),
+      occupied: [{ date: '2041-03-10', slot: 'AM', kind: 'maintenance' }],
+    })
+    const small = assess({ venue: venue({ id: 'b', name: 'Beta' }), expectedAttendance: 150 })
+    const fine = assess({ venue: venue({ id: 'c', name: 'Gamma' }) })
+    expect(sortAssessments([blocked, small, fine]).map((a) => a.venue.name)).toEqual(['Gamma', 'Beta', 'Alpha'])
   })
 })
 
@@ -150,5 +159,10 @@ describe('AC-018.4 — venues taken by bookings or maintenance are blacked out',
     const result = assess({ timing: 'outside_slots' })
     expect(result.verdict).toBe('unavailable')
     expect(result.reasons).toEqual([{ code: 'timing', message: 'The event times fall outside every bookable slot.' }])
+  })  
+  test('AC-018.4.6: an unavailable venue stays unavailable even if also unsuitable, and both reasons are kept', () => {
+    const result = assess({ expectedAttendance: 150, occupied: [{ date: '2041-03-10', slot: 'AM', kind: 'maintenance' }] })
+    expect(result.verdict).toBe('unavailable')
+    expect(result.reasons.map((reason) => reason.code)).toEqual(['blocked', 'capacity'])
   })
 })
