@@ -2,23 +2,10 @@ import { Field, TextInput } from '../../../components/ui/FormControls'
 import { Button } from '../../../components/ui/Button'
 import type { AssignedEventOption, VenueSearchFilters } from '../types'
 import type { SlotCode } from '../slots'
+import { ACCESSIBILITY_OPTIONS, FACILITY_OPTIONS } from '../venueFeatureCatalogue'
 
 // No features/facilities catalogue table exists yet — these are placeholder codes.
 // Swap in your real catalogue once one exists.
-const ACCESSIBILITY_OPTIONS = [
-  { code: 'wheelchair_access', label: 'Wheelchair access' },
-  { code: 'hearing_loop', label: 'Hearing loop' },
-  { code: 'accessible_toilet', label: 'Accessible toilet' },
-  { code: 'lift_access', label: 'Lift access' },
-]
-
-const FACILITY_OPTIONS = [
-  { code: 'projector', label: 'Projector' },
-  { code: 'microphone', label: 'Microphone' },
-  { code: 'stage', label: 'Stage' },
-  { code: 'wifi', label: 'Wi-Fi' },
-]
-
 const SLOT_OPTIONS: { value: SlotCode; label: string }[] = [
   { value: 'AM', label: 'AM (7am–12pm)' },
   { value: 'PM', label: 'PM (1pm–6pm)' },
