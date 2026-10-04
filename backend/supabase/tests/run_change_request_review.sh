@@ -126,4 +126,11 @@ select pg_temp.assert_true(
   not exists (select * from venue_layouts_before_replay except select * from public.venue_layouts),
   'AC-018.3.21: replaying the layout migration changes no existing capacity');
 SQL
+  cat "$repo_root/supabase/migrations/0023_event_venue_requirements.sql"
+  cat <<'SQL'
+select pg_temp.assert_true(
+  not exists ((select * from public.event_venue_requirements except select * from requirements_before_replay)
+    union all (select * from requirements_before_replay except select * from public.event_venue_requirements)),
+  'AC-018.3.25: replaying the requirements migration changes no saved requirements');
+SQL
 } | docker exec -i "$container" psql -X -U postgres -v ON_ERROR_STOP=1

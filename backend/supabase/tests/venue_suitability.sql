@@ -191,3 +191,4 @@ insert into public.venues (id, name, location, capacity, layout)
 values ('b18a0000-0000-0000-0000-0000000000f9', 'Legacy Room', 'Level 9', 25, 'Boardroom');
 alter table public.venues enable trigger venues_sync_primary_layout;
 create temp table venues_before_replay as select * from public.venues;
+create temp table requirements_before_replay as select * from public.event_venue_requirements;
