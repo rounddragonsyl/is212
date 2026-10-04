@@ -16,4 +16,16 @@ create table if not exists public.venue_layouts (
   primary key (venue_id, layout)
 );
 
+alter table public.venue_layouts enable row level security;
+revoke all on public.venue_layouts from anon, authenticated;
+grant select, insert, update, delete on public.venue_layouts to authenticated;
+drop policy if exists venue_layouts_select_all on public.venue_layouts;
+create policy venue_layouts_select_all on public.venue_layouts
+  for select to authenticated using (true);
+drop policy if exists venue_layouts_manage on public.venue_layouts;
+create policy venue_layouts_manage on public.venue_layouts
+  for all to authenticated
+  using (public.current_user_role() in ('venue_staff', 'operations_manager'))
+  with check (public.current_user_role() in ('venue_staff', 'operations_manager'));
+
 commit;
