@@ -145,6 +145,26 @@ select pg_temp.assert_true(
   exists (select 1 from public.event_venue_requirements
           where event_id = 'b18a0000-0000-0000-0000-0000000000e1'),
   'AC-018.1.4: venue staff can read the requirements when reviewing a booking');
+select pg_temp.as_user('00000000-0000-0000-0000-000000000005');  -- operations manager
+select pg_temp.assert_true(
+  exists (select 1 from public.event_venue_requirements
+          where event_id = 'b18a0000-0000-0000-0000-0000000000e1'),
+  'AC-018.1.5: the operations manager can read the requirements');
+reset role;
+
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-000000000004');  -- not assigned
+select pg_temp.expect_error($q$insert into public.event_venue_requirements (event_id, layout, updated_by)
+  values ('b18a0000-0000-0000-0000-0000000000e1', 'banquet', '00000000-0000-0000-0000-000000000004')$q$,
+  '42501', 'AC-018.1.6: a coordinator not assigned to the event cannot create its requirements');
+select pg_temp.as_user('00000000-0000-0000-0000-000000000003');  -- assigned
+select pg_temp.expect_error($q$update public.event_venue_requirements
+  set updated_by = '00000000-0000-0000-0000-000000000004'
+  where event_id = 'b18a0000-0000-0000-0000-0000000000e1'$q$,
+  '42501', 'AC-018.1.7: requirements cannot be saved in another user''s name');
+select pg_temp.as_user('00000000-0000-0000-0000-000000000001');  -- the organiser
+select pg_temp.assert_true(not exists (select 1 from public.event_venue_requirements),
+  'AC-018.1.8: the organiser cannot see the coordinator''s internal requirements');
 reset role;
 
 
