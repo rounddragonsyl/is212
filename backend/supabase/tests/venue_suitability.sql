@@ -71,5 +71,15 @@ select pg_temp.expect_error($q$insert into public.venue_layouts (venue_id, layou
   'AC-018.3.14: a capacity can only be for a catalogue layout');
 reset role;
 
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-000000000003');  -- coordinator
+select pg_temp.assert_true(
+  exists (select 1 from public.venue_layouts where venue_id = 'b18a0000-0000-0000-0000-0000000000f1'),
+  'AC-018.3.15: a coordinator can read venue layout capacities');
+select pg_temp.expect_error($q$insert into public.venue_layouts (venue_id, layout, capacity)
+  values ('b18a0000-0000-0000-0000-0000000000f1','banquet',20)$q$, '42501',
+  'AC-018.3.16: a coordinator cannot change venue layout capacities');
+reset role;
+
 create temp table venues_before_replay as select * from public.venues;
 create temp table layout_types_before_replay as select * from public.layout_types;
