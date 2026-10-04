@@ -6,7 +6,7 @@ begin;
 
 create table if not exists public.event_venue_requirements (
   event_id      uuid primary key references public.events (id) on delete cascade,
-  layout        text,
+  layout        text references public.layout_types (code),
   accessibility text[] not null default '{}',
   facilities    text[] not null default '{}',
   updated_by    uuid not null references public.profiles (id),
