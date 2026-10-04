@@ -102,6 +102,8 @@ export async function saveVenueRequirements(
   if (error || !data) {
     // 42501: RLS refused; only the currently assigned coordinator may write.
     if (error?.code === '42501') return { ok: false, reason: SUITABILITY_MESSAGES.saveDenied }
+    // 23503: the layout is not in layout_types.
+    if (error?.code === '23503') return { ok: false, reason: SUITABILITY_MESSAGES.unknownLayout }
     console.error('[venues] saveVenueRequirements', error)
     return { ok: false, reason: SUITABILITY_MESSAGES.saveFailed }
   }
