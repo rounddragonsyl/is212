@@ -133,5 +133,10 @@ describe('AC-018.4 — venues taken by bookings or maintenance are blacked out',
     expect(result.reasons).toEqual([
       { code: 'booked', message: 'Already booked on 9 Mar 2041 (Night), 10 Mar 2041 (AM).' },
     ])
+  })  
+  test('AC-018.4.3: a venue marked under maintenance is unavailable', () => {
+    const result = assess({ venue: venue({ status: 'under_maintenance' }) })
+    expect(result.verdict).toBe('unavailable')
+    expect(result.reasons).toEqual([{ code: 'venue_status', message: 'The venue is under maintenance.' }])
   })
 })
