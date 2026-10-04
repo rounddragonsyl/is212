@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest'
-import { SUITABILITY_MESSAGES, loadEventSuitability } from '../suitabilityService'
+import { SUITABILITY_MESSAGES, loadEventSuitability, saveVenueRequirements } from '../suitabilityService'
+
+
 
 const mocks = vi.hoisted(() => ({ from: vi.fn(), getUser: vi.fn() }))
 
@@ -112,5 +114,19 @@ describe('AC-018.1 — coordinators can identify suitable venues', () => {
       event_venue_requirements: query({ data: null, error: { message: 'timeout' } }),
     })
     expect(await loadEventSuitability(EVENT_ID)).toEqual({ ok: false, reason: SUITABILITY_MESSAGES.unexpected })
+  })
+  test('AC-018.1.19: saving cleans the requirements and stamps them with the signed-in coordinator', async () => {
+    const save = query({ data: { layout: 'theatre', accessibility: ['hearing_loop'], facilities: [] }, error: null })
+    tables({ event_venue_requirements: save })
+    const result = await saveVenueRequirements(EVENT_ID, {
+      layout: ' theatre ',
+      accessibility: ['hearing_loop', 'hearing_loop', ''],
+      facilities: [],
+    })
+    expect(save.calls.upsert).toEqual([[
+      { event_id: EVENT_ID, layout: 'theatre', accessibility: ['hearing_loop'], facilities: [], updated_by: 'coordinator-1' },
+      { onConflict: 'event_id' },
+    ]])
+    expect(result).toEqual({ ok: true, value: { layout: 'theatre', accessibility: ['hearing_loop'], facilities: [] } })
   })
 })
