@@ -9,4 +9,11 @@ returns text language sql immutable set search_path = '' as $$
   select nullif(btrim(regexp_replace(lower(btrim(coalesce(raw, ''))), '[^a-z0-9]+', '_', 'g'), '_'), '')
 $$;
 
+create table if not exists public.venue_layouts (
+  venue_id uuid not null references public.venues (id) on delete cascade,
+  layout   text not null,
+  capacity integer not null,
+  primary key (venue_id, layout)
+);
+
 commit;
