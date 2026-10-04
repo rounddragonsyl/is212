@@ -166,22 +166,27 @@ interface ClaimRow {
 
 /** Other bookings' and blocks' claims on the cells this event's booking would need. Claims
  *  belonging to this same event are left out: a coordinator already holding a room for the
- *  event must not see that room reported as taken by their own hold. */
+ *  event must not see that room reported as taken by their own hold.
+ *  Returns null when the check fails, so the caller can fail closed. */
 async function occupiedCellsByVenue(
   eventId: string,
   venueIds: string[],
   cells: SlotCell[],
-): Promise<Map<string, OccupiedCell[]>> {
+): Promise<Map<string, OccupiedCell[]> | null> {
   const byVenue = new Map<string, OccupiedCell[]>()
   if (venueIds.length === 0 || cells.length === 0) return byVenue
 
   const dates = cells.map((cell) => cell.date).sort()
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('venue_slot_claims')
     .select('venue_id, slot_date, slot, kind, venue_bookings(event_id)')
     .in('venue_id', venueIds)
     .gte('slot_date', dates[0])
     .lte('slot_date', dates[dates.length - 1])
+  if (error) {
+    console.error('[venues] occupiedCellsByVenue', error)
+    return null
+  }
 
   const wanted = new Set(cells.map((cell) => `${cell.date}|${cell.slot}`))
   for (const row of (data ?? []) as unknown as ClaimRow[]) {
@@ -193,6 +198,8 @@ async function occupiedCellsByVenue(
   }
   return byVenue
 }
+
+
 
 
 /** AC-018.1/.3/.4. Every non-retired venue assessed for one event: verdict and reasons.
@@ -218,7 +225,8 @@ export async function assessVenuesForEvent(
 
   const { timing, cells } = bookingCells(event, slots)
   const occupied = await occupiedCellsByVenue(eventId, venues.map((venue) => venue.id), cells)
-  
+  if (!occupied) return { ok: false, reason: SUITABILITY_MESSAGES.availabilityFailed }
+
   const labels = new Map((await loadLayoutTypes()).map((type) => [type.code, type.label]))
   const layoutLabel = (code: string) => labels.get(code) ?? code
 
