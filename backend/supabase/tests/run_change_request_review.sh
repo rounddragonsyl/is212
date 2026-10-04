@@ -99,4 +99,5 @@ select pg_temp.assert_true(not exists(
  'AC-007.13.26: migration replay preserves review history');
 SQL
   cat "$repo_root/supabase/tests/equipment_requirements.sql"
+  cat "$repo_root/supabase/tests/equipment_reservations.sql"
 } | docker exec -i "$container" psql -X -U postgres -v ON_ERROR_STOP=1
