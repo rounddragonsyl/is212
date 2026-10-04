@@ -52,4 +52,17 @@ create trigger venues_sync_primary_layout
   after insert or update of layout, capacity on public.venues
   for each row execute function public.sync_primary_venue_layout();
 
+-- Venues that existed before this migration. DISTINCT ON: 'Theatre' and 'theatre' share a code.
+insert into public.layout_types (code, label)
+select distinct on (public.layout_code(layout)) public.layout_code(layout), btrim(layout)
+from public.venues
+where public.layout_code(layout) is not null
+on conflict (code) do nothing;
+
+insert into public.venue_layouts (venue_id, layout, capacity)
+select id, public.layout_code(layout), capacity
+from public.venues
+where public.layout_code(layout) is not null
+on conflict (venue_id, layout) do nothing;
+
 commit;
