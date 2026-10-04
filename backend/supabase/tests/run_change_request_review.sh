@@ -115,4 +115,15 @@ select pg_temp.assert_true(
     union all (select * from layout_types_before_replay except select * from public.layout_types)),
   'AC-018.3.10: replaying the layout catalogue migration changes nothing');
 SQL
+  cat "$repo_root/supabase/migrations/0022_venue_layouts.sql"
+  cat <<'SQL'
+select pg_temp.assert_true(
+  (select array_agg(venue_id::text || ':' || layout || ':' || capacity) from
+     (select * from public.venue_layouts except select * from venue_layouts_before_replay) added)
+   = array['b18a0000-0000-0000-0000-0000000000f9:boardroom:25'],
+  'AC-018.3.20: the migration fills in the primary layout of a venue that existed before it');
+select pg_temp.assert_true(
+  not exists (select * from venue_layouts_before_replay except select * from public.venue_layouts),
+  'AC-018.3.21: replaying the layout migration changes no existing capacity');
+SQL
 } | docker exec -i "$container" psql -X -U postgres -v ON_ERROR_STOP=1
