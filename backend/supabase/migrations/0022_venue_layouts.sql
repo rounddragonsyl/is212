@@ -28,4 +28,26 @@ create policy venue_layouts_manage on public.venue_layouts
   using (public.current_user_role() in ('venue_staff', 'operations_manager'))
   with check (public.current_user_role() in ('venue_staff', 'operations_manager'));
 
+-- Keeps each venue's primary layout in venue_layouts, so a venue created through the old
+-- columns (including seed data) is never missing from suitability checks. One direction only.
+create or replace function public.sync_primary_venue_layout()
+returns trigger language plpgsql security definer set search_path = '' as $$
+declare
+  v_code text := public.layout_code(new.layout);  -- not "code": that clashes with ON CONFLICT (code)
+begin
+  if v_code is null then
+    return new;
+  end if;
+  insert into public.venue_layouts (venue_id, layout, capacity) values (new.id, v_code, new.capacity)
+    on conflict (venue_id, layout) do nothing;
+  return new;
+end;
+$$;
+revoke execute on function public.sync_primary_venue_layout() from public, anon, authenticated;
+
+drop trigger if exists venues_sync_primary_layout on public.venues;
+create trigger venues_sync_primary_layout
+  after insert on public.venues
+  for each row execute function public.sync_primary_venue_layout();
+
 commit;
