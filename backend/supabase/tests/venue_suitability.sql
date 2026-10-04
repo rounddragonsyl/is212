@@ -119,7 +119,17 @@ select pg_temp.assert_true(
   'AC-018.1.1: the assigned coordinator can record structured venue requirements for an event');
 reset role;
 
-
+update public.event_venue_requirements set updated_at = '2000-01-01'
+ where event_id = 'b18a0000-0000-0000-0000-0000000000e1';
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-000000000003');
+update public.event_venue_requirements set facilities = '{projector,microphone}'
+ where event_id = 'b18a0000-0000-0000-0000-0000000000e1';
+select pg_temp.assert_true(
+  (select facilities = '{projector,microphone}' and updated_at > '2000-01-01'
+   from public.event_venue_requirements where event_id = 'b18a0000-0000-0000-0000-0000000000e1'),
+  'AC-018.1.2: the assigned coordinator can change the requirements, and the time of the change is recorded');
+reset role;
 
 
 create temp table layout_types_before_replay as select * from public.layout_types;
