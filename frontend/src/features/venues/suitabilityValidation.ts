@@ -23,6 +23,13 @@ function capacityReasons(input: SuitabilityInput): SuitabilityReason[] {
     if (!layout) {
       return [{ code: 'layout', message: `Does not support the ${layoutLabel(requirements.layout)} layout.` }]
     }
+    // Capacity depends on the layout (#112), so only the required layout's capacity counts.
+    if (attendance !== null && layout.capacity < attendance) {
+      return [{
+        code: 'capacity',
+        message: `Holds ${layout.capacity} in the ${layoutLabel(layout.layout)} layout; ${attendance} attendees are expected.`,
+      }]
+    }
     return []
   }
 
