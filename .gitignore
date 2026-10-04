@@ -11,3 +11,5 @@ coverage
 *.log
 .vscode/*
 !.vscode/extensions.json
+
+.vite/
