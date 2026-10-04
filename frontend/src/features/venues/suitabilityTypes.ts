@@ -54,3 +54,23 @@ export interface OccupiedCell {
 /** Whether the event's times could be turned into slots. Without slots there is nothing to
  *  check availability against, which is reported rather than silently treated as free. */
 export type TimingState = 'ok' | 'missing' | 'outside_slots'
+
+
+export interface LayoutType {
+  code: string
+  label: string
+}
+
+/** The event fields suitability reads. Attendance stays on the event (#119). */
+export interface SuitabilityEvent {
+  id: string
+  reference: string | null
+  name: string | null
+  proposedStart: string | null
+  proposedEnd: string | null
+  expectedAttendance: number | null
+  layoutPreference: string | null
+  accessibilityRequirements: string | null
+}
+
+export type SuitabilityResult<T> = { ok: true; value: T } | { ok: false; reason: string }
