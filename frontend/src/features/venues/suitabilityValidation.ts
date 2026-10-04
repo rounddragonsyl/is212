@@ -74,3 +74,11 @@ export function evaluateVenueSuitability(input: SuitabilityInput): VenueAssessme
   const reasons = [...capacityReasons(input), ...missingFeatureReasons(input)]
   return { venue: input.venue, verdict: reasons.length > 0 ? 'unsuitable' : 'suitable', reasons, fittingLayouts: fittingLayouts(input.venue, input.expectedAttendance) }
 }
+
+const VERDICT_ORDER = { suitable: 0, unsuitable: 1 } as const
+
+/** Suitable venues first, then unsuitable; alphabetical within each. */
+export function sortAssessments(assessments: VenueAssessment[]): VenueAssessment[] {
+  return [...assessments].sort((a, b) =>
+    VERDICT_ORDER[a.verdict] - VERDICT_ORDER[b.verdict] || a.venue.name.localeCompare(b.venue.name))
+}
