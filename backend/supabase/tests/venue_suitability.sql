@@ -66,6 +66,9 @@ select pg_temp.assert_true(
 select pg_temp.expect_error($q$insert into public.venue_layouts (venue_id, layout, capacity)
   values ('b18a0000-0000-0000-0000-0000000000f1','banquet',0)$q$, '23514',
   'AC-018.3.13: a layout capacity of zero is refused');
+select pg_temp.expect_error($q$insert into public.venue_layouts (venue_id, layout, capacity)
+  values ('b18a0000-0000-0000-0000-0000000000f1','not_a_layout',10)$q$, '23503',
+  'AC-018.3.14: a capacity can only be for a catalogue layout');
 reset role;
 
 create temp table venues_before_replay as select * from public.venues;
