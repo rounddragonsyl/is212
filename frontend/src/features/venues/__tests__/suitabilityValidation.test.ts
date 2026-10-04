@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { evaluateVenueSuitability, sortAssessments } from '../suitabilityValidation'
+import { evaluateVenueSuitability, normaliseRequirements, sortAssessments } from '../suitabilityValidation'
 import type { VenueProfile } from '../suitabilityTypes'
 
 const LABELS: Record<string, string> = { theatre: 'Theatre', classroom: 'Classroom', boardroom: 'Boardroom' }
@@ -54,6 +54,13 @@ describe('AC-018.1 — identify suitable venues', () => {
     const alpha = assess({ venue: venue({ id: 'a', name: 'Alpha' }), expectedAttendance: 150 })
     const gamma = assess({ venue: venue({ id: 'c', name: 'Gamma' }) })
     expect(sortAssessments([alpha, gamma, beta]).map((a) => a.venue.name)).toEqual(['Beta', 'Gamma', 'Alpha'])
+  })  
+  test('AC-018.1.12: requirements are cleaned before saving: trimmed, no blanks, no repeats, empty layout means none', () => {
+    expect(normaliseRequirements({
+      layout: '  ',
+      accessibility: [' hearing_loop ', '', 'hearing_loop'],
+      facilities: ['projector', ' '],
+    })).toEqual({ layout: null, accessibility: ['hearing_loop'], facilities: ['projector'] })
   })
 })
 
