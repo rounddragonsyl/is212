@@ -173,6 +173,9 @@ select pg_temp.as_user('00000000-0000-0000-0000-000000000003');
 select pg_temp.expect_error($q$update public.event_venue_requirements set layout = 'not_a_layout'
   where event_id = 'b18a0000-0000-0000-0000-0000000000e1'$q$, '23503',
   'AC-018.3.22: a required layout must be one of the catalogue layouts');
+select pg_temp.expect_error($q$update public.event_venue_requirements set accessibility = array['']
+  where event_id = 'b18a0000-0000-0000-0000-0000000000e1'$q$, '23514',
+  'AC-018.3.23: a blank accessibility or facility requirement is refused');
 reset role;
 
 
