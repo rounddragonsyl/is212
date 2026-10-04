@@ -100,6 +100,28 @@ select pg_temp.assert_true(
    where venue_id = 'b18a0000-0000-0000-0000-0000000000f3' and layout = 'u_shape'),
   'AC-018.3.19: changing a venue''s capacity updates its primary layout capacity');
 
+-- ===== Event venue requirements =====
+select set_config('request.jwt.claim.sub', '', false);  -- fixtures are inserted as nobody, not as the last test user
+insert into public.events (id, organiser_id, coordinator_id, purpose, name, reference,
+                           proposed_start, proposed_end, expected_attendance, status)
+values ('b18a0000-0000-0000-0000-0000000000e1', '00000000-0000-0000-0000-000000000001',
+        '00000000-0000-0000-0000-000000000003', 'Suitability fixture', 'Workshop', 'EVT-B18-1',
+        '2041-02-01 01:00+00', '2041-02-01 04:00+00', 60, 'approved');
+
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-000000000003');  -- the assigned coordinator
+insert into public.event_venue_requirements (event_id, layout, accessibility, facilities, updated_by)
+values ('b18a0000-0000-0000-0000-0000000000e1', 'theatre', '{wheelchair_access}', '{projector}',
+        '00000000-0000-0000-0000-000000000003');
+select pg_temp.assert_true(
+  (select layout = 'theatre' and accessibility = '{wheelchair_access}' and facilities = '{projector}'
+   from public.event_venue_requirements where event_id = 'b18a0000-0000-0000-0000-0000000000e1'),
+  'AC-018.1.1: the assigned coordinator can record structured venue requirements for an event');
+reset role;
+
+
+
+
 create temp table layout_types_before_replay as select * from public.layout_types;
 create temp table venue_layouts_before_replay as select * from public.venue_layouts;
 -- A venue as shared Supabase holds them today: no layout row.
