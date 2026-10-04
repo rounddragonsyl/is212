@@ -21,4 +21,8 @@ begin
   end if;
 end $$;
 
+update public.venues set accessibility = '{}' where accessibility is null;
+alter table public.venues alter column accessibility set default '{}';
+alter table public.venues alter column accessibility set not null;
+
 commit;
