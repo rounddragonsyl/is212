@@ -12,7 +12,7 @@ $$;
 create table if not exists public.venue_layouts (
   venue_id uuid not null references public.venues (id) on delete cascade,
   layout   text not null,
-  capacity integer not null,
+  capacity integer not null check (capacity > 0),
   primary key (venue_id, layout)
 );
 
