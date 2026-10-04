@@ -27,7 +27,7 @@ drop policy if exists event_venue_requirements_select on public.event_venue_requ
 create policy event_venue_requirements_select on public.event_venue_requirements
   for select to authenticated
   using (
-    public.current_user_role() = 'venue_staff'
+    public.current_user_role() in ('venue_staff', 'operations_manager')
     or (
       public.current_user_role() = 'coordinator'
       and exists (select 1 from public.events e
