@@ -52,7 +52,7 @@ async function currentUserId(): Promise<string | null> {
   return error ? null : data?.user?.id ?? null
 }
 
-/** The event and the coordinator's saved requirements. */
+/** The event and the coordinator's saved requirements (empty until first saved). */
 export async function loadEventSuitability(
   eventId: string,
 ): Promise<SuitabilityResult<{ event: SuitabilityEvent; requirements: VenueRequirements }>> {
@@ -66,11 +66,15 @@ export async function loadEventSuitability(
   // RLS hides events this coordinator may not see, so "not visible" looks the same as "missing".
   if (eventError || !event) return { ok: false, reason: SUITABILITY_MESSAGES.eventNotFound }
 
-  const { data: requirements } = await supabase
+  const { data: requirements, error: requirementsError } = await supabase
     .from('event_venue_requirements')
     .select('layout, accessibility, facilities')
     .eq('event_id', eventId)
     .maybeSingle()
+  if (requirementsError) {
+    console.error('[venues] loadEventSuitability', requirementsError)
+    return { ok: false, reason: SUITABILITY_MESSAGES.unexpected }
+  }
 
   return {
     ok: true,
