@@ -100,4 +100,12 @@ select pg_temp.assert_true(not exists(
  union all (select * from history_before_replay except select * from public.event_change_review_history)),
  'AC-007.13.26: migration replay preserves review history');
 SQL
+    cat "$repo_root/supabase/tests/venue_suitability.sql"
+  cat "$repo_root/supabase/migrations/0020_venue_accessibility_array.sql"
+  cat <<'SQL'
+select pg_temp.assert_true(
+  not exists ((select * from public.venues except select * from venues_before_replay)
+    union all (select * from venues_before_replay except select * from public.venues)),
+  'AC-018.3.4: replaying the accessibility migration changes no venue');
+SQL
 } | docker exec -i "$container" psql -X -U postgres -v ON_ERROR_STOP=1
