@@ -164,8 +164,11 @@ interface ClaimRow {
   venue_bookings: { event_id: string } | null
 }
 
-/** Other bookings' and blocks' claims on the cells this event's booking would need. */
+/** Other bookings' and blocks' claims on the cells this event's booking would need. Claims
+ *  belonging to this same event are left out: a coordinator already holding a room for the
+ *  event must not see that room reported as taken by their own hold. */
 async function occupiedCellsByVenue(
+  eventId: string,
   venueIds: string[],
   cells: SlotCell[],
 ): Promise<Map<string, OccupiedCell[]>> {
@@ -183,13 +186,13 @@ async function occupiedCellsByVenue(
   const wanted = new Set(cells.map((cell) => `${cell.date}|${cell.slot}`))
   for (const row of (data ?? []) as unknown as ClaimRow[]) {
     if (!wanted.has(`${row.slot_date}|${row.slot}`)) continue
+    if (row.venue_bookings?.event_id === eventId) continue
     const list = byVenue.get(row.venue_id) ?? []
     list.push({ date: row.slot_date, slot: row.slot, kind: row.kind })
     byVenue.set(row.venue_id, list)
   }
   return byVenue
 }
-
 
 
 /** AC-018.1/.3/.4. Every non-retired venue assessed for one event: verdict and reasons.
@@ -214,8 +217,8 @@ export async function assessVenuesForEvent(
   const venues = ((venueRows ?? []) as VenueRow[]).map(toVenue)
 
   const { timing, cells } = bookingCells(event, slots)
-  const occupied = await occupiedCellsByVenue(venues.map((venue) => venue.id), cells)
-
+  const occupied = await occupiedCellsByVenue(eventId, venues.map((venue) => venue.id), cells)
+  
   const labels = new Map((await loadLayoutTypes()).map((type) => [type.code, type.label]))
   const layoutLabel = (code: string) => labels.get(code) ?? code
 
