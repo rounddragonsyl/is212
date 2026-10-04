@@ -38,3 +38,12 @@ describe('AC-018.1 — identify suitable venues', () => {
   })
 })
 
+describe('AC-018.3 — venues that do not meet requirements are marked unsuitable', () => {
+  test('AC-018.3.26: with no layout required, a venue whose largest layout is too small is unsuitable', () => {
+    const result = assess({ expectedAttendance: 150 })
+    expect(result.verdict).toBe('unsuitable')
+    expect(result.reasons).toEqual([
+      { code: 'capacity', message: 'Holds at most 100 in any layout; 150 attendees are expected.' },
+    ])
+  })
+})
