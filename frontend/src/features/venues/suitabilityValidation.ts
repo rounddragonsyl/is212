@@ -82,6 +82,8 @@ function availabilityReasons(input: SuitabilityInput): SuitabilityReason[] {
   }
   if (timing === 'missing') {
     reasons.push({ code: 'timing', message: 'The event has no start and end time, so availability cannot be checked.' })
+  } else if (timing === 'outside_slots') {
+    reasons.push({ code: 'timing', message: 'The event times fall outside every bookable slot.' })
   }
 
   const blocked = occupied.filter((cell) => cell.kind === 'maintenance')
