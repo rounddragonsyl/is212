@@ -145,5 +145,10 @@ describe('AC-018.4 — venues taken by bookings or maintenance are blacked out',
     expect(result.reasons).toEqual([
       { code: 'timing', message: 'The event has no start and end time, so availability cannot be checked.' },
     ])
+  })  
+  test('AC-018.4.5: event times outside every bookable slot make the venue unavailable', () => {
+    const result = assess({ timing: 'outside_slots' })
+    expect(result.verdict).toBe('unavailable')
+    expect(result.reasons).toEqual([{ code: 'timing', message: 'The event times fall outside every bookable slot.' }])
   })
 })
