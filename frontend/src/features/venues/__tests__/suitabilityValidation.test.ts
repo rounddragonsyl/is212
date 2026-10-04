@@ -14,9 +14,6 @@ function venue(overrides: Partial<VenueProfile> = {}): VenueProfile {
     layouts: [{ layout: 'theatre', capacity: 100 }, { layout: 'classroom', capacity: 40 }],
     accessibility: ['wheelchair_access'],
     facility: { projector: true, microphone: 2 },
-    layoutLabel,
-    timing: 'ok',
-    occupied: [],
     ...overrides,
   }
 }
@@ -27,6 +24,8 @@ function assess(overrides: Partial<Parameters<typeof evaluateVenueSuitability>[0
     expectedAttendance: 60,
     requirements: { layout: null, accessibility: [], facilities: [] },
     layoutLabel,
+    timing: 'ok',
+    occupied: [],
     ...overrides,
   })
 }
@@ -124,5 +123,15 @@ describe('AC-018.4 — venues taken by bookings or maintenance are blacked out',
     const result = assess({ occupied: [{ date: '2041-03-10', slot: 'AM', kind: 'maintenance' }] })
     expect(result.verdict).toBe('unavailable')
     expect(result.reasons).toEqual([{ code: 'blocked', message: 'Blocked by Venue Staff on 10 Mar 2041 (AM).' }])
+  })  
+  test('AC-018.4.2: a venue already booked for the event or its setup/turnaround slots is unavailable', () => {
+    const result = assess({ occupied: [
+      { date: '2041-03-09', slot: 'NIGHT', kind: 'buffer' },
+      { date: '2041-03-10', slot: 'AM', kind: 'event' },
+    ] })
+    expect(result.verdict).toBe('unavailable')
+    expect(result.reasons).toEqual([
+      { code: 'booked', message: 'Already booked on 9 Mar 2041 (Night), 10 Mar 2041 (AM).' },
+    ])
   })
 })
