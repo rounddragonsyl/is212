@@ -41,7 +41,7 @@ begin
   insert into public.layout_types (code, label) values (v_code, btrim(new.layout))
     on conflict (code) do nothing;
   insert into public.venue_layouts (venue_id, layout, capacity) values (new.id, v_code, new.capacity)
-    on conflict (venue_id, layout) do nothing;
+    on conflict (venue_id, layout) do update set capacity = excluded.capacity;
   return new;
 end;
 $$;
@@ -49,7 +49,7 @@ revoke execute on function public.sync_primary_venue_layout() from public, anon,
 
 drop trigger if exists venues_sync_primary_layout on public.venues;
 create trigger venues_sync_primary_layout
-  after insert on public.venues
+  after insert or update of layout, capacity on public.venues
   for each row execute function public.sync_primary_venue_layout();
 
 commit;
