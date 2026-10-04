@@ -94,5 +94,11 @@ select pg_temp.assert_true(
   (select label = 'Fishbowl Round' from public.layout_types where code = 'fishbowl_round'),
   'AC-018.3.18: a layout not yet in the catalogue is added with the name venue staff used');
 
+update public.venues set capacity = 36 where id = 'b18a0000-0000-0000-0000-0000000000f3';
+select pg_temp.assert_true(
+  (select capacity = 36 from public.venue_layouts
+   where venue_id = 'b18a0000-0000-0000-0000-0000000000f3' and layout = 'u_shape'),
+  'AC-018.3.19: changing a venue''s capacity updates its primary layout capacity');
+
 create temp table venues_before_replay as select * from public.venues;
 create temp table layout_types_before_replay as select * from public.layout_types;
