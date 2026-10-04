@@ -22,4 +22,12 @@ select pg_temp.expect_error($q$update public.venues set accessibility = null
   where id = 'b18a0000-0000-0000-0000-0000000000f2'$q$, '23502',
   'AC-018.3.3: accessibility cannot be left empty as null');
 
+-- ===== Layout catalogue =====
+select pg_temp.assert_true(
+  (select array_agg(code order by sort_order)
+   = array['theatre','classroom','boardroom','u_shape','banquet','cabaret','reception']
+   from public.layout_types),
+  'AC-018.3.5: the layout catalogue lists the seven standard layouts in display order');
+
+
 create temp table venues_before_replay as select * from public.venues;
