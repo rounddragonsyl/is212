@@ -55,6 +55,15 @@ select pg_temp.assert_true(
   and public.layout_code('U_SHAPE') = 'u_shape' and public.layout_code('   ') is null
   and public.layout_code(null) is null,
   'AC-018.3.11: differently written names for one layout resolve to the same code');
+set role authenticated;
+select pg_temp.as_user('b18a0000-0000-0000-0000-000000000001');  -- venue staff
+insert into public.venue_layouts (venue_id, layout, capacity)
+values ('b18a0000-0000-0000-0000-0000000000f1', 'classroom', 50);
+select pg_temp.assert_true(
+  exists (select 1 from public.venue_layouts
+          where venue_id = 'b18a0000-0000-0000-0000-0000000000f1' and layout = 'classroom' and capacity = 50),
+  'AC-018.3.12: venue staff can record a capacity for a layout');
+reset role;
 
 create temp table venues_before_replay as select * from public.venues;
 create temp table layout_types_before_replay as select * from public.layout_types;
