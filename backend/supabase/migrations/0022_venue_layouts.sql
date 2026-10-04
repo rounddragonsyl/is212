@@ -38,6 +38,8 @@ begin
   if v_code is null then
     return new;
   end if;
+  insert into public.layout_types (code, label) values (v_code, btrim(new.layout))
+    on conflict (code) do nothing;
   insert into public.venue_layouts (venue_id, layout, capacity) values (new.id, v_code, new.capacity)
     on conflict (venue_id, layout) do nothing;
   return new;
