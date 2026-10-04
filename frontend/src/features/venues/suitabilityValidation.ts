@@ -82,3 +82,12 @@ export function sortAssessments(assessments: VenueAssessment[]): VenueAssessment
   return [...assessments].sort((a, b) =>
     VERDICT_ORDER[a.verdict] - VERDICT_ORDER[b.verdict] || a.venue.name.localeCompare(b.venue.name))
 }
+
+
+/** Drops blanks and repeats before saving, so the database's no-blank-code rule is never
+ *  the first thing to notice. */
+export function normaliseRequirements(input: VenueRequirements): VenueRequirements {
+  const clean = (codes: string[]) => [...new Set(codes.map((code) => code.trim()).filter(Boolean))]
+  const layout = input.layout?.trim() ?? ''
+  return { layout: layout === '' ? null : layout, accessibility: clean(input.accessibility), facilities: clean(input.facilities) }
+}
