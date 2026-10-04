@@ -105,5 +105,12 @@ describe('AC-018.1 — coordinators can identify suitable venues', () => {
       event_venue_requirements: query({ data: null, error: null }),
     })
     expect(await loadEventSuitability(EVENT_ID)).toEqual({ ok: false, reason: SUITABILITY_MESSAGES.eventNotFound })
+  }) 
+  test('AC-018.1.18: if saved requirements cannot be loaded, an error is shown rather than empty requirements', async () => {
+    tables({
+      events: query({ data: EVENT_ROW, error: null }),
+      event_venue_requirements: query({ data: null, error: { message: 'timeout' } }),
+    })
+    expect(await loadEventSuitability(EVENT_ID)).toEqual({ ok: false, reason: SUITABILITY_MESSAGES.unexpected })
   })
 })
