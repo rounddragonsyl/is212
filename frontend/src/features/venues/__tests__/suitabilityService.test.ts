@@ -222,4 +222,23 @@ describe('AC-018.4 — venues taken by bookings or maintenance are blacked out',
     expect(await assessVenuesForEvent(EVENT_ID, SLOTS))
       .toEqual({ ok: false, reason: SUITABILITY_MESSAGES.availabilityFailed })
   })
+  test('AC-018.4.10: an event without times is not offered any venue as free', async () => {
+    assessTables({ events: query({ data: { ...EVENT_ROW, proposed_start: null, proposed_end: null }, error: null }) })
+    const result = await assessVenuesForEvent(EVENT_ID, SLOTS)
+    if (!result.ok) throw new Error(result.reason)
+    expect(result.value.every((a) => a.verdict === 'unavailable')).toBe(true)
+    expect(result.value[0].reasons[0].code).toBe('timing')
+  })
+  test('AC-018.4.11: an event outside every bookable slot is not offered any venue as free', async () => {
+    assessTables({
+      events: query({
+        data: { ...EVENT_ROW, proposed_start: '2041-03-10T18:30:00Z', proposed_end: '2041-03-10T19:00:00Z' }, // 2:30–3am Singapore
+        error: null,
+      }),
+    })
+    const result = await assessVenuesForEvent(EVENT_ID, SLOTS)
+    if (!result.ok) throw new Error(result.reason)
+    expect(result.value.every((a) => a.verdict === 'unavailable')).toBe(true)
+    expect(result.value[0].reasons[0].code).toBe('timing')
+  })
 })
