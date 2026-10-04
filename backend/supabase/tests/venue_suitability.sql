@@ -33,5 +33,17 @@ select pg_temp.expect_error($q$insert into public.layout_types (code, label) val
 select pg_temp.expect_error($q$insert into public.layout_types (code, label) values ('blank_label', '   ')$q$,
   '23514', 'AC-018.3.7: a layout must have a name');
 
+create or replace function pg_temp.as_user(id text) returns void language sql as $$
+  select set_config('request.jwt.claim.sub', id, false);
+$$;
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-000000000003');  -- a coordinator
+select pg_temp.assert_true(exists (select 1 from public.layout_types where code = 'theatre'),
+  'AC-018.3.8: a signed-in user can read the layout catalogue');
+select pg_temp.expect_error($q$insert into public.layout_types (code, label) values ('stage', 'Stage')$q$,
+  '42501', 'AC-018.3.9: the layout catalogue cannot be changed from the browser');
+reset role;
+
+
 
 create temp table venues_before_replay as select * from public.venues;
