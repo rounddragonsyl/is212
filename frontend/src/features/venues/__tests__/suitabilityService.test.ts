@@ -184,6 +184,11 @@ describe('AC-018.1 — coordinators can identify suitable venues', () => {
     expect(result.value.map((a) => [a.venue.name, a.verdict])).toEqual([['Main Hall', 'suitable'], ['Small Room', 'unsuitable']])
     expect(result.value[1].reasons).toEqual([{ code: 'layout', message: 'Does not support the Theatre layout.' }])
   })
+  test('AC-018.1.31: when given venue ids, only those venues are assessed', async () => {
+    const map = assessTables()
+    await assessVenuesForEvent(EVENT_ID, SLOTS, ['v-hall'])
+    expect(map.venues.calls.in).toEqual([['id', ['v-hall']]])
+  })
 })
 
 
