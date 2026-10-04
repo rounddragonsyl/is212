@@ -21,3 +21,5 @@ select pg_temp.assert_true(
 select pg_temp.expect_error($q$update public.venues set accessibility = null
   where id = 'b18a0000-0000-0000-0000-0000000000f2'$q$, '23502',
   'AC-018.3.3: accessibility cannot be left empty as null');
+
+create temp table venues_before_replay as select * from public.venues;
