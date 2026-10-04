@@ -88,5 +88,11 @@ select pg_temp.assert_true(
           where venue_id = 'b18a0000-0000-0000-0000-0000000000f3' and layout = 'u_shape' and capacity = 40),
   'AC-018.3.17: a new venue''s primary layout is recorded with its capacity');
 
+insert into public.venues (id, name, location, capacity, layout) values
+ ('b18a0000-0000-0000-0000-0000000000f4', 'Odd Room', 'Level 7', 12, 'Fishbowl Round');
+select pg_temp.assert_true(
+  (select label = 'Fishbowl Round' from public.layout_types where code = 'fishbowl_round'),
+  'AC-018.3.18: a layout not yet in the catalogue is added with the name venue staff used');
+
 create temp table venues_before_replay as select * from public.venues;
 create temp table layout_types_before_replay as select * from public.layout_types;
