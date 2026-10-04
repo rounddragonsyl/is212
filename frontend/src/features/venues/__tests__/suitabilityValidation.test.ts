@@ -138,5 +138,12 @@ describe('AC-018.4 — venues taken by bookings or maintenance are blacked out',
     const result = assess({ venue: venue({ status: 'under_maintenance' }) })
     expect(result.verdict).toBe('unavailable')
     expect(result.reasons).toEqual([{ code: 'venue_status', message: 'The venue is under maintenance.' }])
+  })  
+  test('AC-018.4.4: without event times, availability cannot be checked, so the venue is not offered as free', () => {
+    const result = assess({ timing: 'missing' })
+    expect(result.verdict).toBe('unavailable')
+    expect(result.reasons).toEqual([
+      { code: 'timing', message: 'The event has no start and end time, so availability cannot be checked.' },
+    ])
   })
 })
