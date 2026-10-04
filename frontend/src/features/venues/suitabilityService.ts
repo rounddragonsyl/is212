@@ -84,7 +84,6 @@ export async function loadEventSuitability(
 }
 
 
-
 /** Upsert, so the first save and every later save are one call. The editor is the caller. */
 export async function saveVenueRequirements(
   eventId: string,
@@ -101,6 +100,8 @@ export async function saveVenueRequirements(
     .single()
 
   if (error || !data) {
+    // 42501: RLS refused; only the currently assigned coordinator may write.
+    if (error?.code === '42501') return { ok: false, reason: SUITABILITY_MESSAGES.saveDenied }
     console.error('[venues] saveVenueRequirements', error)
     return { ok: false, reason: SUITABILITY_MESSAGES.saveFailed }
   }
