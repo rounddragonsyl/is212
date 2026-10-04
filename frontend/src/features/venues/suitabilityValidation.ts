@@ -6,6 +6,8 @@
  * the database; this module explains, venue by venue, why one does or does not fit.
  */
 import type { SuitabilityReason, VenueAssessment, VenueProfile, VenueRequirements } from './suitabilityTypes'
+import { ACCESSIBILITY_OPTIONS, featureLabel } from './venueFeatureCatalogue'
+
 
 export interface SuitabilityInput {
   venue: VenueProfile
@@ -40,7 +42,21 @@ function capacityReasons(input: SuitabilityInput): SuitabilityReason[] {
     : []
 }
 
+function missingFeatureReasons(input: SuitabilityInput): SuitabilityReason[] {
+  const { venue, requirements } = input
+  const reasons: SuitabilityReason[] = []
+
+  const missingAccess = requirements.accessibility.filter((code) => !venue.accessibility.includes(code))
+  if (missingAccess.length > 0) {
+    reasons.push({
+      code: 'accessibility',
+      message: `Missing accessibility: ${missingAccess.map((code) => featureLabel(ACCESSIBILITY_OPTIONS, code)).join(', ')}.`,
+    })
+  }
+  return reasons
+}
+
 export function evaluateVenueSuitability(input: SuitabilityInput): VenueAssessment {
-  const reasons = capacityReasons(input)
+  const reasons = [...capacityReasons(input), ...missingFeatureReasons(input)]
   return { venue: input.venue, verdict: reasons.length > 0 ? 'unsuitable' : 'suitable', reasons, fittingLayouts: [] }
 }
