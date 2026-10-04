@@ -745,6 +745,20 @@ Supabase (3 October); .6.22 is deferred until US14 can create reservations.
 See [test cases and results](docs/test-cases/US13_test_cases.md) and
 [design, US14 contract and change log](docs/us13-equipment-requirements.md).
 
+## US14 equipment reservations (SCRUM-20)
+
+Apply `backend/supabase/migrations/0021_equipment_reservations.sql` after 0020. Technical
+Support reviews pending essential requirements at `/equipment/reservations`, sees the units free
+for each event's window, and reserves through one database function. That function checks the
+role, locks per equipment type and re-counts, picks units (venue units first), records who and
+when, and notifies the Event Coordinator in-app and by email. Windows run from the day before
+the first Singapore day, one day earlier for units held elsewhere, through the return day.
+
+Tests: AC-014.1–13 have 22 app tests and 82 database checks. The concurrency checks use `dblink`.
+Totals: **468 app tests** and **285 database checks**. 0021 changes Nicole's 0019 policies
+(direct-write lockdown, agreed). See [test cases](docs/test-cases/US14_test_cases.md) and
+[design and assumptions](docs/us14-equipment-reservations.md).
+
 Latest progress supersedes older remaining-work notes: significance, the revalidation
 hook, clarification replies and coordinator notification triggers are implemented. Jaydon
 reported a queued email in shared Supabase; delivery is not yet verified. Organiser

@@ -258,3 +258,20 @@ Reporting, analytics, recurring events, multi-session events, dashboards.
 - equipmentRequirementService.ts is the only Supabase access; equipmentRows.ts maps rows.
   Tests AC-013.1–6: 57 app tests, 56 SQL checks in equipment_requirements.sql. Totals: 446 app
   tests; 203 database checks. Next IDs and the US14 contract: docs/us13-equipment-requirements.md.
+
+## US14 equipment reservations (SCRUM-20)
+- 0021_equipment_reservations.sql follows 0020 and builds on 0019's units, booking lines and
+  allocations; never add a parallel catalogue. Not yet applied to shared Supabase.
+- Reserve only through reserve_equipment (rpc). Never check availability in the browser and
+  write separately. Technical Support's direct writes on allocations, lines and bookings were
+  removed (agreed with Nicole); keep it that way. Every SECURITY DEFINER function must call
+  require_tech_support() and set search_path = ''.
+- Windows are per unit, in whole Singapore days: collection = first day - 1, minus one more
+  day when the unit is not at an approved (confirmed) venue booking of the event; through
+  the return day, which defaults to the last day and can't be earlier. Only operational units
+  count. Per-type advisory lock (lock_equipment_type) for every reserve and return-date change.
+- Outcome notices reuse equipment_requirement_notifications (coordinator recipient) plus
+  notification_outbox; channels in equipment_notification_settings. One per requirement outcome.
+- Tests AC-014.1–13: 22 app tests, 82 SQL checks in equipment_reservations.sql. In SQL tests,
+  run actions as separate statements before asserting (a statement can't see its own function
+  calls' writes). Totals: 468 app tests; 285 database checks. See docs/us14-equipment-reservations.md.

@@ -39,7 +39,11 @@ function navItemsFor(role: UserRole | null): NavItem[] {
     case 'operations_manager':
       return [home, { label: 'Requests', to: '/requests' }]
     case 'tech_support':
-      return [home, { label: 'Equipment', to: '/equipment' }]
+      return [
+        home,
+        { label: 'Equipment', to: '/equipment' },
+        { label: 'Reserve equipment', to: '/equipment/reservations' },
+      ]
     default:
       return [home]
   }

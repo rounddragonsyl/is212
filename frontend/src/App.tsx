@@ -14,6 +14,7 @@ import { SubmitEventChangesPage } from './features/events/pages/SubmitEventChang
 import { VenueSearchPage } from './features/venues/pages/VenueSearchPage'
 import { EventEquipmentPage } from './features/equipment/pages/EventEquipmentPage'
 import { TechSupportEquipmentPage } from './features/equipment/pages/TechSupportEquipmentPage'
+import { ReserveEquipmentPage } from './features/equipment/pages/ReserveEquipmentPage'
 
 /**
  * Routes are declared here rather than scattered across features, so the sitemap is one
@@ -42,6 +43,7 @@ export default function App() {
             <Route path="/venues/search" element={<VenueSearchPage />} />
             <Route path="/requests/:id/equipment" element={<EventEquipmentPage />} />
             <Route path="/equipment" element={<TechSupportEquipmentPage />} />
+            <Route path="/equipment/reservations" element={<ReserveEquipmentPage />} />
           </Route>
         </Routes>
       </BrowserRouter>

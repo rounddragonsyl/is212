@@ -330,7 +330,8 @@ update public.events set proposed_start = '2035-04-01 08:00+08', proposed_end = 
 update public.events set proposed_start = '2035-04-01 14:00+08', proposed_end = '2035-04-01 18:00+08' where id = pg_temp.ev(16);
 select pg_temp.us14_requirement(15, 15, 'L', 1);
 select pg_temp.us14_requirement(16, 16, 'L', 1);
-select pg_temp.assert_true(pg_temp.us14_reserve(pg_temp.u('TS1'), pg_temp.rq(15), 1) = 'reserved'
+select pg_temp.us14_reserve(pg_temp.u('TS1'), pg_temp.rq(15), 1) as us14_step1 \gset
+select pg_temp.assert_true(:'us14_step1' = 'reserved'
   and pg_temp.us14_available(pg_temp.u('TS1'), pg_temp.rq(16)) = '0'
   and pg_temp.us14_reserve(pg_temp.u('TS1'), pg_temp.rq(16), 1) = '23P01',
  'AC-014.3.6: same-day AM and PM events cannot share a unit (epic SCRUM-18)');
@@ -350,7 +351,8 @@ select pg_temp.assert_true(upper(pg_temp.us14_window(pg_temp.rq(21), 'P1')) - 1 
  'AC-014.4.2: a later return date extends the window (A1)');
 select pg_temp.us14_event(22, '2035-06-10', '2035-06-11');
 select pg_temp.us14_requirement(22, 22, 'P', 1);
-select pg_temp.assert_true(pg_temp.us14_reserve(pg_temp.u('TS1'), pg_temp.rq(22), 1, '2035-06-10') = '22023'
+select pg_temp.us14_reserve(pg_temp.u('TS1'), pg_temp.rq(22), 1, '2035-06-10') as us14_step2 \gset
+select pg_temp.assert_true(:'us14_step2' = '22023'
   and (select status = 'pending_review' and booking_line_id is null
        from public.event_equipment_requirements where id = pg_temp.rq(22)),
  'AC-014.4.3: a return date before the last day is rejected (A1)');
@@ -459,7 +461,8 @@ select pg_temp.assert_true(:'us14_retired' = '2' and pg_temp.us14_available(pg_t
 update public.equipment_items set operational_status = 'operational' where asset_tag = 'US14-P1';
 select pg_temp.us14_event(41, '2035-11-20', '2035-11-20');
 select pg_temp.us14_requirement(41, 41, 'P', 4);
-select pg_temp.assert_true(pg_temp.us14_reserve(pg_temp.u('TS1'), pg_temp.rq(41), 4) = '23P01'
+select pg_temp.us14_reserve(pg_temp.u('TS1'), pg_temp.rq(41), 4) as us14_step3 \gset
+select pg_temp.assert_true(:'us14_step3' = '23P01'
   and pg_temp.us14_tags(pg_temp.rq(41)) = '{}',
  'AC-014.6.4: reserving more than the usable units is rejected');
 select pg_temp.us14_event(42, '2035-11-30', '2035-11-30');
@@ -473,7 +476,8 @@ select pg_temp.assert_true(pg_temp.us14_tags(pg_temp.rq(42)) = array['P1', 'P2',
 -- ---------------------------------------------------------------------------
 select pg_temp.us14_event(50, '2035-12-10', '2035-12-10');
 select pg_temp.us14_requirement(50, 50, 'P', 1);
-select pg_temp.assert_true(pg_temp.us14_reserve(pg_temp.u('C1'), pg_temp.rq(50), 1) = '42501'
+select pg_temp.us14_reserve(pg_temp.u('C1'), pg_temp.rq(50), 1) as us14_step4 \gset
+select pg_temp.assert_true(:'us14_step4' = '42501'
   and (select status = 'pending_review' and booking_line_id is null
        from public.event_equipment_requirements where id = pg_temp.rq(50)),
  'AC-014.7.1: the assigned event coordinator cannot reserve');
@@ -512,7 +516,8 @@ select pg_temp.assert_true(pg_temp.us14_as(pg_temp.u('TS1'), format(
 -- ---------------------------------------------------------------------------
 select pg_temp.us14_event(60, '2036-01-10', '2036-01-10');
 select pg_temp.us14_requirement(60, 60, 'P', 2);
-select pg_temp.assert_true(pg_temp.us14_reserve(pg_temp.u('TS1'), pg_temp.rq(60), 2) = 'reserved'
+select pg_temp.us14_reserve(pg_temp.u('TS1'), pg_temp.rq(60), 2) as us14_step5 \gset
+select pg_temp.assert_true(:'us14_step5' = 'reserved'
   and (select r.status = 'reserved' and l.status = 'fulfilled' and l.quantity_reserved = 2
        from public.event_equipment_requirements r join public.equipment_booking_lines l on l.id = r.booking_line_id
        where r.id = pg_temp.rq(60))
@@ -521,7 +526,8 @@ select pg_temp.assert_true(pg_temp.us14_reserve(pg_temp.u('TS1'), pg_temp.rq(60)
 select pg_temp.us14_event(61, '2036-01-20', '2036-01-20');
 select pg_temp.us14_requirement(61, 61, 'P', 3);
 select pg_temp.us14_block(6, 'P3', '2036-01-15', '2036-01-25');
-select pg_temp.assert_true(pg_temp.us14_reserve(pg_temp.u('TS1'), pg_temp.rq(61), 2) = 'partially_reserved'
+select pg_temp.us14_reserve(pg_temp.u('TS1'), pg_temp.rq(61), 2) as us14_step6 \gset
+select pg_temp.assert_true(:'us14_step6' = 'partially_reserved'
   and (select r.status = 'partially_reserved' and l.status = 'partially_fulfilled'
        from public.event_equipment_requirements r join public.equipment_booking_lines l on l.id = r.booking_line_id
        where r.id = pg_temp.rq(61))
@@ -537,7 +543,8 @@ select pg_temp.assert_true(pg_temp.us14_reserve(pg_temp.u('TS1'), pg_temp.rq(63)
  'AC-014.8.4: more than the requested quantity is rejected');
 select pg_temp.assert_true(pg_temp.us14_reserve(pg_temp.u('TS1'), pg_temp.rq(63), -1) = '22023',
  'AC-014.8.5: a negative quantity is rejected');
-select pg_temp.assert_true(pg_temp.us14_reserve(pg_temp.u('TS1'), pg_temp.rq(60), 2) = '22000'
+select pg_temp.us14_reserve(pg_temp.u('TS1'), pg_temp.rq(60), 2) as us14_step7 \gset
+select pg_temp.assert_true(:'us14_step7' = '22000'
   and cardinality(pg_temp.us14_tags(pg_temp.rq(60))) = 2,
  'AC-014.8.6: a requirement already decided cannot be reserved again (#114)');
 select pg_temp.us14_event(64, '2036-02-20', '2036-02-20');
@@ -547,7 +554,8 @@ select pg_temp.assert_true(pg_temp.us14_reserve(pg_temp.u('TS1'), pg_temp.rq(64)
  'AC-014.8.7: an event that is no longer approved cannot have equipment reserved (A10)');
 select pg_temp.us14_event(65, '2036-03-01', '2036-03-01');
 select pg_temp.us14_requirement(65, 65, 'P', 2);
-select pg_temp.assert_true(pg_temp.us14_reserve(pg_temp.u('TS1'), pg_temp.rq(65), 1) = '22023'
+select pg_temp.us14_reserve(pg_temp.u('TS1'), pg_temp.rq(65), 1) as us14_step8 \gset
+select pg_temp.assert_true(:'us14_step8' = '22023'
   and (select status = 'pending_review' from public.event_equipment_requirements where id = pg_temp.rq(65)),
  'AC-014.8.8: a partial reservation is rejected while enough units are available (A3)');
 
@@ -556,7 +564,8 @@ select pg_temp.assert_true(pg_temp.us14_reserve(pg_temp.u('TS1'), pg_temp.rq(65)
 -- ---------------------------------------------------------------------------
 select pg_temp.us14_event(70, '2036-03-10', '2036-03-10');
 select pg_temp.us14_requirement(70, 70, 'S', 1);
-select pg_temp.assert_true(pg_temp.us14_reserve(pg_temp.u('TS1'), pg_temp.rq(70), 0) = 'unavailable'
+select pg_temp.us14_reserve(pg_temp.u('TS1'), pg_temp.rq(70), 0) as us14_step9 \gset
+select pg_temp.assert_true(:'us14_step9' = 'unavailable'
   and (select r.status = 'unavailable' and l.status = 'unavailable' and l.quantity_reserved = 0
        from public.event_equipment_requirements r join public.equipment_booking_lines l on l.id = r.booking_line_id
        where r.id = pg_temp.rq(70)),
@@ -579,15 +588,17 @@ select pg_temp.assert_true((select count(*) = 1
 select pg_temp.us14_event(72, '2036-03-30', '2036-03-30');
 select pg_temp.us14_requirement(72, 72, 'P', 3);
 select pg_temp.us14_block(8, 'P3', '2036-03-26', '2036-04-03');
-select pg_temp.assert_true(pg_temp.us14_reserve(pg_temp.u('TS1'), pg_temp.rq(72), 2) = 'partially_reserved'
+select pg_temp.us14_reserve(pg_temp.u('TS1'), pg_temp.rq(72), 2) as us14_step10 \gset
+select pg_temp.assert_true(:'us14_step10' = 'partially_reserved'
   and not exists (select 1 from public.event_equipment_requirements r
     join public.equipment_booking_lines s on s.substitutes_line_id = r.booking_line_id where r.id = pg_temp.rq(72)),
  'AC-014.9.4: a shortfall without an alternative creates no suggestion');
 select pg_temp.us14_event(73, '2036-04-10', '2036-04-10');
 select pg_temp.us14_requirement(73, 73, 'P', 3);
 select pg_temp.us14_block(9, 'P3', '2036-04-06', '2036-04-14');
-select pg_temp.assert_true(pg_temp.us14_reserve(pg_temp.u('TS1'), pg_temp.rq(73), 2, null,
-    '14299999-0000-0000-0000-000000000099', 'Unknown') = '22023'
+select pg_temp.us14_reserve(pg_temp.u('TS1'), pg_temp.rq(73), 2, null,
+    '14299999-0000-0000-0000-000000000099', 'Unknown') as us14_step11 \gset
+select pg_temp.assert_true(:'us14_step11' = '22023'
   and (select status = 'pending_review' from public.event_equipment_requirements where id = pg_temp.rq(73)),
  'AC-014.9.5: an alternative that is not in the catalogue is rejected');
 select pg_temp.assert_true(pg_temp.us14_reserve(pg_temp.u('TS1'), pg_temp.rq(73), 2, null, pg_temp.ty('P'), 'Same') = '22023',
@@ -665,9 +676,10 @@ select pg_temp.us14_requirement(83, 83, 'P', 2);
 select pg_temp.us14_requirement(84, 84, 'P', 3);
 select pg_temp.us14_reserve(pg_temp.u('TS1'), pg_temp.rq(83), 2);
 select pg_temp.us14_available(pg_temp.u('TS1'), pg_temp.rq(84)) as us14_before_change \gset
+select pg_temp.us14_as(pg_temp.u('C1'), format(
+    'update public.event_equipment_requirements set quantity = 3 where id = %L', pg_temp.rq(83))) as us14_change83 \gset
 select pg_temp.assert_true(:'us14_before_change' = '1'
-  and pg_temp.us14_as(pg_temp.u('C1'), format(
-    'update public.event_equipment_requirements set quantity = 3 where id = %L', pg_temp.rq(83))) = 'rows:1'
+  and :'us14_change83' = 'rows:1'
   and (select status = 'pending_review' from public.event_equipment_requirements where id = pg_temp.rq(83))
   and pg_temp.us14_available(pg_temp.u('TS1'), pg_temp.rq(84)) = '3',
  'AC-014.11.4: changing a reserved requirement (US13) releases it for review again');
