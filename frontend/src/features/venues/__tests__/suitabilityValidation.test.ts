@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { evaluateVenueSuitability } from '../suitabilityValidation'
+import { evaluateVenueSuitability, sortAssessments } from '../suitabilityValidation'
 import type { VenueProfile } from '../suitabilityTypes'
 
 const LABELS: Record<string, string> = { theatre: 'Theatre', classroom: 'Classroom', boardroom: 'Boardroom' }
@@ -48,6 +48,12 @@ describe('AC-018.1 — identify suitable venues', () => {
       { layout: 'boardroom', capacity: 70 },
       { layout: 'theatre', capacity: 100 },
     ])
+  })  
+  test('AC-018.1.11: suitable venues are listed first, then unsuitable, alphabetically within each', () => {
+    const beta = assess({ venue: venue({ id: 'b', name: 'Beta' }) })
+    const alpha = assess({ venue: venue({ id: 'a', name: 'Alpha' }), expectedAttendance: 150 })
+    const gamma = assess({ venue: venue({ id: 'c', name: 'Gamma' }) })
+    expect(sortAssessments([alpha, gamma, beta]).map((a) => a.venue.name)).toEqual(['Beta', 'Gamma', 'Alpha'])
   })
 })
 
