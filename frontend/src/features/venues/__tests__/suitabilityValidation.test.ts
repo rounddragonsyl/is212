@@ -46,4 +46,9 @@ describe('AC-018.3 — venues that do not meet requirements are marked unsuitabl
       { code: 'capacity', message: 'Holds at most 100 in any layout; 150 attendees are expected.' },
     ])
   })
+  test('AC-018.3.27: a venue without the required layout is unsuitable', () => {
+    const result = assess({ requirements: { layout: 'boardroom', accessibility: [], facilities: [] } })
+    expect(result.verdict).toBe('unsuitable')
+    expect(result.reasons).toEqual([{ code: 'layout', message: 'Does not support the Boardroom layout.' }])
+  })
 })
