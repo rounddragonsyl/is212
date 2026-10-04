@@ -51,4 +51,12 @@ describe('AC-018.3 — venues that do not meet requirements are marked unsuitabl
     expect(result.verdict).toBe('unsuitable')
     expect(result.reasons).toEqual([{ code: 'layout', message: 'Does not support the Boardroom layout.' }])
   })
+  test("AC-018.3.28: capacity is judged for the required layout, not the venue's largest (#112)", () => {
+    const result = assess({ requirements: { layout: 'classroom', accessibility: [], facilities: [] } })
+    expect(result.verdict).toBe('unsuitable')
+    expect(result.reasons).toEqual([
+      { code: 'capacity', message: 'Holds 40 in the Classroom layout; 60 attendees are expected.' },
+    ])
+  })
+  
 })
