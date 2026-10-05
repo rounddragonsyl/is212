@@ -210,3 +210,12 @@ select pg_temp.assert_true(
   exists (select 1 from public.venue_slot_claims
           where booking_id = 'b12a0000-0000-0000-0000-0000000000b5'),
   'AC-012.6.2: a slot the block leaves free on the same date can still be booked');
+select pg_temp.as_user('b12a0000-0000-0000-0000-000000000001');
+select public.block_venue('b12a0000-0000-0000-0000-0000000000f1', '2040-04-10', '2040-04-10',
+  array['NIGHT','AM','AM'], 'Unordered slots');
+select pg_temp.assert_true(
+  (select slots = array['AM','NIGHT'] from public.venue_closures where reason = 'Unordered slots')
+  and (select count(*) = 2 from public.venue_slot_claims c
+       join public.venue_closures vc on vc.id = c.closure_id
+       where vc.reason = 'Unordered slots'),
+  'AC-012.2.8: repeated and unordered slots are stored once each, in time order');
