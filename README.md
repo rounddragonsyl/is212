@@ -53,8 +53,9 @@ supabase link --project-ref <your-project-ref>
 supabase db push
 ```
 
-Apply migrations **in order**, `0001` through `0008`, including both `0005` files
-before `0006`. The two files currently share a version prefix, so the CLI path above
+Apply migrations **in order**, `0001` through `0025`, including both `0005` files
+before `0006` and `0019a` straight after `0019`. All are safe to replay; see
+[Shared Supabase state](#shared-supabase-state-5-october-2026). The two files currently share a version prefix, so the CLI path above
 needs that version collision resolved before it can be relied on; use the SQL Editor
 for the existing sequence in the meantime.
 
@@ -80,8 +81,9 @@ is not included because the supplied exports did not include index definitions.
 
 The supplied live event-read policies also differ from `0005_request_status.sql`:
 coordinators currently see drafts in that export. This migration does not replace
-event policies or reconcile that separate discrepancy. Do not rerun all earlier
-migrations on the shared database merely to install this baseline.
+event policies or reconcile that separate discrepancy. Do not rerun all earlier migrations on the shared database merely to install this baseline.
+(Superseded on 5 October 2026: every migration was replayed deliberately; see
+[Shared Supabase state](#shared-supabase-state-5-october-2026).)
 
 Verification on 21 September 2026: applied all repository migrations in order to a
 disposable PostgreSQL 17 container, then passed 19 SQL assertions covering RLS setup,
@@ -288,7 +290,8 @@ verify record preservation without leaving the old RPC installed. It then runs
 provisional decisions. It removes its container on exit, opens no host ports and never reads
 `.env`. `backend/supabase/tests/bootstrap.sql` simulates Supabase Auth identities and grants;
 RLS/constraints/functions run in PostgreSQL, but live Supabase Auth/API is not tested.
-Do not run these fixture files in shared Supabase. They are not part of `npm test` or CI.
+Do not run these fixture files in shared Supabase. They are not part of `npm test`; CI's
+`database` job runs this script on every push.
 
 At the original database-foundation checkpoint: **47 SQL checks** (43 US7 checks and 4 shared-workflow regressions),
 plus **230 application tests**, lint and production build. SQL case IDs continue the
@@ -755,9 +758,72 @@ when, and notifies the Event Coordinator in-app and by email. Windows run from t
 the first Singapore day, one day earlier for units held elsewhere, through the return day.
 
 Tests: AC-014.1–13 have 22 app tests and 82 database checks. The concurrency checks use `dblink`.
-Totals: **523 app tests** and **318 database checks**. 0025 changes Nicole's 0019 policies
+Totals: **523 app tests** and **323 database checks** (including US18's repair checks). 0025 changes Nicole's 0019 policies
 (direct-write lockdown, agreed). See [test cases](docs/test-cases/US14_test_cases.md) and
 [design and assumptions](docs/us14-equipment-reservations.md).
+
+
+
+## US18 venue suitability (SCRUM-62)
+
+A coordinator picks one of their events at `/venues/suitability`, records its venue
+requirements beside the organiser's own words, and sees every venue grouped as
+**Suitable**, **Unsuitable** (with every reason) or **Unavailable** (blacked out: booked,
+blocked or under maintenance). Searching venues for one of your events shows each result's
+verdict. Screens are behind `VITE_FEATURE_VENUE_SUITABILITY`, which is off unless set to
+`true` in your own `frontend/.env`.
+
+Migrations, all safe to replay:
+
+| File | Adds |
+| --- | --- |
+| `0019a_reconcile_venue_columns.sql` | Repairs a hand-edited `venues` table (layout and facility stored as lists) to the migrations' shape; does nothing elsewhere. Runs before 0020. |
+| `0020_venue_accessibility_array.sql` | `venues.accessibility` as `text[]`, default `{}` and required. This also fixes US8's accessibility filter on fresh databases. |
+| `0021_layout_types.sql` | The layout catalogue (seven standard layouts, a team assumption: the customer never listed them) |
+| `0022_venue_layouts.sql` | Capacity per layout (#112); a trigger keeps each venue's primary layout in it; backfill for existing venues |
+| `0023_event_venue_requirements.sql` | The coordinator's structured layout, accessibility and facility needs per event. Attendance stays on `events` (#119). |
+
+Design notes: suitability is advice, not a hard block (AC-018.2, #83). Double booking and
+blocked slots are refused by the slot ledger. Unavailable outranks unsuitable, but both
+reasons are kept. If availability can't be checked, the check fails closed. A venue saved
+with a new layout name adds that layout to the catalogue. The alert for booking an
+unsuitable venue (`UnsuitableVenueAlert`, `assessVenueForBooking`) is built and tested,
+but wiring it into the booking button is SCRUM-171, blocked on US9/US11.
+
+Test allocation (database checks in `backend/supabase/tests/venue_suitability.sql`,
+`venue_shape_repair.sql` and the runner's replay checks; app tests in
+`frontend/src/features/venues/__tests__/`):
+
+| Criterion | Database checks | App tests |
+| --- | --- | --- |
+| AC-018.1 — identify suitable venues | AC-018.1.1–1.8 | AC-018.1.9–1.35 |
+| AC-018.2 — alert when booking an unsuitable venue | — | AC-018.2.1–2.6 |
+| AC-018.3 — mark venues failing requirements unsuitable | AC-018.3.1–3.25, AC-018.3.35–3.39 | AC-018.3.26–3.34 |
+| AC-018.4 — black out venues taken by bookings or maintenance | — | AC-018.4.1–4.13 |
+
+## Shared Supabase state (5 October 2026)
+
+All migrations `0001`–`0025`, plus the `0019a` repair, were replayed in order on shared
+Supabase on 5 October 2026, one transaction per file. No file failed. Before the replay,
+every `public` table's data was copied to the private schema `backup_20261005`; drop it
+once the team has checked everything (`drop schema backup_20261005 cascade;`).
+
+What the replay found and fixed:
+
+- **Missing access rules.** `venues`, `venue_closures`, `venue_bookings`,
+  `venue_slot_claims`, `time_slots` and most of 0019's equipment tables had RLS on but no
+  policies, so signed-in users saw no rows. That is why venue search was empty. They now
+  have the policies 0018 and 0019 define, so behaviour on shared Supabase matches CI.
+- **Hand-edited `venues` columns.** `layout` and `facility` had been changed to text lists.
+  0019a converted them back: `layout` keeps its first listed layout, and `facility` becomes
+  `{"code": true}`. Any further listed layouts are in the backup and can be re-added as
+  `venue_layouts` rows.
+
+Schema changes go through migrations only. Changing a table by hand in the dashboard is
+what caused the drift.
+
+
+
 
 Latest progress supersedes older remaining-work notes: significance, the revalidation
 hook, clarification replies and coordinator notification triggers are implemented. Jaydon
