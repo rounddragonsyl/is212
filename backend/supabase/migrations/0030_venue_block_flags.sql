@@ -1,8 +1,9 @@
 -- US12 Block Venue Availability (SCRUM-14), slice 5: blocking over bookings flags them
 -- (SCRUM-123). Apply after 0029. Safe to replay.
 --
--- Week 7 change 2: a booking inside a new block is not cancelled. It keeps its cells and is
--- flagged for review; the block takes only the free cells.
+-- Week 7 change 2: a booking inside a new block is not cancelled. It keeps its cells, is
+-- flagged for review, and its coordinator is emailed; the block takes only the free cells.
+-- The block, its cells, its flags and its emails are one transaction.
 begin;
 
 -- "This booking needs review." Generic so US46, US47 and US48 can reuse it for other
@@ -36,8 +37,9 @@ security definer
 set search_path = ''
 as $$
 declare
-  v_slots text[];
-  v_closure uuid;
+  v_slots      text[];
+  v_closure    uuid;
+  v_venue_name text;
 begin
   v_slots := public.venue_block_request_slots(p_venue_id, p_starts_on, p_ends_on, p_slots);
 
@@ -47,7 +49,7 @@ begin
 
   -- Serialise blocks on one venue, so two staff members cannot both pass the overlap check
   -- below and then both save. (A race cannot be shown in the single-session test runner.)
-  perform 1 from public.venues where id = p_venue_id for update;
+  select name into v_venue_name from public.venues where id = p_venue_id for update;
 
   -- The cell insert below skips held cells, so the ledger key no longer refuses a
   -- same-slot overlap with another block. This check does.
@@ -106,6 +108,23 @@ begin
     and c.slot = any (v_slots)
     and b.status in ('held', 'pending_approval', 'confirmed')
   group by b.id, b.event_id, e.coordinator_id, b.requested_by;
+
+  -- One email per flag, queued in the same outbox as 0009's review emails.
+  insert into public.notification_outbox (event_id, recipient_email, subject, body)
+  select f.event_id,
+         u.email,
+         'Venue booking needs review: ' || v_venue_name,
+         format(
+           E'Venue Staff have blocked %s from %s to %s (%s).\nReason: %s\n\n'
+           'Your booking for event %s (%s) overlaps this period. It has not been cancelled. '
+           'Please review it in ConnectSphere and arrange an alternative if needed.',
+           v_venue_name, p_starts_on, p_ends_on, array_to_string(v_slots, ', '), btrim(p_reason),
+           coalesce(e.reference, 'without a reference'), coalesce(e.name, 'untitled'))
+  from public.venue_booking_flags f
+  join auth.users u on u.id = f.recipient_id
+  join public.events e on e.id = f.event_id
+  where f.closure_id = v_closure
+    and u.email is not null and btrim(u.email) <> '';
 
   return v_closure;
 end;
