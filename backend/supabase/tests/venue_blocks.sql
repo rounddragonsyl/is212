@@ -503,3 +503,9 @@ select pg_temp.assert_true(
                    and removed_at is not null
             from public.venue_closures where reason = 'Ceiling repair'), false),
   'AC-012.10.2: a removed block keeps its record, with who removed it and when');
+select pg_temp.assert_true(
+  coalesce((select status = 'resolved' and resolution = 'Block removed'
+                   and resolved_at is not null
+            from public.venue_booking_flags
+            where booking_id = 'b12a0000-0000-0000-0000-0000000000b7'), false),
+  'AC-012.9.6: removing a block resolves the flags it raised');
