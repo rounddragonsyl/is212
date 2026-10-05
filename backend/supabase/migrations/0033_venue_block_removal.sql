@@ -29,6 +29,10 @@ begin
   update public.venue_closures
   set removed_at = now(), removed_by = auth.uid()
   where id = p_closure_id and removed_at is null;
+  if not found then
+    raise exception 'That block could not be found or has already been removed'
+      using errcode = 'P0002';
+  end if;
 
   -- Only the block's own cells. Booking cells inside it never belonged to the block.
   delete from public.venue_slot_claims
