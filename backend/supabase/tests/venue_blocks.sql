@@ -430,3 +430,10 @@ select pg_temp.assert_true(
             from public.venue_booking_flags
             where venue_id = 'b12a0000-0000-0000-0000-0000000000f3'), false),
   'AC-012.8.6: a coordinator sees flags for their own events only');
+select pg_temp.as_user('00000000-0000-0000-0000-000000000004');
+select pg_temp.assert_true(
+  coalesce((select array_agg(booking_id::text)
+                   = array['b12a0000-0000-0000-0000-0000000000b8']
+            from public.venue_booking_flags
+            where venue_id = 'b12a0000-0000-0000-0000-0000000000f3'), false),
+  'AC-012.8.7: the requesting coordinator sees the flag for an unassigned event');
