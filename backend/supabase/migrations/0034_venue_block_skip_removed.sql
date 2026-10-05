@@ -2,7 +2,8 @@
 -- (SCRUM-124). Apply after 0033. Safe to replay.
 --
 -- 0033 keeps a removed block's row as a record, so everything that looks for active
--- blocks must skip rows with removed_at set.
+-- blocks must skip rows with removed_at set: the overlap check, the preview and the
+-- re-block trigger.
 begin;
 
 create or replace function public.block_venue(
@@ -168,5 +169,40 @@ end;
 $$;
 revoke execute on function public.preview_venue_block(uuid, date, date, text[]) from public, anon;
 grant execute on function public.preview_venue_block(uuid, date, date, text[]) to authenticated;
+
+-- When a booking lets go of a cell inside an active block, the block takes it, so a
+-- blocked slot never quietly becomes bookable again. Block cells being deleted
+-- (kind 'maintenance') are left alone, and removed blocks don't take cells back.
+create or replace function public.reblock_released_cell()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_covering uuid;
+begin
+  if old.kind = 'maintenance' then
+    return old;
+  end if;
+
+  select vc.id into v_covering
+  from public.venue_closures vc
+  where vc.venue_id = old.venue_id
+    and vc.removed_at is null
+    and old.slot_date between vc.starts_on and vc.ends_on
+    and old.slot = any (vc.slots)
+  limit 1;
+
+  if v_covering is not null then
+    insert into public.venue_slot_claims (venue_id, slot_date, slot, kind, closure_id)
+    values (old.venue_id, old.slot_date, old.slot, 'maintenance', v_covering)
+    on conflict (venue_id, slot_date, slot) do nothing;
+  end if;
+  return old;
+end;
+$$;
+revoke execute on function public.reblock_released_cell()
+  from public, anon, authenticated;
 
 commit;
