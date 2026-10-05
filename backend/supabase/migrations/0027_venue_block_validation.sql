@@ -27,6 +27,9 @@ begin
   if not found then
     raise exception 'That venue could not be found' using errcode = 'P0002';
   end if;
+  if v_status = 'retired' then
+    raise exception 'A retired venue cannot be blocked' using errcode = '22023';
+  end if;
 
   return p_slots;
 end;
