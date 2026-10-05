@@ -532,3 +532,14 @@ select pg_temp.assert_true(
   exists (select 1 from public.venue_slot_claims
           where booking_id = 'b12a0000-0000-0000-0000-0000000000bb'),
   'AC-012.9.8: the slots of a removed block can be booked again');
+
+-- ===== Slice 7b: removed blocks no longer count (AC-012.9.9 to 9.11, 10.4) =====
+select pg_temp.as_user('b12a0000-0000-0000-0000-000000000001');
+select public.block_venue('b12a0000-0000-0000-0000-0000000000f3', '2040-03-11', '2040-03-11',
+  array['AM'], 'Lighting check');
+select pg_temp.assert_true(
+  coalesce((select vc.reason = 'Lighting check' from public.venue_slot_claims c
+            join public.venue_closures vc on vc.id = c.closure_id
+            where c.venue_id = 'b12a0000-0000-0000-0000-0000000000f3'
+              and c.slot_date = '2040-03-11' and c.slot = 'AM'), false),
+  'AC-012.9.9: the slots of a removed block can be blocked again');
