@@ -40,6 +40,10 @@ begin
     raise exception 'A single block can cover at most 366 days' using errcode = '22023';
   end if;
 
+  if cardinality(p_slots) = 0 then
+    raise exception 'Choose at least one slot to block' using errcode = '22023';
+  end if;
+
   return p_slots;
 end;
 $$;
