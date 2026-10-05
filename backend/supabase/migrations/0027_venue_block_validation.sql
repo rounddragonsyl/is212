@@ -34,6 +34,11 @@ begin
   if p_ends_on < p_starts_on then
     raise exception 'A block must end on or after the day it starts' using errcode = '22023';
   end if;
+  -- One row per cell will be written, so an unbounded range is an unbounded insert.
+  -- A longer closure is entered as consecutive blocks.
+  if p_ends_on - p_starts_on > 365 then
+    raise exception 'A single block can cover at most 366 days' using errcode = '22023';
+  end if;
 
   return p_slots;
 end;
