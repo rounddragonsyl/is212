@@ -44,3 +44,15 @@ export interface VenueBlockPreview {
   affectedBookings: AffectedBooking[]
   existingBlocks: ExistingBlockOverlap[]
 }
+
+/** An active block as Venue Staff see it (AC-012.9, AC-012.10). */
+export interface VenueBlock {
+  id: string
+  venueId: string
+  startsOn: string
+  endsOn: string
+  slots: SlotCode[]
+  reason: string
+  createdByName: string | null
+  createdAt: string
+}
