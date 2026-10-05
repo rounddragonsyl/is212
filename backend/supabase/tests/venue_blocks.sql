@@ -106,3 +106,31 @@ select pg_temp.assert_true(
             and starts_on = '2040-04-01' and ends_on = '2040-04-01'
             and slots = array['PM'] and reason = 'Deep clean'),
   'AC-012.2.1: blocking one slot on one date saves a block for that date and slot');
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+insert into public.events (id, organiser_id, coordinator_id, purpose, name, reference,
+                           proposed_start, proposed_end, expected_attendance, status)
+select ('b12a0000-0000-0000-0000-0000000000e' || n)::uuid,
+       '00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000003',
+       'Block fixture', 'Block event ' || n, 'EVT-B12-' || n,
+       '2040-01-01 01:00+00', '2040-01-01 02:00+00', 50, 'approved'
+from generate_series(1, 5) n;
+
+-- Places a booking the way holdVenue does. cells: [{"date":..,"slot":..,"kind":..}]
+create or replace function pg_temp.hold(booking uuid, venue uuid, event uuid, cells jsonb)
+returns void language sql as $$
+  insert into public.venue_bookings (id, event_id, venue_id, requested_by, status, hold_expires_at)
+  values (booking, event, venue, auth.uid(), 'held', now() + interval '2 days');
+  insert into public.venue_slot_claims (venue_id, slot_date, slot, kind, booking_id)
+  select venue, (c->>'date')::date, c->>'slot', c->>'kind', booking
+  from jsonb_array_elements(cells) c;
+$$;
+
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-000000000003');
+-- 1 Apr PM is blocked (Deep clean), so an event in that slot must be refused.
+select pg_temp.expect_error($q$select pg_temp.hold('b12a0000-0000-0000-0000-0000000000b1',
+  'b12a0000-0000-0000-0000-0000000000f1', 'b12a0000-0000-0000-0000-0000000000e1',
+  '[{"date":"2040-04-01","slot":"AM","kind":"buffer"},{"date":"2040-04-01","slot":"PM","kind":"event"},
+    {"date":"2040-04-01","slot":"NIGHT","kind":"buffer"}]')$q$, '23505',
+  'AC-012.5.1: a booking whose event slot is blocked is refused');
