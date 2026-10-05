@@ -4,8 +4,9 @@ import { Field, TextArea, TextInput } from '../../../components/ui/FormControls'
 import type { SlotCode } from '../slots'
 import type { VenueBlockResult } from '../venueBlockService'
 import type { VenueBlockField, VenueBlockInput, VenueBlockPreview as PreviewData } from '../venueBlockTypes'
-import { validateVenueBlock } from '../venueBlockValidation'
+import { sameBlock, validateVenueBlock } from '../venueBlockValidation'
 import { SlotPicker } from './SlotPicker'
+import { VenueBlockPreview } from './VenueBlockPreview'
 
 type SaveResult = VenueBlockResult<{ blockId: string; flaggedBookings: number | null }>
 
@@ -22,10 +23,13 @@ export function VenueBlockForm({ venueId, onPreview, onCreate }: VenueBlockFormP
   const [slots, setSlots] = useState<SlotCode[]>([])
   const [reason, setReason] = useState('')
   const [errors, setErrors] = useState<Partial<Record<VenueBlockField, string>>>({})
-  const [preview, setPreview] = useState<PreviewData | null>(null)
+  const [preview, setPreview] = useState<{ input: VenueBlockInput; result: PreviewData } | null>(null)
   const [busy, setBusy] = useState(false)
 
   const current: VenueBlockInput = { venueId, startsOn, endsOn, slots, reason }
+  // A preview counts only for the venue, dates and slots it was taken for (AC-012.7).
+  const shownPreview = preview && sameBlock(preview.input, current) ? preview.result : null
+  const overlapsExistingBlock = (shownPreview?.existingBlocks.length ?? 0) > 0
 
   /** The form's own check runs first, so each problem shows beside its field. */
   function checked(): VenueBlockInput | null {
@@ -40,7 +44,7 @@ export function VenueBlockForm({ venueId, onPreview, onCreate }: VenueBlockFormP
     setBusy(true)
     const result = await onPreview(input)
     setBusy(false)
-    if (result.ok) setPreview(result.value)
+    if (result.ok) setPreview({ input, result: result.value })
   }
 
   function handleConfirm() {
@@ -94,12 +98,14 @@ export function VenueBlockForm({ venueId, onPreview, onCreate }: VenueBlockFormP
         />
       </Field>
 
+      {shownPreview && <VenueBlockPreview preview={shownPreview} />}
+
       <div className="flex flex-wrap gap-3">
         <Button type="button" disabled={busy} onClick={() => void handlePreview()}>
           Preview
         </Button>
-        {preview && (
-          <Button type="button" disabled={busy} onClick={handleConfirm}>
+        {shownPreview && (
+          <Button type="button" disabled={busy || overlapsExistingBlock} onClick={handleConfirm}>
             Confirm block
           </Button>
         )}
