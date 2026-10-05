@@ -375,3 +375,12 @@ select pg_temp.assert_true(
   and (select count(*) = 3 from public.venue_slot_claims
        where booking_id = 'b12a0000-0000-0000-0000-0000000000b8'),
   'AC-012.8.1: overlapping confirmed and pending bookings keep their status and every cell');
+select pg_temp.assert_true(
+  coalesce((select recipient_id = '00000000-0000-0000-0000-000000000003'
+                   and cause = 'venue_blocked' and status = 'open'
+                   and detail = 'Venue blocked: Ceiling repair'
+                   and affected_cells = '[{"date":"2040-03-10","slot":"AM","kind":"event"},
+                                          {"date":"2040-03-10","slot":"PM","kind":"buffer"}]'::jsonb
+            from public.venue_booking_flags
+            where booking_id = 'b12a0000-0000-0000-0000-0000000000b7'), false),
+  'AC-012.8.2: an overlapping booking is flagged for its assigned coordinator with only the blocked cells');
