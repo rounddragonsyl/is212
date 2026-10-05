@@ -95,3 +95,14 @@ select pg_temp.expect_error($q$select public.block_venue('b12a0000-0000-0000-000
 select pg_temp.expect_error($q$select public.block_venue('b12a0000-0000-0000-0000-0000000000f1',
   '2040-05-01','2040-05-01',array['AM'],null)$q$, '22023',
   'AC-012.3.2: a missing reason is refused');
+
+-- ===== Slice 3: a saved block, and its cells in the slot ledger =====
+select pg_temp.as_user('b12a0000-0000-0000-0000-000000000001');
+select public.block_venue('b12a0000-0000-0000-0000-0000000000f1', '2040-04-01', '2040-04-01',
+  array['PM'], 'Deep clean');
+select pg_temp.assert_true(
+  exists (select 1 from public.venue_closures
+          where venue_id = 'b12a0000-0000-0000-0000-0000000000f1'
+            and starts_on = '2040-04-01' and ends_on = '2040-04-01'
+            and slots = array['PM'] and reason = 'Deep clean'),
+  'AC-012.2.1: blocking one slot on one date saves a block for that date and slot');
