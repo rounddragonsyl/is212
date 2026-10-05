@@ -66,3 +66,6 @@ select pg_temp.as_user('b12a0000-0000-0000-0000-000000000001');
 select pg_temp.expect_error($q$select public.block_venue('b12a0000-0000-0000-0000-0000000000f2',
   '2040-05-01','2040-05-01',array['AM'],'Retired')$q$, '22023',
   'AC-012.2.9: a retired venue cannot be blocked');
+select pg_temp.expect_error($q$select public.block_venue('b12a0000-0000-0000-0000-0000000000f1',
+  '2040-05-02','2040-05-01',array['AM'],'Backwards')$q$, '22023',
+  'AC-012.2.5: a block ending before it starts is refused');
