@@ -31,6 +31,10 @@ begin
     raise exception 'A retired venue cannot be blocked' using errcode = '22023';
   end if;
 
+  if p_ends_on < p_starts_on then
+    raise exception 'A block must end on or after the day it starts' using errcode = '22023';
+  end if;
+
   return p_slots;
 end;
 $$;
