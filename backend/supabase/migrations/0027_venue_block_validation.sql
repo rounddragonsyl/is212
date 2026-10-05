@@ -16,9 +16,16 @@ stable
 security definer
 set search_path = ''
 as $$
+declare
+  v_status text;
 begin
   if auth.uid() is null or public.current_user_role() is distinct from 'venue_staff' then
     raise exception 'Only Venue Staff can block a venue' using errcode = '42501';
+  end if;
+
+  select status into v_status from public.venues where id = p_venue_id;
+  if not found then
+    raise exception 'That venue could not be found' using errcode = 'P0002';
   end if;
 
   return p_slots;
