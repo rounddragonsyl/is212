@@ -38,6 +38,21 @@ begin
     and c.slot = any (p_slots)
     -- A lapsed hold no longer reserves anything, so it is not an affected booking.
     and not (b.status = 'held' and b.hold_expires_at < now())
+
+  union all
+
+  -- Read from the block rows, not the ledger: a block that lands on a booking (slice 5)
+  -- does not own that booking's cell, but it still covers it.
+  select 'existing_block'::text, null::uuid, null::text, null::text, null::text,
+         d::date, s::text, 'maintenance'::text, vc.reason::text
+  from public.venue_closures vc
+  cross join lateral generate_series(greatest(vc.starts_on, p_starts_on),
+                                     least(vc.ends_on, p_ends_on), interval '1 day') d
+  cross join lateral unnest(vc.slots) s
+  where vc.venue_id = p_venue_id
+    and vc.starts_on <= p_ends_on and vc.ends_on >= p_starts_on
+    and s = any (p_slots)
+
   order by 6, 7;
 end;
 $$;
