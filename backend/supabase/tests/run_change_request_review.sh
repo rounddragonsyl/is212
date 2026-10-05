@@ -137,4 +137,39 @@ select pg_temp.assert_true(
     union all (select * from requirements_before_replay except select * from public.event_venue_requirements)),
   'AC-018.3.25: replaying the requirements migration changes no saved requirements');
 SQL
+  cat "$repo_root/supabase/tests/venue_shape_repair.sql"
+  cat "$repo_root/supabase/migrations/0019a_reconcile_venue_columns.sql"
+  cat <<'SQL'
+select pg_temp.assert_true(
+  (select data_type = 'text' from information_schema.columns
+   where table_schema = 'public' and table_name = 'venues' and column_name = 'layout')
+  and (select layout::text = 'Hall' from public.venues where id = 'b18a0000-0000-0000-0000-0000000000d1'),
+  'AC-018.3.35: a venue''s layout list becomes its first listed layout, as text');
+select pg_temp.assert_true(
+  (select data_type = 'jsonb' from information_schema.columns
+   where table_schema = 'public' and table_name = 'venues' and column_name = 'facility')
+  and (select to_jsonb(facility) = '{"projector": true, "wifi": true}'::jsonb from public.venues
+       where id = 'b18a0000-0000-0000-0000-0000000000d1'),
+  'AC-018.3.36: a list of facility names becomes the catalogue codes the app matches on');
+select pg_temp.assert_true(
+  (select layout::text = 'unspecified' and to_jsonb(facility) = '{}'::jsonb from public.venues
+   where id = 'b18a0000-0000-0000-0000-0000000000d2')
+  and (select is_nullable = 'NO' from information_schema.columns
+       where table_schema = 'public' and table_name = 'venues' and column_name = 'layout'),
+  'AC-018.3.37: an empty layout list becomes "unspecified" and layout is required again');
+create temp table venues_after_repair as select * from public.venues;
+SQL
+  cat "$repo_root/supabase/migrations/0019a_reconcile_venue_columns.sql"
+  cat "$repo_root/supabase/migrations/0022_venue_layouts.sql"
+  cat <<'SQL'
+select pg_temp.assert_true(
+  not exists ((select * from public.venues except select * from venues_after_repair)
+    union all (select * from venues_after_repair except select * from public.venues)),
+  'AC-018.3.38: running the repair on a table already in shape changes nothing');
+select pg_temp.assert_true(
+  exists (select 1 from public.venue_layouts
+          where venue_id = 'b18a0000-0000-0000-0000-0000000000d1' and layout = 'hall' and capacity = 200),
+  'AC-018.3.39: after the repair, 0022 records the repaired venue''s layout with its capacity');
+SQL
+  # US12 venue blocks.
 } | docker exec -i "$container" psql -X -U postgres -v ON_ERROR_STOP=1
