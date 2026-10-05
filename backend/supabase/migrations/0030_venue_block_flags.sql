@@ -61,6 +61,16 @@ begin
       using errcode = '23505';
   end if;
 
+  -- Lapsed holds are otherwise released only when someone next books (0018). Release this
+  -- venue's now, so a dead hold is neither flagged nor left on a cell the block should own.
+  delete from public.venue_slot_claims c
+  using public.venue_bookings b
+  where c.booking_id = b.id and b.venue_id = p_venue_id
+    and b.status = 'held' and b.hold_expires_at < now();
+  update public.venue_bookings
+  set status = 'expired'
+  where venue_id = p_venue_id and status = 'held' and hold_expires_at < now();
+
   -- Who blocked comes from the session, never from the browser.
   insert into public.venue_closures
     (venue_id, starts_on, ends_on, slots, reason, created_by, created_by_name)
