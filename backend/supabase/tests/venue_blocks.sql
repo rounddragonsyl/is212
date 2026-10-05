@@ -316,3 +316,62 @@ select pg_temp.as_user('b12a0000-0000-0000-0000-000000000001');
 select pg_temp.expect_error($q$select public.block_venue('b12a0000-0000-0000-0000-0000000000f1',
   '2040-04-01','2040-04-01',array['PM'],'Overlapping')$q$, '23505',
   'AC-012.9.1: a block overlapping an active block on the same slot is refused');
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+insert into public.venues (id, name, location, capacity, layout, status) values
+ ('b12a0000-0000-0000-0000-0000000000f3', 'Second Hall', 'Level 3', 120, 'Classroom', 'active');
+-- E7 and E9 are assigned to coordinator 3; E8 is unassigned (Week 7 change 5 queue).
+insert into public.events (id, organiser_id, coordinator_id, purpose, name, reference,
+                           proposed_start, proposed_end, expected_attendance, status)
+select ('b12a0000-0000-0000-0000-0000000000e' || n)::uuid,
+       '00000000-0000-0000-0000-000000000001',
+       case when n = 8 then null else '00000000-0000-0000-0000-000000000003'::uuid end,
+       'Block fixture', 'Block event ' || n, 'EVT-B12-' || n,
+       '2040-01-01 01:00+00', '2040-01-01 02:00+00', 50, 'approved'
+from generate_series(7, 9) n;
+
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-000000000003');
+-- B7: AM event on 10 Mar, setup Night 9 Mar, turnaround PM 10 Mar. Confirmed below.
+select pg_temp.hold('b12a0000-0000-0000-0000-0000000000b7',
+  'b12a0000-0000-0000-0000-0000000000f3', 'b12a0000-0000-0000-0000-0000000000e7',
+  '[{"date":"2040-03-09","slot":"NIGHT","kind":"buffer"},{"date":"2040-03-10","slot":"AM","kind":"event"},
+    {"date":"2040-03-10","slot":"PM","kind":"buffer"}]');
+-- B9: PM event on 11 Mar. Its hold is made to lapse below.
+select pg_temp.hold('b12a0000-0000-0000-0000-0000000000b9',
+  'b12a0000-0000-0000-0000-0000000000f3', 'b12a0000-0000-0000-0000-0000000000e9',
+  '[{"date":"2040-03-11","slot":"AM","kind":"buffer"},{"date":"2040-03-11","slot":"PM","kind":"event"},
+    {"date":"2040-03-11","slot":"NIGHT","kind":"buffer"}]');
+-- B8: Night event on 12 Mar for the unassigned event, requested by coordinator 4. Pending below.
+select pg_temp.as_user('00000000-0000-0000-0000-000000000004');
+select pg_temp.hold('b12a0000-0000-0000-0000-0000000000b8',
+  'b12a0000-0000-0000-0000-0000000000f3', 'b12a0000-0000-0000-0000-0000000000e8',
+  '[{"date":"2040-03-12","slot":"PM","kind":"buffer"},{"date":"2040-03-12","slot":"NIGHT","kind":"event"},
+    {"date":"2040-03-13","slot":"AM","kind":"buffer"}]');
+
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+update public.venue_bookings set status = 'confirmed'
+ where id = 'b12a0000-0000-0000-0000-0000000000b7';
+update public.venue_bookings set status = 'pending_approval'
+ where id = 'b12a0000-0000-0000-0000-0000000000b8';
+update public.venue_bookings set hold_expires_at = now() - interval '1 day'
+ where id = 'b12a0000-0000-0000-0000-0000000000b9';
+
+set role authenticated;
+select pg_temp.as_user('b12a0000-0000-0000-0000-000000000001');
+select public.block_venue('b12a0000-0000-0000-0000-0000000000f3', '2040-03-10', '2040-03-12',
+  array['AM','PM','NIGHT'], 'Ceiling repair');
+
+-- Checked as owner, so RLS can't hide anything.
+reset role;
+select pg_temp.assert_true(
+  (select status = 'confirmed' from public.venue_bookings
+   where id = 'b12a0000-0000-0000-0000-0000000000b7')
+  and (select status = 'pending_approval' from public.venue_bookings
+       where id = 'b12a0000-0000-0000-0000-0000000000b8')
+  and (select count(*) = 3 from public.venue_slot_claims
+       where booking_id = 'b12a0000-0000-0000-0000-0000000000b7')
+  and (select count(*) = 3 from public.venue_slot_claims
+       where booking_id = 'b12a0000-0000-0000-0000-0000000000b8'),
+  'AC-012.8.1: overlapping confirmed and pending bookings keep their status and every cell');
