@@ -134,3 +134,79 @@ select pg_temp.expect_error($q$select pg_temp.hold('b12a0000-0000-0000-0000-0000
   '[{"date":"2040-04-01","slot":"AM","kind":"buffer"},{"date":"2040-04-01","slot":"PM","kind":"event"},
     {"date":"2040-04-01","slot":"NIGHT","kind":"buffer"}]')$q$, '23505',
   'AC-012.5.1: a booking whose event slot is blocked is refused');
+-- These pass on first run: the cell insert is general, and 0018's ledger key already
+-- refuses any second claim on a cell.
+select pg_temp.as_user('b12a0000-0000-0000-0000-000000000001');
+select public.block_venue('b12a0000-0000-0000-0000-0000000000f1', '2040-04-05', '2040-04-07',
+  array['AM','PM','NIGHT'], 'Carpet replacement');
+select pg_temp.assert_true(
+  (select count(*) = 9 from public.venue_slot_claims c
+   join public.venue_closures vc on vc.id = c.closure_id
+   where vc.reason = 'Carpet replacement' and c.kind = 'maintenance'),
+  'AC-012.2.2: a full-day block across three dates blocks all nine cells');
+
+-- 1 Jan 2042 to 1 Jan 2043 is exactly 366 days.
+select public.block_venue('b12a0000-0000-0000-0000-0000000000f1', '2042-01-01', '2043-01-01',
+  array['NIGHT'], 'Year-long night closure');
+select pg_temp.assert_true(
+  (select count(*) = 366 from public.venue_slot_claims c
+   join public.venue_closures vc on vc.id = c.closure_id
+   where vc.reason = 'Year-long night closure'),
+  'AC-012.2.7: a block of exactly 366 days is accepted');
+
+select pg_temp.assert_true(
+  (select vc.reason = 'Carpet replacement' from public.venue_slot_claims c
+   join public.venue_closures vc on vc.id = c.closure_id
+   where c.venue_id = 'b12a0000-0000-0000-0000-0000000000f1'
+     and c.slot_date = '2040-04-06' and c.slot = 'AM'),
+  'AC-012.4.1: venue staff can read a blocked cell with the reason for the block');
+
+select pg_temp.as_user('00000000-0000-0000-0000-000000000003');
+select pg_temp.assert_true(
+  (select kind = 'maintenance' from public.venue_slot_claims
+   where venue_id = 'b12a0000-0000-0000-0000-0000000000f1'
+     and slot_date = '2040-04-06' and slot = 'PM'),
+  'AC-012.4.2: a coordinator sees a blocked cell as blocked when checking availability');
+
+-- Setup Night 7 Apr is inside the block; the event itself (8 Apr AM) is not.
+select pg_temp.expect_error($q$select pg_temp.hold('b12a0000-0000-0000-0000-0000000000b2',
+  'b12a0000-0000-0000-0000-0000000000f1', 'b12a0000-0000-0000-0000-0000000000e2',
+  '[{"date":"2040-04-07","slot":"NIGHT","kind":"buffer"},{"date":"2040-04-08","slot":"AM","kind":"event"},
+    {"date":"2040-04-08","slot":"PM","kind":"buffer"}]')$q$, '23505',
+  'AC-012.5.2: a booking whose setup slot falls in a block is refused');
+
+-- Turnaround AM 5 Apr is inside the block; the event itself (4 Apr Night) is not.
+select pg_temp.expect_error($q$select pg_temp.hold('b12a0000-0000-0000-0000-0000000000b3',
+  'b12a0000-0000-0000-0000-0000000000f1', 'b12a0000-0000-0000-0000-0000000000e3',
+  '[{"date":"2040-04-04","slot":"PM","kind":"buffer"},{"date":"2040-04-04","slot":"NIGHT","kind":"event"},
+    {"date":"2040-04-05","slot":"AM","kind":"buffer"}]')$q$, '23505',
+  'AC-012.5.3: a booking whose turnaround slot falls in a block is refused');
+
+-- Checked as owner, so RLS can't hide a leftover row and make this pass by accident.
+reset role;
+select pg_temp.assert_true(
+  not exists (select 1 from public.venue_bookings
+              where id in ('b12a0000-0000-0000-0000-0000000000b1',
+                           'b12a0000-0000-0000-0000-0000000000b2',
+                           'b12a0000-0000-0000-0000-0000000000b3')),
+  'AC-012.5.5: a refused booking leaves no booking row behind');
+
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-000000000003');
+select pg_temp.hold('b12a0000-0000-0000-0000-0000000000b4',
+  'b12a0000-0000-0000-0000-0000000000f1', 'b12a0000-0000-0000-0000-0000000000e4',
+  '[{"date":"2040-04-08","slot":"AM","kind":"buffer"},{"date":"2040-04-08","slot":"PM","kind":"event"},
+    {"date":"2040-04-08","slot":"NIGHT","kind":"buffer"}]');
+select pg_temp.assert_true(
+  (select count(*) = 3 from public.venue_slot_claims
+   where booking_id = 'b12a0000-0000-0000-0000-0000000000b4'),
+  'AC-012.6.1: the day after a block can be booked in full');
+
+-- 1 Apr has only PM blocked. A booking that needs only the Night slot goes ahead.
+select pg_temp.hold('b12a0000-0000-0000-0000-0000000000b5',
+  'b12a0000-0000-0000-0000-0000000000f1', 'b12a0000-0000-0000-0000-0000000000e5',
+  '[{"date":"2040-04-01","slot":"NIGHT","kind":"event"}]');
+select pg_temp.assert_true(
+  exists (select 1 from public.venue_slot_claims
+          where booking_id = 'b12a0000-0000-0000-0000-0000000000b5'),
+  'AC-012.6.2: a slot the block leaves free on the same date can still be booked');
