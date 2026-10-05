@@ -13,6 +13,9 @@ import { NotFoundPage } from './pages/NotFoundPage'
 import { SubmitEventChangesPage } from './features/events/pages/SubmitEventChangesPage'
 import { VenueSearchPage } from './features/venues/pages/VenueSearchPage'
 import { VenueSuitabilityPage } from './features/venues/pages/VenueSuitabilityPage'
+import { VenueDetailsPage } from './features/venues/pages/VenueDetailsPage'
+import { VenueTimetablePage } from './features/venues/pages/VenueTimetablePage'
+import { MyVenueBookingsPage } from './features/venues/pages/MyVenueBookingsPage'
 import { VenueBlocksPage } from './features/venues/pages/VenueBlocksPage'
 import { FlaggedBookingsPage } from './features/venues/pages/FlaggedBookingsPage'
 import { EventEquipmentPage } from './features/equipment/pages/EventEquipmentPage'
@@ -46,6 +49,9 @@ export default function App() {
             <Route path="/requests/:id/request-change" element={<SubmitEventChangesPage />} />
             <Route path="/venues/search" element={<VenueSearchPage />} />
             {FEATURES.venueSuitability && <Route path="/venues/suitability" element={<VenueSuitabilityPage />} />}
+            {FEATURES.venueBooking && <Route path="/venues/bookings" element={<MyVenueBookingsPage />} />}
+            {FEATURES.venueBooking && <Route path="/venues/:id" element={<VenueDetailsPage />} />}
+            {FEATURES.venueBooking && <Route path="/venues/:id/timetable" element={<VenueTimetablePage />} />}
             {FEATURES.venueBlocks && <Route path="/venues/blocks" element={<VenueBlocksPage />} />}
             {FEATURES.venueBlocks && <Route path="/venues/alerts" element={<FlaggedBookingsPage />} />}
             <Route path="/requests/:id/equipment" element={<EventEquipmentPage />} />

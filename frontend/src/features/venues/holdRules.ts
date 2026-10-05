@@ -19,6 +19,15 @@ export const HOLD_DURATION_DAYS = 3
 /** Statuses that still occupy their slots, so they block another hold and stay on the calendar. */
 export const LIVE_BOOKING_STATUSES: readonly VenueBookingStatus[] = ['held', 'pending_approval', 'confirmed']
 
+/**
+ * AC: an event can have at most one active tentative hold at a time. This is narrower than
+ * LIVE_BOOKING_STATUSES on purpose: a confirmed booking does not count, because an event may
+ * legitimately end up with several confirmed venues (a multi-venue event booking a main hall
+ * and an overflow room both reach 'confirmed'). What may not coexist is two holds, or a hold
+ * and a submitted request, in flight for the same event at once.
+ */
+export const ACTIVE_HOLD_STATUSES: readonly VenueBookingStatus[] = ['held', 'pending_approval']
+
 export function canBookForEventStatus(status: string | null | undefined): boolean {
   return BOOKABLE_EVENT_STATUSES.includes(status as EventStatus)
 }

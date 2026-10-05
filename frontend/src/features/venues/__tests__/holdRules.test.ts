@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import {
-  BOOKABLE_EVENT_STATUSES, HOLD_DURATION_DAYS, canBookForEventStatus, daysUntilExpiry,
+  ACTIVE_HOLD_STATUSES, BOOKABLE_EVENT_STATUSES, HOLD_DURATION_DAYS, canBookForEventStatus, daysUntilExpiry,
   describeConflict, describeConflicts, holdExpiryFrom, isHoldLive,
 } from '../holdRules'
 
@@ -22,6 +22,12 @@ describe('AC-009.1 / AC-010.1 — which events may be booked', () => {
   })
   test('AC-009.1.4: the bookable list is exactly approved and planning', () => {
     expect([...BOOKABLE_EVENT_STATUSES]).toEqual(['approved', 'planning'])
+  })
+    // Deliberately excludes 'confirmed': a multi-venue event can have several confirmed
+  // bookings at once (US14's HALL+ANNEX fixture), so only held/pending_approval counts
+  // as an active hold blocking a second one for the same event.
+  test('AC-009.1.5: an active hold is held or pending_approval only, never confirmed', () => {
+    expect([...ACTIVE_HOLD_STATUSES]).toEqual(['held', 'pending_approval'])
   })
 })
 
