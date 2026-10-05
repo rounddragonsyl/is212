@@ -4,10 +4,14 @@
  * Each rule is also enforced by venue_block_request_slots() and block_venue() in the
  * database. This copy puts a message beside the field; the database is the control.
  */
+import type { SlotCode } from './slots'
 import type { VenueBlockField, VenueBlockInput, VenueBlockValidation } from './venueBlockTypes'
 
 /** Same limit as the database: one block covers at most 366 calendar days. */
 export const MAX_BLOCK_DAYS = 366
+
+/** The slots in time order, as the database stores them. */
+export const BLOCK_SLOTS: readonly SlotCode[] = ['AM', 'PM', 'NIGHT']
 
 export const BLOCK_VALIDATION_MESSAGES = {
   startRequired: 'Enter the first day of the block.',
@@ -15,6 +19,7 @@ export const BLOCK_VALIDATION_MESSAGES = {
   invalidDate: 'Enter a date that exists.',
   endBeforeStart: 'The block must end on or after the day it starts.',
   tooLong: `A single block can cover at most ${MAX_BLOCK_DAYS} days. Enter a longer closure as more than one block.`,
+  slotsRequired: 'Choose at least one slot, or Full day.',
   reasonRequired: 'Give a reason, for example maintenance, renovation or a safety concern.',
 } as const
 
@@ -56,14 +61,21 @@ function dateErrors(startsOn: string, endsOn: string): BlockErrors {
   return errors
 }
 
+/** Each slot once, in time order: NIGHT, AM, AM becomes AM, NIGHT. */
+export function normaliseSlots(slots: readonly string[]): SlotCode[] {
+  return BLOCK_SLOTS.filter((code) => slots.includes(code))
+}
+
 export function validateVenueBlock(input: VenueBlockInput): VenueBlockValidation {
   const startsOn = input.startsOn.trim()
   const endsOn = input.endsOn.trim()
+  const slots = normaliseSlots(input.slots)
   const reason = input.reason.trim()
   const errors = dateErrors(startsOn, endsOn)
 
+  if (slots.length === 0) errors.slots = BLOCK_VALIDATION_MESSAGES.slotsRequired
   if (!reason) errors.reason = BLOCK_VALIDATION_MESSAGES.reasonRequired
 
   if (Object.keys(errors).length > 0) return { ok: false, errors }
-  return { ok: true, value: { ...input, startsOn, endsOn, reason } }
+  return { ok: true, value: { ...input, startsOn, endsOn, slots, reason } }
 }
