@@ -468,3 +468,9 @@ select pg_temp.assert_true(
                   where venue_id = 'b12a0000-0000-0000-0000-0000000000f3'
                     and slot_date = '2040-03-13' and slot = 'AM'),
   'AC-012.8.12: cells a cancelled booking releases inside a block become blocked; cells outside become free');
+select pg_temp.assert_true(
+  coalesce((select status = 'resolved' and resolution = 'Booking cancelled'
+                   and resolved_at is not null
+            from public.venue_booking_flags
+            where booking_id = 'b12a0000-0000-0000-0000-0000000000b8'), false),
+  'AC-012.8.13: cancelling a flagged booking resolves its flag with the reason');
