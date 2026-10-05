@@ -3,6 +3,13 @@ import type { SlotCode } from './slots'
 
 export const SLOT_SHORT_LABELS: Record<SlotCode, string> = { AM: 'AM', PM: 'PM', NIGHT: 'Night' }
 
+/** Fuller wording for choosing a slot, as on the block form's checkboxes (US12). */
+export const SLOT_LABELS: Record<SlotCode, string> = {
+  AM: 'Morning (AM)',
+  PM: 'Afternoon (PM)',
+  NIGHT: 'Night',
+}
+
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
 /**
