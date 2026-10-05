@@ -393,3 +393,8 @@ select pg_temp.assert_true(
                 where venue_id = 'b12a0000-0000-0000-0000-0000000000f3'
                   and slot_date = '2040-03-11' and slot = 'PM'), false),
   'AC-012.8.5: a lapsed hold is released rather than flagged, and its cells become blocked');
+select pg_temp.assert_true(
+  coalesce((select recipient_id is not distinct from '00000000-0000-0000-0000-000000000004'
+            from public.venue_booking_flags
+            where booking_id = 'b12a0000-0000-0000-0000-0000000000b8'), false),
+  'AC-012.8.3: a booking for an unassigned event is flagged for the coordinator who requested it');
