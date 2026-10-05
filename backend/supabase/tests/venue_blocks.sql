@@ -551,3 +551,14 @@ select pg_temp.assert_true(
             '2040-03-10', '2040-03-12', array['AM','PM','NIGHT']) p
           where p.block_reason = 'Ceiling repair'),
   'AC-012.9.10: preview does not report removed blocks');
+select pg_temp.as_user('00000000-0000-0000-0000-000000000003');
+delete from public.venue_slot_claims where booking_id = 'b12a0000-0000-0000-0000-0000000000b7';
+update public.venue_bookings set status = 'cancelled'
+ where id = 'b12a0000-0000-0000-0000-0000000000b7';
+
+reset role;
+select pg_temp.assert_true(
+  not exists (select 1 from public.venue_slot_claims
+              where venue_id = 'b12a0000-0000-0000-0000-0000000000f3'
+                and slot_date = '2040-03-10' and slot in ('AM', 'PM')),
+  'AC-012.9.11: a cell freed inside a removed block stays free');
