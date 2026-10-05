@@ -33,6 +33,11 @@ begin
   -- Only the block's own cells. Booking cells inside it never belonged to the block.
   delete from public.venue_slot_claims
   where closure_id = p_closure_id and kind = 'maintenance';
+
+  -- With the block gone, the bookings it flagged no longer need review.
+  update public.venue_booking_flags
+  set status = 'resolved', resolved_at = now(), resolution = 'Block removed'
+  where closure_id = p_closure_id and status = 'open';
 end;
 $$;
 revoke execute on function public.remove_venue_block(uuid) from public, anon;
