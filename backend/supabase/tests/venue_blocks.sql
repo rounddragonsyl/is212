@@ -514,3 +514,21 @@ select pg_temp.as_user('b12a0000-0000-0000-0000-000000000001');
 select pg_temp.expect_error($q$select public.remove_venue_block(
   (select id from public.venue_closures where reason = 'Ceiling repair'))$q$, 'P0002',
   'AC-012.9.7: a block that has already been removed cannot be removed again');
+select pg_temp.assert_true(
+  not exists (select 1 from public.venue_closures
+              where venue_id = 'b12a0000-0000-0000-0000-0000000000f3' and removed_at is null)
+  and exists (select 1 from public.venue_closures
+              where venue_id = 'b12a0000-0000-0000-0000-0000000000f3' and reason = 'Ceiling repair')
+  and exists (select 1 from public.venue_closures
+              where venue_id = 'b12a0000-0000-0000-0000-0000000000f1'
+                and reason = 'Deep clean' and removed_at is null),
+  'AC-012.9.3: venue staff can list current blocks, which leave out removed ones kept on record');
+
+select pg_temp.as_user('00000000-0000-0000-0000-000000000003');
+select pg_temp.hold('b12a0000-0000-0000-0000-0000000000bb',
+  'b12a0000-0000-0000-0000-0000000000f3', 'b12a0000-0000-0000-0000-0000000000e2',
+  '[{"date":"2040-03-12","slot":"NIGHT","kind":"event"}]');
+select pg_temp.assert_true(
+  exists (select 1 from public.venue_slot_claims
+          where booking_id = 'b12a0000-0000-0000-0000-0000000000bb'),
+  'AC-012.9.8: the slots of a removed block can be booked again');
