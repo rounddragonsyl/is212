@@ -139,12 +139,12 @@ describe('AC-010.4 — one active hold per event', () => {
       .toEqual({ ok: false, reason: messages.alreadyHeld, conflicts: [] })
     expect(fake.callsTo('venue_bookings', 'insert')).toHaveLength(0)
   })
-  test('AC-010.4.2: the check looks for this event’s live bookings only', async () => {
+  test('AC-010.4.2: the check looks for this event’s active holds only, not every live booking', async () => {
     plan({ existingHold: { id: 'existing-hold' } })
     await holdVenue(EVENT_ID, VENUE_ID)
     const check = fake.queryThatCalled('venue_bookings', 'in')
     expect(check?.eq).toHaveBeenCalledWith('event_id', EVENT_ID)
-    expect(check?.in).toHaveBeenCalledWith('status', ['held', 'pending_approval', 'confirmed'])
+    expect(check?.in).toHaveBeenCalledWith('status', ['held', 'pending_approval'])
   })
 })
 

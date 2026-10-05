@@ -3,7 +3,7 @@ import { supabase } from '../../lib/supabase'
 import { claimsForEvent } from './slots'
 import type { ClaimCell, SlotCode, TimeSlot } from './slots'
 import {
-  BOOKABLE_EVENT_STATUSES, LIVE_BOOKING_STATUSES, canBookForEventStatus, describeConflicts, holdExpiryFrom,
+  ACTIVE_HOLD_STATUSES, BOOKABLE_EVENT_STATUSES,  canBookForEventStatus, describeConflicts, holdExpiryFrom,
 } from './holdRules'
 import type {
   BookingConflict, HoldVenueResult, VenueBookingActionResult, VenueBookingListResult,
@@ -143,7 +143,7 @@ export async function holdVenue(
     .from('venue_bookings')
     .select('id')
     .eq('event_id', eventId)
-    .in('status', [...LIVE_BOOKING_STATUSES])
+    .in('status', [...ACTIVE_HOLD_STATUSES])
     .maybeSingle()
   if (existing) return refused(VENUE_BOOKING_MESSAGES.alreadyHeld)
 

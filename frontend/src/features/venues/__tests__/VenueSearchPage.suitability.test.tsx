@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 import { VenueSearchPage } from '../pages/VenueSearchPage'
 import type { VenueSearchFilters } from '../types'
@@ -47,7 +48,7 @@ beforeEach(() => {
 
 describe('AC-018.1 — coordinators can identify suitable venues', () => {
   test("AC-018.1.34: searching for one of your events shows each result's verdict for it", async () => {
-    render(<VenueSearchPage />)
+    render(<MemoryRouter><VenueSearchPage /></MemoryRouter>)
     await screen.findByText('Main Hall')
     fireEvent.click(screen.getByRole('button', { name: 'Use my event' }))
     fireEvent.click(screen.getByRole('button', { name: 'Search' }))
@@ -56,7 +57,7 @@ describe('AC-018.1 — coordinators can identify suitable venues', () => {
   })
 
   test('AC-018.1.35: a search not tied to an event does not check suitability', async () => {
-    render(<VenueSearchPage />)
+    render(<MemoryRouter><VenueSearchPage /></MemoryRouter>)
     await screen.findByText('Main Hall')
     expect(mocks.assess).not.toHaveBeenCalled()
     expect(screen.queryByText(/for this event/)).not.toBeInTheDocument()

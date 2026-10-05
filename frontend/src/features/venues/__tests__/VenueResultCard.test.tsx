@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, test } from 'vitest'
 import { VenueResultCard } from '../components/VenueResultCard'
 import type { VenueAssessment } from '../suitabilityTypes'
@@ -21,25 +22,25 @@ function assessment(overrides: Partial<VenueAssessment>): VenueAssessment {
 
 describe('AC-018.1 — coordinators can identify suitable venues', () => {
   test('AC-018.1.32: when searching for an event, each result shows its verdict for that event', () => {
-    render(<ul><VenueResultCard venue={VENUE} assessment={assessment({})} /></ul>)
+    render(<MemoryRouter><ul><VenueResultCard venue={VENUE} assessment={assessment({})} /></ul></MemoryRouter>)
     expect(screen.getByText('Suitable for this event')).toBeInTheDocument()
   })
 
   test('AC-018.1.33: a search not tied to an event shows no verdict', () => {
-    render(<ul><VenueResultCard venue={VENUE} /></ul>)
+    render(<MemoryRouter><ul><VenueResultCard venue={VENUE} /></ul></MemoryRouter>)
     expect(screen.queryByText(/for this event/)).not.toBeInTheDocument()
   })
 })
 
 describe('AC-018.3 — venues that do not meet requirements are marked unsuitable', () => {
   test('AC-018.3.34: an unsuitable result shows its first reason and how many more there are', () => {
-    render(<ul><VenueResultCard venue={VENUE} assessment={assessment({
+    render(<MemoryRouter><ul><VenueResultCard venue={VENUE} assessment={assessment({
       verdict: 'unsuitable',
       reasons: [
         { code: 'capacity', message: 'Holds at most 20 in any layout; 60 attendees are expected.' },
         { code: 'facility', message: 'Missing facilities: Projector.' },
       ],
-    })} /></ul>)
+    })} /></ul></MemoryRouter>)
     expect(screen.getByText('Unsuitable for this event')).toBeInTheDocument()
     expect(screen.getByText('Holds at most 20 in any layout; 60 attendees are expected. (+1 more)')).toBeInTheDocument()
   })
