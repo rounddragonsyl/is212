@@ -37,6 +37,7 @@ function navItemsFor(role: UserRole | null): NavItem[] {
         { label: 'Requests', to: '/requests' },
         { label: 'Venues', to: '/venues/search' },
         ...(FEATURES.venueSuitability ? [{ label: 'Suitability', to: '/venues/suitability' }] : []),
+        ...(FEATURES.venueBlocks ? [{ label: 'Venue alerts', to: '/venues/alerts' }] : []),
       ]
     case 'operations_manager':
       return [home, { label: 'Requests', to: '/requests' }]
