@@ -1,5 +1,9 @@
 -- US12 Block Venue Availability (SCRUM-14), slice 3: a saved block holds its cells
 -- (SCRUM-119, SCRUM-121). Apply after 0027. Safe to replay.
+--
+-- A block is a venue_closures row plus one 'maintenance' cell per date and slot in the
+-- slot ledger. The ledger's primary key (venue, date, slot) is the hard block: a booking,
+-- its setup/turnaround buffer and a block can never share a cell.
 begin;
 
 -- A block covers chosen slots, not always whole days. Rows from before this migration
@@ -28,6 +32,13 @@ begin
   insert into public.venue_closures (venue_id, starts_on, ends_on, slots, reason, created_by)
   values (p_venue_id, p_starts_on, p_ends_on, p_slots, p_reason, auth.uid())
   returning id into v_closure;
+
+  -- A cell already held (by a booking or another block) makes this insert fail with
+  -- 23505, so the whole block is refused. Slice 5 changes that for booked cells.
+  insert into public.venue_slot_claims (venue_id, slot_date, slot, kind, closure_id)
+  select p_venue_id, d::date, s, 'maintenance', v_closure
+  from generate_series(p_starts_on, p_ends_on, interval '1 day') d
+  cross join unnest(p_slots) s;
 
   return v_closure;
 end;
