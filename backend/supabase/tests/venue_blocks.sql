@@ -498,3 +498,8 @@ select pg_temp.assert_true(
   and (select count(*) = 3 from public.venue_slot_claims
        where booking_id = 'b12a0000-0000-0000-0000-0000000000b7'),
   'AC-012.9.5: removing a block frees its cells and leaves existing bookings in place');
+select pg_temp.assert_true(
+  coalesce((select removed_by = 'b12a0000-0000-0000-0000-000000000001'
+                   and removed_at is not null
+            from public.venue_closures where reason = 'Ceiling repair'), false),
+  'AC-012.10.2: a removed block keeps its record, with who removed it and when');
