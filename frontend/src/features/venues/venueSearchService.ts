@@ -28,7 +28,7 @@ function toVenue(row: VenueRow): Venue {
     id: row.id,
     name: row.name,
     capacity: row.capacity,
-    layout: row.layout,
+    layout: row.layout ?? '',
     accessibility: row.accessibility ?? [],
     facility: row.facility ?? {},
     status: row.status,
@@ -121,7 +121,7 @@ export async function searchVenues(
   const location = filters.location.trim()
   if (location) query = query.ilike('location', `%${location}%`)
 
-  if (filters.layout.trim()) query = query.eq('layout', filters.layout.trim())
+    if (filters.layout.trim()) query = query.eq('layout', filters.layout.trim())
 
   const minAttendance = filters.minAttendance.trim() === '' ? null : Number(filters.minAttendance)
   if (minAttendance !== null && !Number.isNaN(minAttendance)) {
@@ -148,7 +148,6 @@ export async function searchVenues(
       filters.facilities.every((key) => Boolean(venue.facility[key])),
     )
   }
-
   const requiredCells = await requiredCellsForFilters(filters, slots)
   if (requiredCells) {
     venues = await excludeUnavailable(venues, requiredCells)
