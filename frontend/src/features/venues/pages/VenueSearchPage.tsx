@@ -125,7 +125,12 @@ export function VenueSearchPage() {
           ) : (
             <ul className="space-y-4">
               {venues.map((venue) => (
-                <VenueResultCard key={venue.id} venue={venue} assessment={assessments.get(venue.id)} />
+                <VenueResultCard
+                    key={venue.id}
+                    venue={venue}
+                    assessment={assessments.get(venue.id)}
+                    eventId={filters.eventId || undefined}
+                  />
               ))}
             </ul>
           )}
