@@ -31,3 +31,6 @@ select pg_temp.expect_error($q$insert into public.venue_closures (venue_id, star
   values ('b12a0000-0000-0000-0000-0000000000f1','2040-06-01','AM','maintenance',
           'b12a0000-0000-0000-0000-0000000000c1')$q$, '42501',
   'AC-012.1.5: venue staff cannot write a blocked cell directly');
+select pg_temp.expect_error($q$delete from public.venue_closures
+  where id = 'b12a0000-0000-0000-0000-0000000000c1'$q$, '42501',
+  'AC-012.1.6: venue staff cannot delete a block row directly');
