@@ -13,7 +13,9 @@ begin
     raise exception 'Only Venue Staff can remove a venue block' using errcode = '42501';
   end if;
 
-  raise exception 'Removing a venue block is not available yet' using errcode = '0A000';
+  -- Only the block's own cells. Booking cells inside it never belonged to the block.
+  delete from public.venue_slot_claims
+  where closure_id = p_closure_id and kind = 'maintenance';
 end;
 $$;
 revoke execute on function public.remove_venue_block(uuid) from public, anon;
