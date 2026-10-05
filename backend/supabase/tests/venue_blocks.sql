@@ -423,3 +423,10 @@ select pg_temp.assert_true(
   (select count(*) = 2 from public.venue_booking_flags
    where venue_id = 'b12a0000-0000-0000-0000-0000000000f3'),
   'AC-012.8.10: venue staff can see every flag a block raised');
+select pg_temp.as_user('00000000-0000-0000-0000-000000000003');
+select pg_temp.assert_true(
+  coalesce((select array_agg(booking_id::text order by booking_id)
+                   = array['b12a0000-0000-0000-0000-0000000000b7']
+            from public.venue_booking_flags
+            where venue_id = 'b12a0000-0000-0000-0000-0000000000f3'), false),
+  'AC-012.8.6: a coordinator sees flags for their own events only');
