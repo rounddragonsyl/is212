@@ -509,3 +509,8 @@ select pg_temp.assert_true(
             from public.venue_booking_flags
             where booking_id = 'b12a0000-0000-0000-0000-0000000000b7'), false),
   'AC-012.9.6: removing a block resolves the flags it raised');
+set role authenticated;
+select pg_temp.as_user('b12a0000-0000-0000-0000-000000000001');
+select pg_temp.expect_error($q$select public.remove_venue_block(
+  (select id from public.venue_closures where reason = 'Ceiling repair'))$q$, 'P0002',
+  'AC-012.9.7: a block that has already been removed cannot be removed again');
