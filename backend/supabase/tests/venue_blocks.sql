@@ -444,3 +444,10 @@ select pg_temp.as_user('00000000-0000-0000-0000-000000000001');
 select pg_temp.assert_true(
   not exists (select 1 from public.venue_booking_flags),
   'AC-012.8.9: an organiser cannot see internal booking flags');
+
+-- ===== Slice 6: keeping blocks honest (AC-012.8.11 to 8.13, 5.4) =====
+select pg_temp.as_user('b12a0000-0000-0000-0000-000000000001');
+select pg_temp.expect_error($q$update public.venue_bookings
+  set status = 'confirmed', reviewed_by = auth.uid(), reviewed_at = now()
+  where id = 'b12a0000-0000-0000-0000-0000000000b8'$q$, '23514',
+  'AC-012.8.11: venue staff cannot approve a pending booking that a block has flagged');
