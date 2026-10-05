@@ -63,3 +63,16 @@ export interface BlockableVenue {
   name: string
   location: string
 }
+
+/** AC-012.8: a coordinator's booking that a venue block has put up for review. */
+export interface FlaggedBooking {
+  id: string
+  bookingId: string
+  eventId: string
+  eventReference: string | null
+  eventName: string | null
+  venueName: string
+  detail: string
+  cells: PreviewCell[]
+  createdAt: string
+}
