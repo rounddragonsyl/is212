@@ -57,3 +57,12 @@ select pg_temp.as_user('b12a0000-0000-0000-0000-000000000001');
 select pg_temp.expect_error($q$select public.block_venue('b12a0000-0000-0000-0000-0000000000ff',
   '2040-05-01','2040-05-01',array['AM'],'Missing venue')$q$, 'P0002',
   'AC-012.2.10: an unknown venue is reported as not found');
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+insert into public.venues (id, name, location, capacity, layout, status) values
+ ('b12a0000-0000-0000-0000-0000000000f2', 'Retired Room', 'Level 2', 40, 'Boardroom', 'retired');
+set role authenticated;
+select pg_temp.as_user('b12a0000-0000-0000-0000-000000000001');
+select pg_temp.expect_error($q$select public.block_venue('b12a0000-0000-0000-0000-0000000000f2',
+  '2040-05-01','2040-05-01',array['AM'],'Retired')$q$, '22023',
+  'AC-012.2.9: a retired venue cannot be blocked');
