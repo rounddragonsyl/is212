@@ -415,3 +415,11 @@ select pg_temp.assert_true(
    from public.venue_booking_flags
    where venue_id = 'b12a0000-0000-0000-0000-0000000000f3'),
   'AC-012.10.3: each flag records which staff member raised it and when');
+
+-- ===== Slice 5b: who can see which flag (AC-012.8.6 to 8.10) =====
+set role authenticated;
+select pg_temp.as_user('b12a0000-0000-0000-0000-000000000001');
+select pg_temp.assert_true(
+  (select count(*) = 2 from public.venue_booking_flags
+   where venue_id = 'b12a0000-0000-0000-0000-0000000000f3'),
+  'AC-012.8.10: venue staff can see every flag a block raised');
