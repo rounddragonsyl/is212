@@ -171,6 +171,19 @@ select pg_temp.assert_true(
           where venue_id = 'b18a0000-0000-0000-0000-0000000000d1' and layout = 'hall' and capacity = 200),
   'AC-018.3.39: after the repair, 0022 records the repaired venue''s layout with its capacity');
 SQL
-  # US12 venue blocks.
+  # US12 venue blocks: tests, then replay every US12 migration and check nothing changed.
   cat "$repo_root/supabase/tests/venue_blocks.sql"
+  for n in 0026 0027 0028 0029 0030 0031 0032 0033 0034; do
+    cat "$repo_root"/supabase/migrations/${n}_*.sql
+  done
+  cat <<'SQL'
+select pg_temp.assert_true(
+  not exists ((select * from public.venue_closures except select * from blocks_before_replay)
+    union all (select * from blocks_before_replay except select * from public.venue_closures))
+  and not exists ((select * from public.venue_booking_flags except select * from flags_before_replay)
+    union all (select * from flags_before_replay except select * from public.venue_booking_flags))
+  and not exists ((select * from public.venue_slot_claims except select * from claims_before_replay)
+    union all (select * from claims_before_replay except select * from public.venue_slot_claims)),
+  'AC-012.10.4: replaying the US12 migrations preserves blocks, flags and blocked cells');
+SQL
 } | docker exec -i "$container" psql -X -U postgres -v ON_ERROR_STOP=1
