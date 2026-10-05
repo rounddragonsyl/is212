@@ -290,3 +290,7 @@ select pg_temp.assert_true(
      and ((p.slot = 'AM' and p.block_reason = 'Morning inspection')
        or (p.slot = 'PM' and p.block_reason = 'Deep clean'))),
   'AC-012.9.2: preview reports the existing blocks that a new one would overlap');
+select pg_temp.as_user('00000000-0000-0000-0000-000000000003');
+select pg_temp.expect_error($q$select * from public.preview_venue_block('b12a0000-0000-0000-0000-0000000000f1',
+  '2040-04-08','2040-04-08',array['AM'])$q$, '42501',
+  'AC-012.7.4: only venue staff can preview a block');
