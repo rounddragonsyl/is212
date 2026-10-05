@@ -239,3 +239,18 @@ select pg_temp.assert_true(
           and created_by_name = 'Vera Venue' and created_at is not null
    from public.venue_closures where reason = 'Deep clean'),
   'AC-012.10.1: a block records the staff member who created it, their name and the time');
+
+-- ===== Slice 4: preview before saving (AC-012.7, AC-012.9.2) =====
+select pg_temp.as_user('b12a0000-0000-0000-0000-000000000001');
+select pg_temp.assert_true(
+  (select count(*) = 3
+   from public.preview_venue_block('b12a0000-0000-0000-0000-0000000000f1',
+          '2040-04-08', '2040-04-08', array['AM','PM','NIGHT']) p
+   where p.overlap_type = 'booking' and p.event_reference = 'EVT-B12-4'
+     and p.booking_status = 'held')
+  and exists (
+   select 1
+   from public.preview_venue_block('b12a0000-0000-0000-0000-0000000000f1',
+          '2040-04-08', '2040-04-08', array['AM','PM','NIGHT']) p
+   where p.slot = 'PM' and p.claim_kind = 'event'),
+  'AC-012.7.1: preview lists each overlapping booking cell with its event and booking status');
