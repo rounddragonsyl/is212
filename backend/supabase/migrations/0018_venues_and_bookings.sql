@@ -250,4 +250,15 @@ create policy claims_delete_venue_staff on public.venue_slot_claims
     )
   );
 
+CREATE OR REPLACE FUNCTION pg_temp.jsonb_keys(input_text text)
+RETURNS text[] AS $$
+BEGIN
+  RETURN array_agg(key)
+  FROM jsonb_object_keys(input_text::jsonb) AS key;
+END;
+$$ LANGUAGE plpgsql;
+
+ALTER TABLE public.venues 
+ALTER COLUMN facility TYPE text[] USING pg_temp.jsonb_keys(facility);
+
 commit;
