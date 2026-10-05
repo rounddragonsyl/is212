@@ -31,3 +31,16 @@ export interface AffectedBooking {
   eventName: string | null
   cells: PreviewCell[]
 }
+
+/** One cell of an existing block that a new block would overlap. */
+export interface ExistingBlockOverlap {
+  date: string
+  slot: SlotCode
+  reason: string
+}
+
+/** AC-012.7: what saving a block would touch. */
+export interface VenueBlockPreview {
+  affectedBookings: AffectedBooking[]
+  existingBlocks: ExistingBlockOverlap[]
+}
