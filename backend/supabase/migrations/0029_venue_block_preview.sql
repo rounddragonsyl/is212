@@ -25,7 +25,12 @@ stable
 security definer
 set search_path = ''
 as $$
+declare
+  v_slots text[];
 begin
+  -- The same checks block_venue runs, so a preview never accepts what saving would refuse.
+  v_slots := public.venue_block_request_slots(p_venue_id, p_starts_on, p_ends_on, p_slots);
+
   return query
   select 'booking'::text, b.id, b.status::text, e.reference::text, e.name::text,
          c.slot_date, c.slot::text, c.kind::text, null::text
@@ -35,7 +40,7 @@ begin
   where c.venue_id = p_venue_id
     and c.kind in ('event', 'buffer')
     and c.slot_date between p_starts_on and p_ends_on
-    and c.slot = any (p_slots)
+    and c.slot = any (v_slots)
     -- A lapsed hold no longer reserves anything, so it is not an affected booking.
     and not (b.status = 'held' and b.hold_expires_at < now())
 
@@ -51,7 +56,7 @@ begin
   cross join lateral unnest(vc.slots) s
   where vc.venue_id = p_venue_id
     and vc.starts_on <= p_ends_on and vc.ends_on >= p_starts_on
-    and s = any (p_slots)
+    and s = any (v_slots)
 
   order by 6, 7;
 end;
