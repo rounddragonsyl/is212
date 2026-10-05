@@ -43,6 +43,9 @@ begin
   if cardinality(p_slots) = 0 then
     raise exception 'Choose at least one slot to block' using errcode = '22023';
   end if;
+  if exists (select 1 from unnest(p_slots) s where s not in ('AM', 'PM', 'NIGHT')) then
+    raise exception 'Slots must be AM, PM or NIGHT' using errcode = '22023';
+  end if;
 
   return p_slots;
 end;
