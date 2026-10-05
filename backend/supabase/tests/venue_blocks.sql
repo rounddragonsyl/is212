@@ -34,3 +34,6 @@ select pg_temp.expect_error($q$insert into public.venue_closures (venue_id, star
 select pg_temp.expect_error($q$delete from public.venue_closures
   where id = 'b12a0000-0000-0000-0000-0000000000c1'$q$, '42501',
   'AC-012.1.6: venue staff cannot delete a block row directly');
+select pg_temp.expect_error($q$update public.venue_closures set reason = 'Edited directly'
+  where id = 'b12a0000-0000-0000-0000-0000000000c1'$q$, '42501',
+  'AC-012.1.7: venue staff cannot change a block row directly');
