@@ -11,6 +11,10 @@ begin;
 alter table public.venue_closures
   add column if not exists slots text[] not null default array['AM', 'PM', 'NIGHT'];
 
+-- 0018 refused any two closures on the same date. With slots, an AM block and a PM block
+-- on one day are not an overlap. A same-slot overlap is still refused, by the ledger key.
+alter table public.venue_closures drop constraint if exists no_overlapping_closures;
+
 -- Shared by preview (slice 4) and block, so a preview can never accept what the block
 -- would refuse. Internal: callable only from the functions below, never the browser.
 create or replace function public.venue_block_request_slots(
