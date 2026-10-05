@@ -219,3 +219,11 @@ select pg_temp.assert_true(
        join public.venue_closures vc on vc.id = c.closure_id
        where vc.reason = 'Unordered slots'),
   'AC-012.2.8: repeated and unordered slots are stored once each, in time order');
+select public.block_venue('b12a0000-0000-0000-0000-0000000000f1', '2040-04-01', '2040-04-01',
+  array['AM'], 'Morning inspection');
+select pg_temp.assert_true(
+  (select vc.reason = 'Morning inspection' from public.venue_slot_claims c
+   join public.venue_closures vc on vc.id = c.closure_id
+   where c.venue_id = 'b12a0000-0000-0000-0000-0000000000f1'
+     and c.slot_date = '2040-04-01' and c.slot = 'AM'),
+  'AC-012.2.11: a different slot on an already partly blocked date can be blocked separately');
