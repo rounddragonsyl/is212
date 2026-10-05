@@ -788,7 +788,7 @@ blocked slots are refused by the slot ledger. Unavailable outranks unsuitable, b
 reasons are kept. If availability can't be checked, the check fails closed. A venue saved
 with a new layout name adds that layout to the catalogue. The alert for booking an
 unsuitable venue (`UnsuitableVenueAlert`, `assessVenueForBooking`) is built and tested,
-but wiring it into the booking button is SCRUM-171, blocked on US9/US11.
+and, since 5 October 2026, showing it in the hold flow is part of US11 (SCRUM-171, now under SCRUM-16).
 
 Test allocation (database checks in `backend/supabase/tests/venue_suitability.sql`,
 `venue_shape_repair.sql` and the runner's replay checks; app tests in
