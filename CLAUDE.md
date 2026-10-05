@@ -34,7 +34,7 @@ Supabase (PostgreSQL + Auth + RLS) · Vitest + React Testing Library · GitHub A
 - Current story numbers: US1 Save Draft (SCRUM-8), US2 Submit Event Request (SCRUM-7),
   US3 View Event Request Status (SCRUM-24), US4 Review and Approve/Reject/Return
   (SCRUM-9), US6 Organiser Requesting Changes (SCRUM-11), US7 Coordinator Reviewing
-  Change Requests (SCRUM-12).
+  Change Requests (SCRUM-12), US13 Record Equipment Requirements (SCRUM-19).
 - Z is unique per criterion across the whole story, including parameterised rows and
   tests in different files. Before adding a test, use the next unused Z for that
   criterion (see README allocations); never reuse or renumber an existing ID.
@@ -239,3 +239,22 @@ Reporting, analytics, recurring events, multi-session events, dashboards.
 - Progress correction to older sections: reply flow and revalidation were user-tested;
   0016 was applied and email queuing reported by Jaydon. Actual notification delivery is
   still unverified. Organiser notifications are deferred; do not reconfigure the shared sender.
+
+## US13 equipment requirements (SCRUM-19)
+- 0024_event_equipment_requirements.sql follows 0023 and does not modify 0019's tables.
+  Requirements are the Coordinator's list; reserving is US14 through 0019 booking lines and
+  allocations, linked back by booking_line_id. Recording must never create a booking or
+  allocation (AC-013.5). Applied to shared Supabase on 3 October; there, 0019 had no
+  equipment_types policies, so types_select_staff was re-created from 0019 (see docs).
+- Only the assigned coordinator (events.coordinator_id) writes, and only while the event is
+  approved/planning/confirmed (trigger, errcode 22000). Column grants let the browser write
+  only type_id, quantity, technical_notes and essential; never grant status, booking_line_id,
+  created_by or event_id. Reads: assigned coordinator and all tech_support.
+- A type/quantity change on a reserved/partially_reserved line resets it to pending_review
+  and cancels its 'reserved' allocations; deletion cancels them too. Cancel, never delete;
+  checked_out/returned stay. Notes/essential edits keep the reservation.
+- Notifications: trigger-written equipment_requirement_notifications, one per tech_support
+  user, for added/changed/removed Coordinator fields only. No browser write path.
+- equipmentRequirementService.ts is the only Supabase access; equipmentRows.ts maps rows.
+  Tests AC-013.1–6: 57 app tests, 56 SQL checks in equipment_requirements.sql. Totals: 446 app
+  tests; 203 database checks. Next IDs and the US14 contract: docs/us13-equipment-requirements.md.
