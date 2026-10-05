@@ -53,7 +53,7 @@ supabase link --project-ref <your-project-ref>
 supabase db push
 ```
 
-Apply migrations **in order**, `0001` through `0025`, including both `0005` files
+Apply migrations **in order**, `0001` through `0034`, including both `0005` files
 before `0006` and `0019a` straight after `0019`. All are safe to replay; see
 [Shared Supabase state](#shared-supabase-state-5-october-2026). The two files currently share a version prefix, so the CLI path above
 needs that version collision resolved before it can be relied on; use the SQL Editor
@@ -788,7 +788,7 @@ blocked slots are refused by the slot ledger. Unavailable outranks unsuitable, b
 reasons are kept. If availability can't be checked, the check fails closed. A venue saved
 with a new layout name adds that layout to the catalogue. The alert for booking an
 unsuitable venue (`UnsuitableVenueAlert`, `assessVenueForBooking`) is built and tested,
-but wiring it into the booking button is SCRUM-171, blocked on US9/US11.
+and, since 5 October 2026, showing it in the hold flow is part of US11 (SCRUM-171, now under SCRUM-16).
 
 Test allocation (database checks in `backend/supabase/tests/venue_suitability.sql`,
 `venue_shape_repair.sql` and the runner's replay checks; app tests in
@@ -800,6 +800,58 @@ Test allocation (database checks in `backend/supabase/tests/venue_suitability.sq
 | AC-018.2 — alert when booking an unsuitable venue | — | AC-018.2.1–2.6 |
 | AC-018.3 — mark venues failing requirements unsuitable | AC-018.3.1–3.25, AC-018.3.35–3.39 | AC-018.3.26–3.34 |
 | AC-018.4 — black out venues taken by bookings or maintenance | — | AC-018.4.1–4.13 |
+
+## US12 Block Venue Availability (SCRUM-14)
+
+Venue Staff can block a venue for one or more slots (AM, PM, Night) on one date or a range
+of up to 366 days, with a reason. Before saving, they preview the bookings and existing
+blocks it would overlap. Bookings inside a new block are **flagged for review, not
+cancelled** (Week 7 change 2): each one's coordinator is emailed and sees it under **Venue
+alerts**, and a flagged booking cannot be approved until the block is removed or the
+booking ends. Removing a block keeps it on record with who removed it and when. Screens
+(**Venue blocks** for Venue Staff, **Venue alerts** for coordinators) are behind
+`VITE_FEATURE_VENUE_BLOCKS`, which is off unless set to `true` in your own `frontend/.env`.
+
+Migrations, all safe to replay (the runner replays 0026–0034 and checks no data changed):
+
+| File | Adds |
+| --- | --- |
+| `0026_venue_closures_lock_writes.sql` | Revokes direct browser writes to `venue_closures` and to `maintenance` cells, so blocks change only through the functions below |
+| `0027_venue_block_validation.sql` | `block_venue()` and its shared request checks: Venue Staff only, a real non-retired venue, dates in order, at most 366 days, valid slots, a reason |
+| `0028_venue_block_cells.sql` | `venue_closures.slots` and `created_by_name`. A saved block writes one `maintenance` cell per date and slot to the slot ledger. Drops 0018's date-only `no_overlapping_closures`. |
+| `0029_venue_block_preview.sql` | `preview_venue_block()`: the booking cells and existing blocks a block would overlap, without writing |
+| `0030_venue_block_flags.sql` | `venue_booking_flags`. A block over bookings flags them instead of failing, releases lapsed holds on the venue, and queues one email per flag. |
+| `0031_venue_block_flag_access.sql` | Who reads flags: Venue Staff all of them; a coordinator those on their events and those sent to them; nobody writes them from the browser |
+| `0032_venue_block_triggers.sql` | A flagged booking cannot be confirmed (`23514`); a cell a booking frees inside a block goes to the block; a booking that ends resolves its flags |
+| `0033_venue_block_removal.sql` | `remove_venue_block()` with `removed_at`/`removed_by`: soft removal that frees the block's cells and resolves its flags |
+| `0034_venue_block_skip_removed.sql` | Removed blocks no longer count as overlaps, appear in the preview, or take back freed cells |
+
+Design notes: the slot ledger's primary key (venue, date, slot) is the hard block, so a
+booking, its setup and turnaround, and a block can never share a cell, whoever writes
+first. Blocks change only through `security definer` functions with `search_path = ''`,
+executable by `authenticated` only, so none can skip flagging and notification. Saving a
+block, its cells, its flags and its emails is one transaction. A booking already confirmed
+when a block lands stays confirmed and flagged; only the step to `confirmed` is refused.
+A preview counts only for the venue, dates and slots it checked. Showing blocked slots on
+an availability calendar (part of AC-012.4) is US19's job; the blocks page lists them with
+their reasons.
+
+Test allocation (database checks in `backend/supabase/tests/venue_blocks.sql`, plus the
+runner's replay check AC-012.10.4; app tests in `frontend/src/features/venues/__tests__/`
+and `frontend/src/components/layout/__tests__/TopNav.test.tsx`):
+
+| Criterion | Database checks | App tests |
+| --- | --- | --- |
+| AC-012.1 — only Venue Staff can block | AC-012.1.1–1.7 | AC-012.1.8–1.12 |
+| AC-012.2 — one or more slots, on one date or a range | AC-012.2.1–2.11 | AC-012.2.12–2.30 |
+| AC-012.3 — a reason is required | AC-012.3.1–3.3 | AC-012.3.4–3.7 |
+| AC-012.4 — blocked slots show, with the reason for Venue Staff | AC-012.4.1–4.2 | — |
+| AC-012.5 — no new booking on a blocked slot, including setup and turnaround | AC-012.5.1–5.5 | — |
+| AC-012.6 — other slots and dates are unaffected | AC-012.6.1–6.2 | — |
+| AC-012.7 — overlaps are previewed before saving | AC-012.7.1–7.5 | AC-012.7.6–7.14 |
+| AC-012.8 — overlapping bookings are flagged, not cancelled, and coordinators notified | AC-012.8.1–8.13 | AC-012.8.14–8.25 |
+| AC-012.9 — current blocks can be viewed and removed | AC-012.9.1–9.11 | AC-012.9.12–9.25 |
+| AC-012.10 — who blocked, and when, is recorded | AC-012.10.1–10.4 | AC-012.10.5–10.6 |
 
 ## Shared Supabase state (5 October 2026)
 
@@ -821,6 +873,11 @@ What the replay found and fixed:
 
 Schema changes go through migrations only. Changing a table by hand in the dashboard is
 what caused the drift.
+
+US12's migrations `0026`–`0034` were then applied in order on shared Supabase on
+5 October 2026, one file per run in the SQL Editor, with a read-only check confirming each.
+From then on, Venue Staff cannot write `venue_closures` directly, and a booking with an
+open venue-block flag cannot be confirmed.
 
 
 

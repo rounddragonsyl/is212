@@ -38,6 +38,7 @@ function navItemsFor(role: UserRole | null): NavItem[] {
         { label: 'Venues', to: '/venues/search' },
         ...(FEATURES.venueSuitability ? [{ label: 'Suitability', to: '/venues/suitability' }] : []),
         ...(FEATURES.venueBooking ? [{ label: 'My bookings', to: '/venues/bookings' }] : []),
+        ...(FEATURES.venueBlocks ? [{ label: 'Venue alerts', to: '/venues/alerts' }] : []),
       ]
     case 'operations_manager':
       return [home, { label: 'Requests', to: '/requests' }]
@@ -46,6 +47,11 @@ function navItemsFor(role: UserRole | null): NavItem[] {
         home,
         { label: 'Equipment', to: '/equipment' },
         { label: 'Reserve equipment', to: '/equipment/reservations' },
+      ]
+    case 'venue_staff':
+      return [
+        home,
+        ...(FEATURES.venueBlocks ? [{ label: 'Venue blocks', to: '/venues/blocks' }] : []),
       ]
     default:
       return [home]

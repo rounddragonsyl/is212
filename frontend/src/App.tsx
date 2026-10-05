@@ -16,6 +16,8 @@ import { VenueSuitabilityPage } from './features/venues/pages/VenueSuitabilityPa
 import { VenueDetailsPage } from './features/venues/pages/VenueDetailsPage'
 import { VenueTimetablePage } from './features/venues/pages/VenueTimetablePage'
 import { MyVenueBookingsPage } from './features/venues/pages/MyVenueBookingsPage'
+import { VenueBlocksPage } from './features/venues/pages/VenueBlocksPage'
+import { FlaggedBookingsPage } from './features/venues/pages/FlaggedBookingsPage'
 import { EventEquipmentPage } from './features/equipment/pages/EventEquipmentPage'
 import { TechSupportEquipmentPage } from './features/equipment/pages/TechSupportEquipmentPage'
 import { ReserveEquipmentPage } from './features/equipment/pages/ReserveEquipmentPage'
@@ -50,6 +52,8 @@ export default function App() {
             {FEATURES.venueBooking && <Route path="/venues/bookings" element={<MyVenueBookingsPage />} />}
             {FEATURES.venueBooking && <Route path="/venues/:id" element={<VenueDetailsPage />} />}
             {FEATURES.venueBooking && <Route path="/venues/:id/timetable" element={<VenueTimetablePage />} />}
+            {FEATURES.venueBlocks && <Route path="/venues/blocks" element={<VenueBlocksPage />} />}
+            {FEATURES.venueBlocks && <Route path="/venues/alerts" element={<FlaggedBookingsPage />} />}
             <Route path="/requests/:id/equipment" element={<EventEquipmentPage />} />
             <Route path="/equipment" element={<TechSupportEquipmentPage />} />
             <Route path="/equipment/reservations" element={<ReserveEquipmentPage />} />
