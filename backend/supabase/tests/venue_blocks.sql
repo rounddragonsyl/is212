@@ -51,3 +51,9 @@ select pg_temp.as_user('');
 select pg_temp.expect_error($q$select public.block_venue('b12a0000-0000-0000-0000-0000000000f1',
   '2040-05-01','2040-05-01',array['AM'],'No session')$q$, '42501',
   'AC-012.1.3: a request without a signed-in user cannot block a venue');
+
+-- ===== AC-012.2 / AC-012.3 Input rules (as Venue Staff) =====
+select pg_temp.as_user('b12a0000-0000-0000-0000-000000000001');
+select pg_temp.expect_error($q$select public.block_venue('b12a0000-0000-0000-0000-0000000000ff',
+  '2040-05-01','2040-05-01',array['AM'],'Missing venue')$q$, 'P0002',
+  'AC-012.2.10: an unknown venue is reported as not found');
