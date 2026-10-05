@@ -16,9 +16,9 @@ interface VenueRow {
   id: string
   name: string
   capacity: number
-  layout: string[]
+  layout: string | null
   accessibility: string[] | null
-  facility: string[] | null
+  facility: Record<string, unknown> | null
   status: VenueStatus
   location: string | null
 }
@@ -28,9 +28,9 @@ function toVenue(row: VenueRow): Venue {
     id: row.id,
     name: row.name,
     capacity: row.capacity,
-    layout: row.layout,
+    layout: row.layout ?? '',
     accessibility: row.accessibility ?? [],
-    facility: row.facility ?? [],
+    facility: row.facility ?? {},
     status: row.status,
     location: row.location ?? '',
   }
@@ -121,7 +121,7 @@ export async function searchVenues(
   const location = filters.location.trim()
   if (location) query = query.ilike('location', `%${location}%`)
 
-    if (filters.layout.length > 0) query = query.contains('layout', filters.layout)
+    if (filters.layout.trim()) query = query.eq('layout', filters.layout.trim())
 
   const minAttendance = filters.minAttendance.trim() === '' ? null : Number(filters.minAttendance)
   if (minAttendance !== null && !Number.isNaN(minAttendance)) {
@@ -143,6 +143,11 @@ export async function searchVenues(
   // Facility values may be counts, not booleans, so "has this facility" means the key is
   // present with a truthy value. Done client-side: matching several jsonb keys at once isn't
   // one simple query-builder call.
+  if (filters.facilities.length > 0) {
+    venues = venues.filter((venue) =>
+      filters.facilities.every((key) => Boolean(venue.facility[key])),
+    )
+  }
   const requiredCells = await requiredCellsForFilters(filters, slots)
   if (requiredCells) {
     venues = await excludeUnavailable(venues, requiredCells)
