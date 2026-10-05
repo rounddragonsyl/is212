@@ -81,3 +81,6 @@ select pg_temp.expect_error($q$select public.block_venue('b12a0000-0000-0000-000
 select pg_temp.expect_error($q$select public.block_venue('b12a0000-0000-0000-0000-0000000000f1',
   '2040-05-01','2040-05-01',array['AM'],'   ')$q$, '22023',
   'AC-012.3.1: a blank reason is refused');
+select pg_temp.expect_error($q$select public.block_venue('b12a0000-0000-0000-0000-0000000000f1',
+  '2040-05-01','2040-05-01',array['AM'],null)$q$, '22023',
+  'AC-012.3.2: a missing reason is refused');
