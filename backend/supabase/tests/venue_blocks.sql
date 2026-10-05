@@ -486,3 +486,15 @@ select pg_temp.as_user('00000000-0000-0000-0000-000000000003');
 select pg_temp.expect_error($q$select public.remove_venue_block(
   (select id from public.venue_closures where reason = 'Ceiling repair'))$q$, '42501',
   'AC-012.9.4: a coordinator cannot remove a block');
+select pg_temp.as_user('b12a0000-0000-0000-0000-000000000001');
+select public.remove_venue_block(
+  (select id from public.venue_closures where reason = 'Ceiling repair'));
+
+reset role;
+select pg_temp.assert_true(
+  not exists (select 1 from public.venue_slot_claims c
+              join public.venue_closures vc on vc.id = c.closure_id
+              where vc.reason = 'Ceiling repair')
+  and (select count(*) = 3 from public.venue_slot_claims
+       where booking_id = 'b12a0000-0000-0000-0000-0000000000b7'),
+  'AC-012.9.5: removing a block frees its cells and leaves existing bookings in place');
