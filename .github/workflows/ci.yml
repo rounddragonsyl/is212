@@ -45,3 +45,14 @@ jobs:
         env:
           VITE_SUPABASE_URL: https://example.supabase.co
           VITE_SUPABASE_ANON_KEY: ci-placeholder-anon-key
+
+
+
+  database:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Disposable Postgres 17 in Docker; never touches a Supabase project.
+      - name: Database tests
+        run: bash backend/supabase/tests/run_change_request_review.sh

@@ -11,7 +11,9 @@ docker run --detach --rm --name "$container" \
 
 ready=false
 for attempt in {1..30}; do
-  if docker exec "$container" pg_isready -U postgres >/dev/null 2>&1; then
+  # -h 127.0.0.1: the image's temporary setup server answers only on its socket, so
+  # waiting on TCP waits for the real server and avoids a restart race.
+  if docker exec "$container" pg_isready -U postgres -h 127.0.0.1 >/dev/null 2>&1; then
     ready=true
     break
   fi
@@ -98,5 +100,40 @@ select pg_temp.assert_true(not exists(
  union all (select * from history_before_replay except select * from public.event_change_review_history)),
  'AC-007.13.26: migration replay preserves review history');
 SQL
+  # Equipment (SCRUM-19) first; venue_suitability.sql resets the test user itself.
   cat "$repo_root/supabase/tests/equipment_requirements.sql"
+  # US18 venue suitability: tests, then replay each migration and check nothing changed.
+  cat "$repo_root/supabase/tests/venue_suitability.sql"
+  cat "$repo_root/supabase/migrations/0020_venue_accessibility_array.sql"
+  cat <<'SQL'
+select pg_temp.assert_true(
+  not exists ((select * from public.venues except select * from venues_before_replay)
+    union all (select * from venues_before_replay except select * from public.venues)),
+  'AC-018.3.4: replaying the accessibility migration changes no venue');
+SQL
+  cat "$repo_root/supabase/migrations/0021_layout_types.sql"
+  cat <<'SQL'
+select pg_temp.assert_true(
+  not exists ((select * from public.layout_types except select * from layout_types_before_replay)
+    union all (select * from layout_types_before_replay except select * from public.layout_types)),
+  'AC-018.3.10: replaying the layout catalogue migration changes nothing');
+SQL
+  cat "$repo_root/supabase/migrations/0022_venue_layouts.sql"
+  cat <<'SQL'
+select pg_temp.assert_true(
+  (select array_agg(venue_id::text || ':' || layout || ':' || capacity) from
+     (select * from public.venue_layouts except select * from venue_layouts_before_replay) added)
+   = array['b18a0000-0000-0000-0000-0000000000f9:boardroom:25'],
+  'AC-018.3.20: the migration fills in the primary layout of a venue that existed before it');
+select pg_temp.assert_true(
+  not exists (select * from venue_layouts_before_replay except select * from public.venue_layouts),
+  'AC-018.3.21: replaying the layout migration changes no existing capacity');
+SQL
+  cat "$repo_root/supabase/migrations/0023_event_venue_requirements.sql"
+  cat <<'SQL'
+select pg_temp.assert_true(
+  not exists ((select * from public.event_venue_requirements except select * from requirements_before_replay)
+    union all (select * from requirements_before_replay except select * from public.event_venue_requirements)),
+  'AC-018.3.25: replaying the requirements migration changes no saved requirements');
+SQL
 } | docker exec -i "$container" psql -X -U postgres -v ON_ERROR_STOP=1

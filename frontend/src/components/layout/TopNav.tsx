@@ -2,6 +2,7 @@ import { NavLink } from 'react-router-dom'
 import { SessionBadge } from '../../features/auth/components/SessionBadge'
 import type { AppSession, UserProfile, UserRole } from '../../features/auth/types'
 import { BrandMark } from './BrandMark'
+import { FEATURES } from '../../lib/features'
 
 interface TopNavProps {
   session: AppSession | null
@@ -35,6 +36,7 @@ function navItemsFor(role: UserRole | null): NavItem[] {
         home,
         { label: 'Requests', to: '/requests' },
         { label: 'Venues', to: '/venues/search' },
+        ...(FEATURES.venueSuitability ? [{ label: 'Suitability', to: '/venues/suitability' }] : []),
       ]
     case 'operations_manager':
       return [home, { label: 'Requests', to: '/requests' }]

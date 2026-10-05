@@ -731,7 +731,7 @@ are 15 database checks; .27–31 are five app tests. This increment requires liv
 
 ## US13 equipment requirements (SCRUM-19)
 
-Apply `backend/supabase/migrations/0020_event_equipment_requirements.sql` after 0019.
+Apply `backend/supabase/migrations/0024_event_equipment_requirements.sql` after 0023.
 The assigned Event Coordinator records catalogue equipment lines for an approved,
 planning or confirmed event at `/requests/:id/equipment`, with the Organiser's request
 shown alongside. Technical Support sees every line and its notifications at `/equipment`.
