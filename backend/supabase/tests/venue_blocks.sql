@@ -408,3 +408,10 @@ select pg_temp.assert_true(
      and body like '%Reason: Ceiling repair%'
      and body like '%has not been cancelled%'),
   'AC-012.8.4: an email naming the venue, reason and unchanged booking is queued for each coordinator');
+select pg_temp.assert_true(
+  (select count(*) = 2
+          and bool_and(created_by = 'b12a0000-0000-0000-0000-000000000001'
+                       and created_at is not null)
+   from public.venue_booking_flags
+   where venue_id = 'b12a0000-0000-0000-0000-0000000000f3'),
+  'AC-012.10.3: each flag records which staff member raised it and when');
