@@ -13,4 +13,17 @@ create policy venue_booking_flags_select_staff on public.venue_booking_flags
   for select to authenticated
   using (public.current_user_role() = 'venue_staff');
 
+-- A coordinator sees flags on the events assigned to them now, so a reassigned event's
+-- open problem moves to the new coordinator.
+drop policy if exists venue_booking_flags_select_coordinator on public.venue_booking_flags;
+create policy venue_booking_flags_select_coordinator on public.venue_booking_flags
+  for select to authenticated
+  using (
+    public.current_user_role() = 'coordinator'
+    and exists (
+      select 1 from public.events e
+      where e.id = venue_booking_flags.event_id and e.coordinator_id = auth.uid()
+    )
+  );
+
 commit;
