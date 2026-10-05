@@ -10,6 +10,11 @@ begin;
 drop policy if exists closures_insert_manage on public.venue_closures;
 revoke insert on public.venue_closures from anon, authenticated;
 
+-- Revoked as well as the policy dropped: without a policy, RLS would quietly delete
+-- zero rows instead of refusing.
+drop policy if exists closures_delete_manage on public.venue_closures;
+revoke delete on public.venue_closures from anon, authenticated;
+
 -- Only the policy goes: coordinators still insert event and buffer cells (holdVenue).
 drop policy if exists claims_insert_maintenance on public.venue_slot_claims;
 
