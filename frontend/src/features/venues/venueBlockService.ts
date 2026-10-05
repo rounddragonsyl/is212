@@ -4,8 +4,9 @@
  * run first only so the user sees a message beside the field.
  */
 import { supabase } from '../../lib/supabase'
-import { validateVenueBlock } from './venueBlockValidation'
-import type { VenueBlockField, VenueBlockInput } from './venueBlockTypes'
+import type { SlotCode } from './slots'
+import { groupAffectedBookings, validateVenueBlock } from './venueBlockValidation'
+import type { PreviewCell, VenueBlockField, VenueBlockInput, VenueBlockPreview } from './venueBlockTypes'
 
 export const VENUE_BLOCK_MESSAGES = {
   notPermitted: 'Only Venue Staff can block or unblock a venue.',
@@ -76,4 +77,46 @@ export async function createVenueBlock(
     .eq('closure_id', blockId)
   // The block is saved either way; null means the count could not be confirmed.
   return { ok: true, value: { blockId, flaggedBookings: flags.error ? null : (flags.count ?? 0) } }
+}
+
+interface PreviewRow {
+  overlap_type: 'booking' | 'existing_block'
+  booking_id: string | null
+  booking_status: string | null
+  event_reference: string | null
+  event_name: string | null
+  slot_date: string
+  slot: SlotCode
+  claim_kind: string
+  block_reason: string | null
+}
+
+/** AC-012.7: asks the database what this block would overlap. Writes nothing. */
+export async function previewVenueBlock(input: VenueBlockInput): Promise<VenueBlockResult<VenueBlockPreview>> {
+  const checked = validateVenueBlock(input)
+  if (!checked.ok) return { ok: false, reason: firstError(checked.errors) }
+
+  const { data, error } = await supabase.rpc('preview_venue_block', requestArgs(checked.value))
+  if (error) return { ok: false, reason: describeError(error) }
+
+  const rows = (data ?? []) as PreviewRow[]
+  return {
+    ok: true,
+    value: {
+      affectedBookings: groupAffectedBookings(
+        rows
+          .filter((row) => row.overlap_type === 'booking' && row.booking_id !== null)
+          .map((row) => ({
+            bookingId: row.booking_id as string,
+            status: row.booking_status ?? '',
+            eventReference: row.event_reference,
+            eventName: row.event_name,
+            cell: { date: row.slot_date, slot: row.slot, kind: row.claim_kind as PreviewCell['kind'] },
+          })),
+      ),
+      existingBlocks: rows
+        .filter((row) => row.overlap_type === 'existing_block')
+        .map((row) => ({ date: row.slot_date, slot: row.slot, reason: row.block_reason ?? '' })),
+    },
+  }
 }
