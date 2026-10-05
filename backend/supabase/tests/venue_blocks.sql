@@ -294,3 +294,17 @@ select pg_temp.as_user('00000000-0000-0000-0000-000000000003');
 select pg_temp.expect_error($q$select * from public.preview_venue_block('b12a0000-0000-0000-0000-0000000000f1',
   '2040-04-08','2040-04-08',array['AM'])$q$, '42501',
   'AC-012.7.4: only venue staff can preview a block');
+select pg_temp.as_user('b12a0000-0000-0000-0000-000000000001');
+select pg_temp.expect_error($q$select * from public.preview_venue_block('b12a0000-0000-0000-0000-0000000000f1',
+  '2040-04-09','2040-04-08',array['AM'])$q$, '22023',
+  'AC-012.7.5: preview applies the same checks as saving');
+select pg_temp.assert_true(
+  not exists (select 1 from public.venue_closures
+              where venue_id = 'b12a0000-0000-0000-0000-0000000000f1'
+                and ('2040-04-08' between starts_on and ends_on
+                     or '2040-04-15' between starts_on and ends_on))
+  and not exists (select 1 from public.venue_slot_claims
+                  where venue_id = 'b12a0000-0000-0000-0000-0000000000f1'
+                    and kind = 'maintenance'
+                    and slot_date in ('2040-04-08', '2040-04-15')),
+  'AC-012.7.3: previewing a block saves nothing');
