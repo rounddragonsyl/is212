@@ -38,3 +38,21 @@ describe('AC-012.1 — only Venue Staff can block', () => {
     expect(screen.queryAllByRole('link', { name: 'Venue blocks' })).toHaveLength(0)
   })
 })
+
+describe('AC-012.8 — coordinators are told which bookings need review', () => {
+  test('AC-012.8.23: coordinators are offered the venue alerts page', () => {
+    renderNavFor('coordinator')
+    expect(screen.getAllByRole('link', { name: 'Venue alerts' }).length).toBeGreaterThan(0)
+  })
+
+  test('AC-012.8.24: Venue Staff are not offered it', () => {
+    renderNavFor('venue_staff')
+    expect(screen.queryAllByRole('link', { name: 'Venue alerts' })).toHaveLength(0)
+  })
+
+  test('AC-012.8.25: while the feature flag is off, coordinators are not offered it', () => {
+    flags.venueBlocks = false
+    renderNavFor('coordinator')
+    expect(screen.queryAllByRole('link', { name: 'Venue alerts' })).toHaveLength(0)
+  })
+})
