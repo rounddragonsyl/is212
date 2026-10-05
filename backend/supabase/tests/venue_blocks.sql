@@ -43,3 +43,11 @@ select pg_temp.as_user('00000000-0000-0000-0000-000000000003');
 select pg_temp.expect_error($q$select public.block_venue('b12a0000-0000-0000-0000-0000000000f1',
   '2040-05-01','2040-05-01',array['AM'],'Coordinator attempt')$q$, '42501',
   'AC-012.1.1: a coordinator cannot block a venue');
+select pg_temp.as_user('00000000-0000-0000-0000-000000000001');
+select pg_temp.expect_error($q$select public.block_venue('b12a0000-0000-0000-0000-0000000000f1',
+  '2040-05-01','2040-05-01',array['AM'],'Organiser attempt')$q$, '42501',
+  'AC-012.1.2: an organiser cannot block a venue');
+select pg_temp.as_user('');
+select pg_temp.expect_error($q$select public.block_venue('b12a0000-0000-0000-0000-0000000000f1',
+  '2040-05-01','2040-05-01',array['AM'],'No session')$q$, '42501',
+  'AC-012.1.3: a request without a signed-in user cannot block a venue');
