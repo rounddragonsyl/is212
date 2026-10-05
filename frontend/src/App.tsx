@@ -15,6 +15,7 @@ import { VenueSearchPage } from './features/venues/pages/VenueSearchPage'
 import { VenueSuitabilityPage } from './features/venues/pages/VenueSuitabilityPage'
 import { EventEquipmentPage } from './features/equipment/pages/EventEquipmentPage'
 import { TechSupportEquipmentPage } from './features/equipment/pages/TechSupportEquipmentPage'
+import { ReserveEquipmentPage } from './features/equipment/pages/ReserveEquipmentPage'
 import { FEATURES } from './lib/features'
 
 /**
@@ -45,6 +46,7 @@ export default function App() {
             {FEATURES.venueSuitability && <Route path="/venues/suitability" element={<VenueSuitabilityPage />} />}
             <Route path="/requests/:id/equipment" element={<EventEquipmentPage />} />
             <Route path="/equipment" element={<TechSupportEquipmentPage />} />
+            <Route path="/equipment/reservations" element={<ReserveEquipmentPage />} />
           </Route>
         </Routes>
       </BrowserRouter>

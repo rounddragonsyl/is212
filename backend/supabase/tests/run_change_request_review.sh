@@ -102,6 +102,7 @@ select pg_temp.assert_true(not exists(
 SQL
   # Equipment (SCRUM-19) first; venue_suitability.sql resets the test user itself.
   cat "$repo_root/supabase/tests/equipment_requirements.sql"
+  cat "$repo_root/supabase/tests/equipment_reservations.sql"
   # US18 venue suitability: tests, then replay each migration and check nothing changed.
   cat "$repo_root/supabase/tests/venue_suitability.sql"
   cat "$repo_root/supabase/migrations/0020_venue_accessibility_array.sql"

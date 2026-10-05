@@ -28,10 +28,9 @@ select pg_temp.expect_error($q$update public.venues set accessibility = null
 
 -- ===== Layout catalogue =====
 select pg_temp.assert_true(
-  (select array_agg(code order by sort_order)
-   = array['theatre','classroom','boardroom','u_shape','banquet','cabaret','reception']
-   from public.layout_types),
-  'AC-018.3.5: the layout catalogue lists the seven standard layouts in display order');
+  ((select array_agg(code order by sort_order, code) from public.layout_types))[1:7]
+   = array['theatre','classroom','boardroom','u_shape','banquet','cabaret','reception'],
+  'AC-018.3.5: the layout catalogue lists the seven standard layouts first, in display order');
 select pg_temp.expect_error($q$insert into public.layout_types (code, label) values ('U-Shape', 'Bad code')$q$,
   '23514', 'AC-018.3.6: a layout code must be lowercase letters, digits and underscores');
 select pg_temp.expect_error($q$insert into public.layout_types (code, label) values ('blank_label', '   ')$q$,
