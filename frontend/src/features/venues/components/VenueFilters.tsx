@@ -51,6 +51,8 @@ export function VenueFilters({
 }) {
   const selectedEvent = assignedEvents.find((event) => event.id === filters.eventId)
 
+  const layoutInputValue = filters.layout.join(', ')
+
   const handleEventSelect = (eventId: string) => {
     const event = assignedEvents.find((candidate) => candidate.id === eventId)
     onChange({
@@ -60,6 +62,16 @@ export function VenueFilters({
       slot: '',
       minAttendance:
         event?.expectedAttendance != null ? String(event.expectedAttendance) : filters.minAttendance,
+    })
+  }
+
+  const handleLayoutChange = (value: string) => {
+    onChange({
+      ...filters,
+      layout: value
+        .split(',')
+        .map((entry) => entry.trim())
+        .filter(Boolean),
     })
   }
 
@@ -127,8 +139,8 @@ export function VenueFilters({
             id="venue-search-layout"
             placeholder="e.g. theatre, banquet"
             disabled={disabled}
-            value={filters.layout}
-            onChange={(e) => onChange({ ...filters, layout: e.target.value })}
+            value={layoutInputValue}
+            onChange={(e) => handleLayoutChange(e.target.value)}
           />
         </Field>
 

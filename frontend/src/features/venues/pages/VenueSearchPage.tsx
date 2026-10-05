@@ -10,7 +10,7 @@ import type { AssignedEventOption, Venue, VenueSearchFilters as Filters } from '
 import type { TimeSlot } from '../slots'
 
 const emptyFilters: Filters = {
-  keyword: '', location: '', minAttendance: '', layout: '',
+  keyword: '', location: '', minAttendance: '', layout: [],
   accessibility: [], facilities: [], date: '', slot: '', eventId: '',
 }
 
