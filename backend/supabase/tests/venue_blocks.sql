@@ -480,3 +480,9 @@ select pg_temp.expect_error($q$select pg_temp.hold('b12a0000-0000-0000-0000-0000
   'b12a0000-0000-0000-0000-0000000000f3', 'b12a0000-0000-0000-0000-0000000000e1',
   '[{"date":"2040-03-12","slot":"NIGHT","kind":"event"}]')$q$, '23505',
   'AC-012.5.4: a cell freed by a cancelled booking inside a block cannot be booked');
+
+-- ===== Slice 7: removing a block (AC-012.9, AC-012.10.2) =====
+select pg_temp.as_user('00000000-0000-0000-0000-000000000003');
+select pg_temp.expect_error($q$select public.remove_venue_block(
+  (select id from public.venue_closures where reason = 'Ceiling repair'))$q$, '42501',
+  'AC-012.9.4: a coordinator cannot remove a block');
