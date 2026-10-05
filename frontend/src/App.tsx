@@ -13,6 +13,7 @@ import { NotFoundPage } from './pages/NotFoundPage'
 import { SubmitEventChangesPage } from './features/events/pages/SubmitEventChangesPage'
 import { VenueSearchPage } from './features/venues/pages/VenueSearchPage'
 import { VenueSuitabilityPage } from './features/venues/pages/VenueSuitabilityPage'
+import { VenueBlocksPage } from './features/venues/pages/VenueBlocksPage'
 import { EventEquipmentPage } from './features/equipment/pages/EventEquipmentPage'
 import { TechSupportEquipmentPage } from './features/equipment/pages/TechSupportEquipmentPage'
 import { ReserveEquipmentPage } from './features/equipment/pages/ReserveEquipmentPage'
@@ -44,6 +45,7 @@ export default function App() {
             <Route path="/requests/:id/request-change" element={<SubmitEventChangesPage />} />
             <Route path="/venues/search" element={<VenueSearchPage />} />
             {FEATURES.venueSuitability && <Route path="/venues/suitability" element={<VenueSuitabilityPage />} />}
+            {FEATURES.venueBlocks && <Route path="/venues/blocks" element={<VenueBlocksPage />} />}
             <Route path="/requests/:id/equipment" element={<EventEquipmentPage />} />
             <Route path="/equipment" element={<TechSupportEquipmentPage />} />
             <Route path="/equipment/reservations" element={<ReserveEquipmentPage />} />

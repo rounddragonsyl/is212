@@ -46,6 +46,11 @@ function navItemsFor(role: UserRole | null): NavItem[] {
         { label: 'Equipment', to: '/equipment' },
         { label: 'Reserve equipment', to: '/equipment/reservations' },
       ]
+    case 'venue_staff':
+      return [
+        home,
+        ...(FEATURES.venueBlocks ? [{ label: 'Venue blocks', to: '/venues/blocks' }] : []),
+      ]
     default:
       return [home]
   }
