@@ -172,4 +172,5 @@ select pg_temp.assert_true(
   'AC-018.3.39: after the repair, 0022 records the repaired venue''s layout with its capacity');
 SQL
   # US12 venue blocks.
+  cat "$repo_root/supabase/tests/venue_blocks.sql"
 } | docker exec -i "$container" psql -X -U postgres -v ON_ERROR_STOP=1
