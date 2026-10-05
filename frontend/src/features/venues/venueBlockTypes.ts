@@ -56,3 +56,10 @@ export interface VenueBlock {
   createdByName: string | null
   createdAt: string
 }
+
+/** A venue Venue Staff can choose to block: any that isn't retired. */
+export interface BlockableVenue {
+  id: string
+  name: string
+  location: string
+}
