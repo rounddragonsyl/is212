@@ -543,3 +543,11 @@ select pg_temp.assert_true(
             where c.venue_id = 'b12a0000-0000-0000-0000-0000000000f3'
               and c.slot_date = '2040-03-11' and c.slot = 'AM'), false),
   'AC-012.9.9: the slots of a removed block can be blocked again');
+select pg_temp.assert_true(
+  exists (select 1 from public.preview_venue_block('b12a0000-0000-0000-0000-0000000000f3',
+            '2040-03-10', '2040-03-12', array['AM','PM','NIGHT']) p
+          where p.overlap_type = 'existing_block' and p.block_reason = 'Lighting check')
+  and not exists (select 1 from public.preview_venue_block('b12a0000-0000-0000-0000-0000000000f3',
+            '2040-03-10', '2040-03-12', array['AM','PM','NIGHT']) p
+          where p.block_reason = 'Ceiling repair'),
+  'AC-012.9.10: preview does not report removed blocks');
