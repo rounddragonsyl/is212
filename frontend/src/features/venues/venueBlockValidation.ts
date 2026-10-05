@@ -5,7 +5,13 @@
  * database. This copy puts a message beside the field; the database is the control.
  */
 import type { SlotCode } from './slots'
-import type { VenueBlockField, VenueBlockInput, VenueBlockValidation } from './venueBlockTypes'
+import type {
+  AffectedBooking,
+  PreviewCell,
+  VenueBlockField,
+  VenueBlockInput,
+  VenueBlockValidation,
+} from './venueBlockTypes'
 
 /** Same limit as the database: one block covers at most 366 calendar days. */
 export const MAX_BLOCK_DAYS = 366
@@ -78,4 +84,43 @@ export function validateVenueBlock(input: VenueBlockInput): VenueBlockValidation
 
   if (Object.keys(errors).length > 0) return { ok: false, errors }
   return { ok: true, value: { ...input, startsOn, endsOn, slots, reason } }
+}
+
+/**
+ * Whether a preview taken for one form value still describes another. The reason doesn't
+ * change what a block overlaps, and slot order doesn't matter; venue, dates and slots do.
+ */
+export function sameBlock(a: VenueBlockInput, b: VenueBlockInput): boolean {
+  return a.venueId === b.venueId
+    && a.startsOn.trim() === b.startsOn.trim()
+    && a.endsOn.trim() === b.endsOn.trim()
+    && normaliseSlots(a.slots).join() === normaliseSlots(b.slots).join()
+}
+
+export interface PreviewRowInput {
+  bookingId: string
+  status: string
+  eventReference: string | null
+  eventName: string | null
+  cell: PreviewCell
+}
+
+/** The database returns one row per cell; Venue Staff think in bookings. Order is kept. */
+export function groupAffectedBookings(rows: readonly PreviewRowInput[]): AffectedBooking[] {
+  const byBooking = new Map<string, AffectedBooking>()
+  for (const row of rows) {
+    const existing = byBooking.get(row.bookingId)
+    if (existing) {
+      existing.cells.push(row.cell)
+    } else {
+      byBooking.set(row.bookingId, {
+        bookingId: row.bookingId,
+        status: row.status,
+        eventReference: row.eventReference,
+        eventName: row.eventName,
+        cells: [row.cell],
+      })
+    }
+  }
+  return [...byBooking.values()]
 }
