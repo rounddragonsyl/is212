@@ -474,3 +474,9 @@ select pg_temp.assert_true(
             from public.venue_booking_flags
             where booking_id = 'b12a0000-0000-0000-0000-0000000000b8'), false),
   'AC-012.8.13: cancelling a flagged booking resolves its flag with the reason');
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-000000000003');
+select pg_temp.expect_error($q$select pg_temp.hold('b12a0000-0000-0000-0000-0000000000ba',
+  'b12a0000-0000-0000-0000-0000000000f3', 'b12a0000-0000-0000-0000-0000000000e1',
+  '[{"date":"2040-03-12","slot":"NIGHT","kind":"event"}]')$q$, '23505',
+  'AC-012.5.4: a cell freed by a cancelled booking inside a block cannot be booked');
