@@ -384,3 +384,12 @@ select pg_temp.assert_true(
             from public.venue_booking_flags
             where booking_id = 'b12a0000-0000-0000-0000-0000000000b7'), false),
   'AC-012.8.2: an overlapping booking is flagged for its assigned coordinator with only the blocked cells');
+select pg_temp.assert_true(
+  coalesce((select status = 'expired' from public.venue_bookings
+            where id = 'b12a0000-0000-0000-0000-0000000000b9'), false)
+  and not exists (select 1 from public.venue_booking_flags
+                  where booking_id = 'b12a0000-0000-0000-0000-0000000000b9')
+  and coalesce((select kind = 'maintenance' from public.venue_slot_claims
+                where venue_id = 'b12a0000-0000-0000-0000-0000000000f3'
+                  and slot_date = '2040-03-11' and slot = 'PM'), false),
+  'AC-012.8.5: a lapsed hold is released rather than flagged, and its cells become blocked');
