@@ -36,6 +36,8 @@ begin
     and c.kind in ('event', 'buffer')
     and c.slot_date between p_starts_on and p_ends_on
     and c.slot = any (p_slots)
+    -- A lapsed hold no longer reserves anything, so it is not an affected booking.
+    and not (b.status = 'held' and b.hold_expires_at < now())
   order by 6, 7;
 end;
 $$;
