@@ -308,3 +308,11 @@ select pg_temp.assert_true(
                     and kind = 'maintenance'
                     and slot_date in ('2040-04-08', '2040-04-15')),
   'AC-012.7.3: previewing a block saves nothing');
+
+-- ===== Slice 5: blocking over bookings flags them (AC-012.8, 9.1, 10.3) =====
+-- Guard first: today the ledger key refuses a same-slot overlap. The next change lets the
+-- cell insert skip held cells, so this keeps that refusal from quietly disappearing.
+select pg_temp.as_user('b12a0000-0000-0000-0000-000000000001');
+select pg_temp.expect_error($q$select public.block_venue('b12a0000-0000-0000-0000-0000000000f1',
+  '2040-04-01','2040-04-01',array['PM'],'Overlapping')$q$, '23505',
+  'AC-012.9.1: a block overlapping an active block on the same slot is refused');
