@@ -87,6 +87,8 @@ begin
   on conflict (venue_id, slot_date, slot) do nothing;
 
   -- One flag per live booking inside the block, listing only its cells that the block covers.
+  -- The assigned coordinator owns the event; the requester is the fallback for an event
+  -- still in the unassigned queue (Week 7 change 5).
   insert into public.venue_booking_flags
     (booking_id, event_id, venue_id, closure_id, cause, detail, affected_cells,
      recipient_id, created_by)
@@ -94,7 +96,7 @@ begin
          'Venue blocked: ' || btrim(p_reason),
          jsonb_agg(jsonb_build_object('date', c.slot_date, 'slot', c.slot, 'kind', c.kind)
                    order by c.slot_date, array_position(array['AM', 'PM', 'NIGHT'], c.slot::text)),
-         e.coordinator_id, auth.uid()
+         coalesce(e.coordinator_id, b.requested_by), auth.uid()
   from public.venue_slot_claims c
   join public.venue_bookings b on b.id = c.booking_id
   join public.events e on e.id = b.event_id
@@ -103,7 +105,7 @@ begin
     and c.slot_date between p_starts_on and p_ends_on
     and c.slot = any (v_slots)
     and b.status in ('held', 'pending_approval', 'confirmed')
-  group by b.id, b.event_id, e.coordinator_id;
+  group by b.id, b.event_id, e.coordinator_id, b.requested_by;
 
   return v_closure;
 end;
