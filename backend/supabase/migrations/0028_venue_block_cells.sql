@@ -11,6 +11,11 @@ begin;
 alter table public.venue_closures
   add column if not exists slots text[] not null default array['AM', 'PM', 'NIGHT'];
 
+-- The blocker's name when the block was saved, like decided_by_name in 0009, so a later
+-- name change does not rewrite who blocked.
+alter table public.venue_closures
+  add column if not exists created_by_name text;
+
 -- 0018 refused any two closures on the same date. With slots, an AM block and a PM block
 -- on one day are not an overlap. A same-slot overlap is still refused, by the ledger key.
 alter table public.venue_closures drop constraint if exists no_overlapping_closures;
@@ -86,8 +91,11 @@ begin
   end if;
 
   -- Who blocked comes from the session, never from the browser.
-  insert into public.venue_closures (venue_id, starts_on, ends_on, slots, reason, created_by)
-  values (p_venue_id, p_starts_on, p_ends_on, v_slots, btrim(p_reason), auth.uid())
+  insert into public.venue_closures
+    (venue_id, starts_on, ends_on, slots, reason, created_by, created_by_name)
+  values
+    (p_venue_id, p_starts_on, p_ends_on, v_slots, btrim(p_reason), auth.uid(),
+     (select full_name from public.profiles where id = auth.uid()))
   returning id into v_closure;
 
   -- A cell already held (by a booking or another block) makes this insert fail with
