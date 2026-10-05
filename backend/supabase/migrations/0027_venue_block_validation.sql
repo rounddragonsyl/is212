@@ -64,7 +64,7 @@ as $$
 begin
   perform public.venue_block_request_slots(p_venue_id, p_starts_on, p_ends_on, p_slots);
 
-  if btrim(p_reason) = '' then
+  if p_reason is null or btrim(p_reason) = '' then
     raise exception 'A reason is required to block a venue' using errcode = '22023';
   end if;
 
