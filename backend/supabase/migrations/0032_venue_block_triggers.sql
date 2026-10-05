@@ -70,4 +70,39 @@ create trigger venue_slot_claims_reblock
   after delete on public.venue_slot_claims
   for each row execute function public.reblock_released_cell();
 
+-- How a flag was closed. A flag is 'resolved' exactly when it has a resolved time.
+alter table public.venue_booking_flags
+  add column if not exists resolved_at timestamptz,
+  add column if not exists resolution text;
+alter table public.venue_booking_flags
+  drop constraint if exists venue_booking_flags_resolution_recorded;
+alter table public.venue_booking_flags
+  add constraint venue_booking_flags_resolution_recorded
+  check ((status = 'resolved') = (resolved_at is not null));
+
+-- A booking that ends no longer needs review, so its open flags close with the reason.
+create or replace function public.resolve_flags_when_booking_ends()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if new.status in ('cancelled', 'rejected', 'expired')
+     and old.status is distinct from new.status then
+    update public.venue_booking_flags
+    set status = 'resolved', resolved_at = now(), resolution = 'Booking ' || new.status
+    where booking_id = new.id and status = 'open';
+  end if;
+  return new;
+end;
+$$;
+revoke execute on function public.resolve_flags_when_booking_ends()
+  from public, anon, authenticated;
+
+drop trigger if exists venue_bookings_resolve_flags on public.venue_bookings;
+create trigger venue_bookings_resolve_flags
+  after update of status on public.venue_bookings
+  for each row execute function public.resolve_flags_when_booking_ends();
+
 commit;
