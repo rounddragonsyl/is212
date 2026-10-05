@@ -10,4 +10,7 @@ begin;
 drop policy if exists closures_insert_manage on public.venue_closures;
 revoke insert on public.venue_closures from anon, authenticated;
 
+-- Only the policy goes: coordinators still insert event and buffer cells (holdVenue).
+drop policy if exists claims_insert_maintenance on public.venue_slot_claims;
+
 commit;
