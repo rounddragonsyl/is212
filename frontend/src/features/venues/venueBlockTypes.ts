@@ -31,3 +31,48 @@ export interface AffectedBooking {
   eventName: string | null
   cells: PreviewCell[]
 }
+
+/** One cell of an existing block that a new block would overlap. */
+export interface ExistingBlockOverlap {
+  date: string
+  slot: SlotCode
+  reason: string
+}
+
+/** AC-012.7: what saving a block would touch. */
+export interface VenueBlockPreview {
+  affectedBookings: AffectedBooking[]
+  existingBlocks: ExistingBlockOverlap[]
+}
+
+/** An active block as Venue Staff see it (AC-012.9, AC-012.10). */
+export interface VenueBlock {
+  id: string
+  venueId: string
+  startsOn: string
+  endsOn: string
+  slots: SlotCode[]
+  reason: string
+  createdByName: string | null
+  createdAt: string
+}
+
+/** A venue Venue Staff can choose to block: any that isn't retired. */
+export interface BlockableVenue {
+  id: string
+  name: string
+  location: string
+}
+
+/** AC-012.8: a coordinator's booking that a venue block has put up for review. */
+export interface FlaggedBooking {
+  id: string
+  bookingId: string
+  eventId: string
+  eventReference: string | null
+  eventName: string | null
+  venueName: string
+  detail: string
+  cells: PreviewCell[]
+  createdAt: string
+}

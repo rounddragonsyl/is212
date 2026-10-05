@@ -1,0 +1,49 @@
+import { render, screen } from '@testing-library/react'
+import { describe, expect, test } from 'vitest'
+import { VenueBlockList } from '../components/VenueBlockList'
+import type { VenueBlock } from '../venueBlockTypes'
+
+const FULL_DAYS: VenueBlock = {
+  id: 'block-1',
+  venueId: 'v1',
+  startsOn: '2040-03-10',
+  endsOn: '2040-03-12',
+  slots: ['AM', 'PM', 'NIGHT'],
+  reason: 'Ceiling repair',
+  createdByName: 'Vera Venue',
+  createdAt: '2039-12-05T02:00:00+00:00',
+}
+
+const ONE_DAY: VenueBlock = {
+  ...FULL_DAYS,
+  id: 'block-2',
+  startsOn: '2040-03-15',
+  endsOn: '2040-03-15',
+  slots: ['AM', 'NIGHT'],
+  reason: 'Electrical safety check',
+}
+
+describe('AC-012.9 — current blocks can be viewed', () => {
+  test('AC-012.9.18: each block shows its dates and slots, with all three slots as Full day', () => {
+    render(<VenueBlockList blocks={[FULL_DAYS, ONE_DAY]} />)
+
+    expect(screen.getByText('10 Mar 2040 – 12 Mar 2040')).toBeInTheDocument()
+    expect(screen.getByText('Full day')).toBeInTheDocument()
+    expect(screen.getByText('15 Mar 2040')).toBeInTheDocument()
+    expect(screen.getByText('AM, Night')).toBeInTheDocument()
+  })
+
+  test('AC-012.9.22: a venue with no current blocks says so', () => {
+    render(<VenueBlockList blocks={[]} />)
+    expect(screen.getByText('No current blocks on this venue.')).toBeInTheDocument()
+  })
+})
+
+describe('AC-012.10 — who blocked, and when', () => {
+  test('AC-012.10.6: each block shows its reason, who created it and when', () => {
+    render(<VenueBlockList blocks={[FULL_DAYS]} />)
+
+    expect(screen.getByText('Ceiling repair')).toBeInTheDocument()
+    expect(screen.getByText(/Blocked by Vera Venue/)).toHaveTextContent(/2039/)
+  })
+})
