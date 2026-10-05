@@ -6,9 +6,9 @@ export interface Venue {
   id: string
   name: string
   capacity: number
-  layout: string[]
+  layout: string
   accessibility: string[]
-  facility: string[]
+  facility: Record<string, unknown>
   status: VenueStatus
   location: string
 }
@@ -32,7 +32,7 @@ export interface VenueSearchFilters {
   keyword: string
   location: string
   minAttendance: string
-  layout: string[]
+  layout: string
   accessibility: string[]
   facilities: string[]
   date: string          // 'YYYY-MM-DD'; ignored once eventId is set
