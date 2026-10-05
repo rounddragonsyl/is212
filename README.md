@@ -755,7 +755,7 @@ when, and notifies the Event Coordinator in-app and by email. Windows run from t
 the first Singapore day, one day earlier for units held elsewhere, through the return day.
 
 Tests: AC-014.1–13 have 22 app tests and 82 database checks. The concurrency checks use `dblink`.
-Totals: **468 app tests** and **285 database checks**. 0025 changes Nicole's 0019 policies
+Totals: **523 app tests** and **318 database checks**. 0025 changes Nicole's 0019 policies
 (direct-write lockdown, agreed). See [test cases](docs/test-cases/US14_test_cases.md) and
 [design and assumptions](docs/us14-equipment-reservations.md).
 
