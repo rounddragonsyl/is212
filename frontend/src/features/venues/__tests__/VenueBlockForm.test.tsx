@@ -55,3 +55,52 @@ describe('AC-012.7 — overlaps are previewed before saving', () => {
     expect(onCreate).toHaveBeenCalledWith(ENTERED)
   })
 })
+
+describe('AC-012.7 — what the preview shows, and when it still counts', () => {
+  test('AC-012.7.13: changing the dates or slots after previewing hides Confirm until previewed again', async () => {
+    render(<VenueBlockForm venueId="v1" onPreview={previewing()} onCreate={saving()} />)
+
+    fillIn()
+    fireEvent.click(screen.getByRole('button', { name: 'Preview' }))
+    expect(await screen.findByRole('button', { name: 'Confirm block' })).toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText(/Last day/), { target: { value: '2040-03-11' } })
+    expect(screen.queryByRole('button', { name: 'Confirm block' })).toBeNull()
+  })
+
+  test('AC-012.7.14: the preview lists each affected booking and says it will be flagged, not cancelled', async () => {
+    const onPreview = previewing({
+      affectedBookings: [{
+        bookingId: 'b1',
+        status: 'confirmed',
+        eventReference: 'EVT-1',
+        eventName: 'Gala',
+        cells: [{ date: '2040-03-10', slot: 'AM', kind: 'event' }],
+      }],
+      existingBlocks: [],
+    })
+    render(<VenueBlockForm venueId="v1" onPreview={onPreview} onCreate={saving()} />)
+
+    fillIn()
+    fireEvent.click(screen.getByRole('button', { name: 'Preview' }))
+
+    expect(await screen.findByText(/1 booking will be flagged for review/)).toHaveTextContent(/not cancelled/)
+    expect(screen.getByText('EVT-1')).toBeInTheDocument()
+  })
+})
+
+describe('AC-012.9 — an existing block must be removed first', () => {
+  test('AC-012.9.17: a block overlapping an existing block cannot be confirmed, and the preview says why', async () => {
+    const onPreview = previewing({
+      affectedBookings: [],
+      existingBlocks: [{ date: '2040-03-10', slot: 'AM', reason: 'Deep clean' }],
+    })
+    render(<VenueBlockForm venueId="v1" onPreview={onPreview} onCreate={saving()} />)
+
+    fillIn()
+    fireEvent.click(screen.getByRole('button', { name: 'Preview' }))
+
+    expect(await screen.findByRole('button', { name: 'Confirm block' })).toBeDisabled()
+    expect(screen.getByText(/Deep clean/)).toBeInTheDocument()
+  })
+})
