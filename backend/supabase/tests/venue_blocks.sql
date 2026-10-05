@@ -282,3 +282,11 @@ select pg_temp.assert_true(
           '2040-04-15', '2040-04-15', array['AM','PM','NIGHT']) p
    where p.event_reference = 'EVT-B12-6'),
   'AC-012.7.2: preview leaves out a hold that has already lapsed');
+select pg_temp.assert_true(
+  (select count(*) = 2
+   from public.preview_venue_block('b12a0000-0000-0000-0000-0000000000f1',
+          '2040-04-01', '2040-04-01', array['AM','PM']) p
+   where p.overlap_type = 'existing_block'
+     and ((p.slot = 'AM' and p.block_reason = 'Morning inspection')
+       or (p.slot = 'PM' and p.block_reason = 'Deep clean'))),
+  'AC-012.9.2: preview reports the existing blocks that a new one would overlap');
