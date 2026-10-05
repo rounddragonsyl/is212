@@ -87,7 +87,7 @@ begin
 
   -- Who blocked comes from the session, never from the browser.
   insert into public.venue_closures (venue_id, starts_on, ends_on, slots, reason, created_by)
-  values (p_venue_id, p_starts_on, p_ends_on, v_slots, p_reason, auth.uid())
+  values (p_venue_id, p_starts_on, p_ends_on, v_slots, btrim(p_reason), auth.uid())
   returning id into v_closure;
 
   -- A cell already held (by a booking or another block) makes this insert fail with
