@@ -234,3 +234,8 @@ select pg_temp.assert_true(
           where venue_id = 'b12a0000-0000-0000-0000-0000000000f1'
             and starts_on = '2040-04-12' and reason = 'Electrical safety check'),
   'AC-012.3.3: the reason is stored without surrounding spaces');
+select pg_temp.assert_true(
+  (select created_by = 'b12a0000-0000-0000-0000-000000000001'
+          and created_by_name = 'Vera Venue' and created_at is not null
+   from public.venue_closures where reason = 'Deep clean'),
+  'AC-012.10.1: a block records the staff member who created it, their name and the time');
