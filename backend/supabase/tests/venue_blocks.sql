@@ -451,3 +451,20 @@ select pg_temp.expect_error($q$update public.venue_bookings
   set status = 'confirmed', reviewed_by = auth.uid(), reviewed_at = now()
   where id = 'b12a0000-0000-0000-0000-0000000000b8'$q$, '23514',
   'AC-012.8.11: venue staff cannot approve a pending booking that a block has flagged');
+select pg_temp.as_user('00000000-0000-0000-0000-000000000004');
+delete from public.venue_slot_claims where booking_id = 'b12a0000-0000-0000-0000-0000000000b8';
+update public.venue_bookings set status = 'cancelled'
+ where id = 'b12a0000-0000-0000-0000-0000000000b8';
+
+reset role;
+select pg_temp.assert_true(
+  coalesce((select kind = 'maintenance' from public.venue_slot_claims
+            where venue_id = 'b12a0000-0000-0000-0000-0000000000f3'
+              and slot_date = '2040-03-12' and slot = 'PM'), false)
+  and coalesce((select kind = 'maintenance' from public.venue_slot_claims
+                where venue_id = 'b12a0000-0000-0000-0000-0000000000f3'
+                  and slot_date = '2040-03-12' and slot = 'NIGHT'), false)
+  and not exists (select 1 from public.venue_slot_claims
+                  where venue_id = 'b12a0000-0000-0000-0000-0000000000f3'
+                    and slot_date = '2040-03-13' and slot = 'AM'),
+  'AC-012.8.12: cells a cancelled booking releases inside a block become blocked; cells outside become free');
