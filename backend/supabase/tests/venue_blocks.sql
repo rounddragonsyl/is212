@@ -562,3 +562,10 @@ select pg_temp.assert_true(
               where venue_id = 'b12a0000-0000-0000-0000-0000000000f3'
                 and slot_date = '2040-03-10' and slot in ('AM', 'PM')),
   'AC-012.9.11: a cell freed inside a removed block stays free');
+
+-- ===== Snapshot for the replay check (AC-012.10.4), run by the runner after this file =====
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+create temp table blocks_before_replay as select * from public.venue_closures;
+create temp table flags_before_replay as select * from public.venue_booking_flags;
+create temp table claims_before_replay as select * from public.venue_slot_claims;
