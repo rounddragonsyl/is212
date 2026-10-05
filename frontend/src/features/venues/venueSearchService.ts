@@ -16,7 +16,7 @@ interface VenueRow {
   id: string
   name: string
   capacity: number
-  layout: string | null
+  layout: string
   accessibility: string[] | null
   facility: Record<string, unknown> | null
   status: VenueStatus
