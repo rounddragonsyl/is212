@@ -6,12 +6,19 @@
 import { supabase } from '../../lib/supabase'
 import type { SlotCode } from './slots'
 import { groupAffectedBookings, validateVenueBlock } from './venueBlockValidation'
-import type { PreviewCell, VenueBlockField, VenueBlockInput, VenueBlockPreview } from './venueBlockTypes'
+import type {
+  PreviewCell,
+  VenueBlock,
+  VenueBlockField,
+  VenueBlockInput,
+  VenueBlockPreview,
+} from './venueBlockTypes'
 
 export const VENUE_BLOCK_MESSAGES = {
   notPermitted: 'Only Venue Staff can block or unblock a venue.',
   overlapsBlock: 'Part of this period is already blocked. Remove or change that block first.',
   notFound: 'That block or venue no longer exists. Reload the page to see the current blocks.',
+  loadFailed: 'The current blocks could not be loaded. Please try again.',
   unexpected: 'Something went wrong and nothing was changed. Please try again.',
   // The block call may have committed even though its reply was lost.
   uncertain: 'We could not confirm whether the block was saved. Reload the page before trying again.',
@@ -119,4 +126,46 @@ export async function previewVenueBlock(input: VenueBlockInput): Promise<VenueBl
         .map((row) => ({ date: row.slot_date, slot: row.slot, reason: row.block_reason ?? '' })),
     },
   }
+}
+
+interface BlockRow {
+  id: string
+  venue_id: string
+  starts_on: string
+  ends_on: string
+  slots: SlotCode[]
+  reason: string
+  created_by_name: string | null
+  created_at: string
+}
+
+/** AC-012.9, 10: a venue's current blocks, earliest first. Removed blocks stay as history. */
+export async function listVenueBlocks(venueId: string): Promise<VenueBlockResult<VenueBlock[]>> {
+  const { data, error } = await supabase
+    .from('venue_closures')
+    .select('id, venue_id, starts_on, ends_on, slots, reason, created_by_name, created_at')
+    .eq('venue_id', venueId)
+    .is('removed_at', null)
+    .order('starts_on')
+  if (error) return { ok: false, reason: VENUE_BLOCK_MESSAGES.loadFailed }
+
+  return {
+    ok: true,
+    value: ((data ?? []) as BlockRow[]).map((row) => ({
+      id: row.id,
+      venueId: row.venue_id,
+      startsOn: row.starts_on,
+      endsOn: row.ends_on,
+      slots: row.slots,
+      reason: row.reason,
+      createdByName: row.created_by_name,
+      createdAt: row.created_at,
+    })),
+  }
+}
+
+/** AC-012.9: frees the block's slots and resolves the flags it raised, in one database call. */
+export async function removeVenueBlock(blockId: string): Promise<VenueBlockResult<null>> {
+  const { error } = await supabase.rpc('remove_venue_block', { p_closure_id: blockId })
+  return error ? { ok: false, reason: describeError(error) } : { ok: true, value: null }
 }
