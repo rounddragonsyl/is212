@@ -398,3 +398,13 @@ select pg_temp.assert_true(
             from public.venue_booking_flags
             where booking_id = 'b12a0000-0000-0000-0000-0000000000b8'), false),
   'AC-012.8.3: a booking for an unassigned event is flagged for the coordinator who requested it');
+select pg_temp.assert_true(
+  (select count(*) = 2 and count(distinct recipient_email) = 2
+   from public.notification_outbox
+   where subject = 'Venue booking needs review: Second Hall'
+     and recipient_email in (select email from auth.users
+                             where id in ('00000000-0000-0000-0000-000000000003',
+                                          '00000000-0000-0000-0000-000000000004'))
+     and body like '%Reason: Ceiling repair%'
+     and body like '%has not been cancelled%'),
+  'AC-012.8.4: an email naming the venue, reason and unchanged booking is queued for each coordinator');
