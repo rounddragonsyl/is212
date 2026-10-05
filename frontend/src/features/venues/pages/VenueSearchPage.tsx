@@ -1,11 +1,14 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Card } from '../../../components/ui/Card'
 import { PageContainer } from '../../../components/layout/PageContainer'
+import { FEATURES } from '../../../lib/features'
 import { useCurrentUser } from '../../auth/sessionContext'
 import { VenueFilters } from '../components/VenueFilters'
 import { VenueResultCard } from '../components/VenueResultCard'
 import { searchVenues, listMyAssignedEvents } from '../venueSearchService'
 import { loadTimeSlots } from '../venueBookingService.ts'
+import { assessVenuesForEvent } from '../suitabilityService'
+import type { VenueAssessment } from '../suitabilityTypes'
 import type { AssignedEventOption, Venue, VenueSearchFilters as Filters } from '../types'
 import type { TimeSlot } from '../slots'
 
@@ -28,15 +31,30 @@ export function VenueSearchPage() {
   const [loading, setLoading] = useState(false)
   const [slots, setSlots] = useState<TimeSlot[]>([])
   const [assignedEvents, setAssignedEvents] = useState<AssignedEventOption[]>([])
+  const [assessments, setAssessments] = useState<Map<string, VenueAssessment>>(new Map())
 
   const isCoordinator = profile?.role === 'coordinator'
 
   const runSearch = useCallback(async (toSearch: Filters, slotDefs: TimeSlot[]) => {
     setLoading(true)
     setError(null)
+    setAssessments(new Map())
     const result = await searchVenues(toSearch, slotDefs)
-    if (result.ok) setVenues(result.venues)
-    else setError(result.reason)
+    if (result.ok) {
+      setVenues(result.venues)
+      // US18: when the search is for one of the coordinator's events, show how each result fits it.
+      // If that check fails the search results still stand; the suitability page shows the error.
+      if (FEATURES.venueSuitability && toSearch.eventId && result.venues.length > 0) {
+        const assessed = await assessVenuesForEvent(
+          toSearch.eventId,
+          slotDefs,
+          result.venues.map((venue) => venue.id),
+        )
+        if (assessed.ok) setAssessments(new Map(assessed.value.map((item) => [item.venue.id, item])))
+      }
+    } else {
+      setError(result.reason)
+    }
     setLoading(false)
   }, [])
 
@@ -107,7 +125,7 @@ export function VenueSearchPage() {
           ) : (
             <ul className="space-y-4">
               {venues.map((venue) => (
-                <VenueResultCard key={venue.id} venue={venue} />
+                <VenueResultCard key={venue.id} venue={venue} assessment={assessments.get(venue.id)} />
               ))}
             </ul>
           )}

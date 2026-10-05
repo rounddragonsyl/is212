@@ -731,7 +731,7 @@ are 15 database checks; .27–31 are five app tests. This increment requires liv
 
 ## US13 equipment requirements (SCRUM-19)
 
-Apply `backend/supabase/migrations/0020_event_equipment_requirements.sql` after 0019.
+Apply `backend/supabase/migrations/0024_event_equipment_requirements.sql` after 0023.
 The assigned Event Coordinator records catalogue equipment lines for an approved,
 planning or confirmed event at `/requests/:id/equipment`, with the Organiser's request
 shown alongside. Technical Support sees every line and its notifications at `/equipment`.
@@ -747,7 +747,7 @@ See [test cases and results](docs/test-cases/US13_test_cases.md) and
 
 ## US14 equipment reservations (SCRUM-20)
 
-Apply `backend/supabase/migrations/0021_equipment_reservations.sql` after 0020. Technical
+Apply `backend/supabase/migrations/0025_equipment_reservations.sql` after 0024. Technical
 Support reviews pending essential requirements at `/equipment/reservations`, sees the units free
 for each event's window, and reserves through one database function. That function checks the
 role, locks per equipment type and re-counts, picks units (venue units first), records who and
@@ -755,7 +755,7 @@ when, and notifies the Event Coordinator in-app and by email. Windows run from t
 the first Singapore day, one day earlier for units held elsewhere, through the return day.
 
 Tests: AC-014.1–13 have 22 app tests and 82 database checks. The concurrency checks use `dblink`.
-Totals: **468 app tests** and **285 database checks**. 0021 changes Nicole's 0019 policies
+Totals: **468 app tests** and **285 database checks**. 0025 changes Nicole's 0019 policies
 (direct-write lockdown, agreed). See [test cases](docs/test-cases/US14_test_cases.md) and
 [design and assumptions](docs/us14-equipment-reservations.md).
 

@@ -1,5 +1,5 @@
 -- US13 (SCRUM-19): the assigned Event Coordinator records equipment requirements for an
--- approved event. Apply after 0019, which provides the catalogue and reservation tables.
+-- approved event. Apply after 0023; it depends on 0019, which provides the catalogue and reservation tables.
 --
 -- Recording is deliberately separate from reserving (AC-013.5). A requirement is a line on
 -- the Coordinator's list; US14 reserves units against it through 0019's booking lines and

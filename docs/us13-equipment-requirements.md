@@ -9,7 +9,7 @@ Test cases and results: [test-cases/US13_test_cases.md](test-cases/US13_test_cas
 
 ## Deploying
 
-1. Apply `backend/supabase/migrations/0020_event_equipment_requirements.sql` after 0019.
+1. Apply `backend/supabase/migrations/0024_event_equipment_requirements.sql` after 0023.
    It creates new tables and policies and replaces no existing ones. The only change to
    an existing table is a new `events` SELECT policy for Technical Support. It was applied
    to shared Supabase on 3 October.
@@ -52,7 +52,7 @@ Test cases and results: [test-cases/US13_test_cases.md](test-cases/US13_test_cas
 
 | File | Change |
 |---|---|
-| `backend/supabase/migrations/0020_event_equipment_requirements.sql` | New tables, column grants, RLS, the event-status guard, reset and release triggers, notifications, and the Technical Support events policy |
+| `backend/supabase/migrations/0024_event_equipment_requirements.sql` | New tables, column grants, RLS, the event-status guard, reset and release triggers, notifications, and the Technical Support events policy |
 | `backend/supabase/tests/equipment_requirements.sql` | 56 database checks |
 | `backend/supabase/tests/run_change_request_review.sh` | Runs the new SQL file at the end |
 | `frontend/src/features/equipment/types.ts` | Domain types |

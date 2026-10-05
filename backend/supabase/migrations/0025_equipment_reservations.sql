@@ -1,6 +1,6 @@
 -- US14 (SCRUM-20): Technical Support reserves equipment for requirements recorded in US13.
--- Apply after 0020. Builds on Nicole's 0019 units, booking lines and allocations (agreed
--- 4 October); no parallel catalogue. 0019 and 0020 are not edited: every change to their
+-- Apply after 0024. Builds on Nicole's 0019 units, booking lines and allocations (agreed
+-- 4 October); no parallel catalogue. 0019 and 0024 are not edited: every change to their
 -- tables is an ALTER here.
 --
 -- Window rules (#5, #13, #36): days are Singapore dates. Each unit is blocked from the

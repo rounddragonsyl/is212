@@ -4,7 +4,7 @@ Status: **implemented**. The table was approved on 4 October, and the tests were
 failing (commit `5ce44a6`) before any implementation. On the final run all 104 pass:
 82 database checks (Docker runner) and 22 app tests. The full suites total 468 app tests and
 285 database checks, with nothing existing broken. Implementation is in migration
-`0021_equipment_reservations.sql` and `frontend/src/features/equipment/` (reservation files).
+`0025_equipment_reservations.sql` and `frontend/src/features/equipment/` (reservation files).
 
 Change to tests after approval (approved 4 October, intent unchanged): in AC-014.3.6, .4.3,
 .6.4, .7.1, .8.1, .8.2, .8.6, .8.8, .9.1, .9.4, .9.5 and .11.4, the action now runs as its own
@@ -17,7 +17,7 @@ it after reserving (A1) is tested in the database and service, but has no screen
 tests for that screen start at AC-014.4.12.
 
 AC-014.7.6 and .7.7 already passed before implementation. They guard protections from 0019
-and 0020 that 0021 must not reopen.
+and 0024 that 0025 must not reopen.
 
 Test IDs follow `CLAUDE.md`: `AC-014.Y.Z`, where Y is the acceptance criterion in Jira order
 and Z numbers the tests within it. Z is unique across the story and increases top to bottom
@@ -31,12 +31,12 @@ US14 builds on Nicole's 0019 tables (agreed 4 October); there is no parallel cat
 | # | Design | Source |
 |---|---|---|
 | D1 | Units are `equipment_items` rows. Only `operational` units are usable. `needs_repair` = damaged, `under_repair` = under maintenance, and `retired` / `missing` = otherwise unavailable. | 0019, #13 |
-| D2 | A reservation is one `equipment_allocations` row per unit, with whole-day `blocked_from` to `blocked_to`, both inclusive. Each requirement has one booking line (`booking_line_id`), and each event has one equipment booking. | 0019, 0020 |
+| D2 | A reservation is one `equipment_allocations` row per unit, with whole-day `blocked_from` to `blocked_to`, both inclusive. Each requirement has one booking line (`booking_line_id`), and each event has one equipment booking. | 0019, 0024 |
 | D3 | Reserving happens only through one database function, called with `supabase.rpc()`. It checks availability, locks, writes and notifies in a single transaction. Browsers cannot write allocations, lines or bookings directly. | Brief, #13 decision by Nicole |
 | D4 | Dates are Singapore dates. First day = SGT date of `proposed_start`; last day = SGT date of `proposed_end`. | #36 |
 | D5 | Per-unit window: `blocked_from` = first day − 1 (collection), or first day − 2 if the unit is not at one of the event's approved venues. `blocked_to` = return date. Available again from return date + 1. | #5, #13, A2 |
 | D6 | When the system picks units, it prefers units already at one of the event's approved venues. Technical Support never chooses units, and any Technical Support member can reserve any type at any location. | #66 |
-| D7 | US13's release trigger cancels a reservation when its requirement changes or is removed. US14 relies on it rather than adding its own release. | 0020 |
+| D7 | US13's release trigger cancels a reservation when its requirement changes or is removed. US14 relies on it rather than adding its own release. | 0024 |
 | D8 | The Event Coordinator gets one notification per requirement outcome, in-app and by email. Each channel is configurable for the notification type, using the existing settings-table and `notification_outbox` pattern. | #37 |
 
 ## Assumptions (team proposals, to confirm with the customer)

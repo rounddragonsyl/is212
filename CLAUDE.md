@@ -241,7 +241,7 @@ Reporting, analytics, recurring events, multi-session events, dashboards.
   still unverified. Organiser notifications are deferred; do not reconfigure the shared sender.
 
 ## US13 equipment requirements (SCRUM-19)
-- 0020_event_equipment_requirements.sql follows 0019 and does not modify 0019's tables.
+- 0024_event_equipment_requirements.sql follows 0023 and does not modify 0019's tables.
   Requirements are the Coordinator's list; reserving is US14 through 0019 booking lines and
   allocations, linked back by booking_line_id. Recording must never create a booking or
   allocation (AC-013.5). Applied to shared Supabase on 3 October; there, 0019 had no
@@ -260,7 +260,7 @@ Reporting, analytics, recurring events, multi-session events, dashboards.
   tests; 203 database checks. Next IDs and the US14 contract: docs/us13-equipment-requirements.md.
 
 ## US14 equipment reservations (SCRUM-20)
-- 0021_equipment_reservations.sql follows 0020 and builds on 0019's units, booking lines and
+- 0025_equipment_reservations.sql follows 0024 and builds on 0019's units, booking lines and
   allocations; never add a parallel catalogue. Not yet applied to shared Supabase.
 - Reserve only through reserve_equipment (rpc). Never check availability in the browser and
   write separately. Technical Support's direct writes on allocations, lines and bookings were

@@ -7,7 +7,7 @@ outcome. Test cases and results: [test-cases/US14_test_cases.md](test-cases/US14
 
 ## Deploying
 
-1. Apply `backend/supabase/migrations/0021_equipment_reservations.sql` after 0020. It alters
+1. Apply `backend/supabase/migrations/0025_equipment_reservations.sql` after 0024. It alters
    Nicole's 0019 tables, with her agreement:
    - allocations gain `reserved_at`
    - a booking's delivery venue may be empty
@@ -29,7 +29,7 @@ outcome. Test cases and results: [test-cases/US14_test_cases.md](test-cases/US14
 | Locking | A transaction-level advisory lock per equipment type | Two reservations of the same type queue up, and the second re-counts after the first commits (AC-014.12). Different types never wait for each other. 0019's no-double-allocation constraint stays as the final backstop. |
 | SECURITY DEFINER | Every public function checks `current_user_role() = 'tech_support'` itself and sets `search_path = ''` | Units, allocations and venue bookings are hidden from most roles by design, so the functions need owner rights to read them. The role check is what admits only Technical Support. |
 | Lockdown | Technical Support can still read allocations, lines and bookings, but no longer write them directly | Direct writes would skip the window, usable-unit and availability rules. |
-| Release | Unchanged US13 triggers cancel a line's reserved allocations when a Coordinator changes or removes it | US14 links each requirement to its booking line (`booking_line_id`), which is the hook 0020 already uses. |
+| Release | Unchanged US13 triggers cancel a line's reserved allocations when a Coordinator changes or removes it | US14 links each requirement to its booking line (`booking_line_id`), which is the hook 0024 already uses. |
 | Notifications | One per requirement outcome: an in-app row on US13's notification table, plus an email through the US4 outbox | Channels are configured in `equipment_notification_settings` (#37), with both on by default. |
 
 ## Team assumptions to confirm with the customer
