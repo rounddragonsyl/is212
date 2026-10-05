@@ -254,3 +254,31 @@ select pg_temp.assert_true(
           '2040-04-08', '2040-04-08', array['AM','PM','NIGHT']) p
    where p.slot = 'PM' and p.claim_kind = 'event'),
   'AC-012.7.1: preview lists each overlapping booking cell with its event and booking status');
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+insert into public.events (id, organiser_id, coordinator_id, purpose, name, reference,
+                           proposed_start, proposed_end, expected_attendance, status)
+values ('b12a0000-0000-0000-0000-0000000000e6', '00000000-0000-0000-0000-000000000001',
+        '00000000-0000-0000-0000-000000000003', 'Block fixture', 'Block event 6', 'EVT-B12-6',
+        '2040-01-01 01:00+00', '2040-01-01 02:00+00', 50, 'approved');
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-000000000003');
+select pg_temp.hold('b12a0000-0000-0000-0000-0000000000b6',
+  'b12a0000-0000-0000-0000-0000000000f1', 'b12a0000-0000-0000-0000-0000000000e6',
+  '[{"date":"2040-04-15","slot":"AM","kind":"buffer"},{"date":"2040-04-15","slot":"PM","kind":"event"},
+    {"date":"2040-04-15","slot":"NIGHT","kind":"buffer"}]');
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+update public.venue_bookings set hold_expires_at = now() - interval '1 day'
+ where id = 'b12a0000-0000-0000-0000-0000000000b6';
+set role authenticated;
+select pg_temp.as_user('b12a0000-0000-0000-0000-000000000001');
+select pg_temp.assert_true(
+  exists (select 1 from public.venue_slot_claims
+          where booking_id = 'b12a0000-0000-0000-0000-0000000000b6')
+  and not exists (
+   select 1
+   from public.preview_venue_block('b12a0000-0000-0000-0000-0000000000f1',
+          '2040-04-15', '2040-04-15', array['AM','PM','NIGHT']) p
+   where p.event_reference = 'EVT-B12-6'),
+  'AC-012.7.2: preview leaves out a hold that has already lapsed');
