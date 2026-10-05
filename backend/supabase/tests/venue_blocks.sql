@@ -75,3 +75,6 @@ select pg_temp.expect_error($q$select public.block_venue('b12a0000-0000-0000-000
 select pg_temp.expect_error($q$select public.block_venue('b12a0000-0000-0000-0000-0000000000f1',
   '2040-05-01','2040-05-01',array[]::text[],'No slots')$q$, '22023',
   'AC-012.2.4: a block with no slots is refused');
+select pg_temp.expect_error($q$select public.block_venue('b12a0000-0000-0000-0000-0000000000f1',
+  '2040-05-01','2040-05-01',array['EVENING'],'Bad slot')$q$, '22023',
+  'AC-012.2.3: an unknown slot code is refused');
