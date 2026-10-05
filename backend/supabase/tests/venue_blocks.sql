@@ -227,3 +227,10 @@ select pg_temp.assert_true(
    where c.venue_id = 'b12a0000-0000-0000-0000-0000000000f1'
      and c.slot_date = '2040-04-01' and c.slot = 'AM'),
   'AC-012.2.11: a different slot on an already partly blocked date can be blocked separately');
+select public.block_venue('b12a0000-0000-0000-0000-0000000000f1', '2040-04-12', '2040-04-12',
+  array['AM'], '  Electrical safety check  ');
+select pg_temp.assert_true(
+  exists (select 1 from public.venue_closures
+          where venue_id = 'b12a0000-0000-0000-0000-0000000000f1'
+            and starts_on = '2040-04-12' and reason = 'Electrical safety check'),
+  'AC-012.3.3: the reason is stored without surrounding spaces');
