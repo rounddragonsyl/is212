@@ -27,4 +27,7 @@ select pg_temp.as_user('b12a0000-0000-0000-0000-000000000001');
 select pg_temp.expect_error($q$insert into public.venue_closures (venue_id, starts_on, ends_on, reason, created_by)
   values ('b12a0000-0000-0000-0000-0000000000f1','2040-05-01','2040-05-01','Direct insert',
           'b12a0000-0000-0000-0000-000000000001')$q$, '42501',
-  'AC-012.1.4: venue staff cannot create a block row directly');
+  'AC-012.1.4: venue staff cannot create a block row directly');select pg_temp.expect_error($q$insert into public.venue_slot_claims (venue_id, slot_date, slot, kind, closure_id)
+  values ('b12a0000-0000-0000-0000-0000000000f1','2040-06-01','AM','maintenance',
+          'b12a0000-0000-0000-0000-0000000000c1')$q$, '42501',
+  'AC-012.1.5: venue staff cannot write a blocked cell directly');
