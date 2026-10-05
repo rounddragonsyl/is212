@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest'
-import { createVenueBlock, VENUE_BLOCK_MESSAGES } from '../venueBlockService'
+import { createVenueBlock } from '../venueBlockService'
 import { BLOCK_VALIDATION_MESSAGES } from '../venueBlockValidation'
 import type { VenueBlockInput } from '../venueBlockTypes'
 import { mockQuery } from './mockQuery'
