@@ -437,3 +437,10 @@ select pg_temp.assert_true(
             from public.venue_booking_flags
             where venue_id = 'b12a0000-0000-0000-0000-0000000000f3'), false),
   'AC-012.8.7: the requesting coordinator sees the flag for an unassigned event');
+select pg_temp.expect_error($q$update public.venue_booking_flags set status = 'resolved'
+  where booking_id = 'b12a0000-0000-0000-0000-0000000000b8'$q$, '42501',
+  'AC-012.8.8: a coordinator cannot clear a flag directly');
+select pg_temp.as_user('00000000-0000-0000-0000-000000000001');
+select pg_temp.assert_true(
+  not exists (select 1 from public.venue_booking_flags),
+  'AC-012.8.9: an organiser cannot see internal booking flags');
