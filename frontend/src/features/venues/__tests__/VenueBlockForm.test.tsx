@@ -104,3 +104,31 @@ describe('AC-012.9 — an existing block must be removed first', () => {
     expect(screen.getByText(/Deep clean/)).toBeInTheDocument()
   })
 })
+
+describe('AC-012.8 — overlapping bookings are flagged and their coordinators told', () => {
+  test('AC-012.8.16: after saving, the form says how many bookings were flagged, then clears', async () => {
+    const onSaved = vi.fn()
+    render(<VenueBlockForm venueId="v1" onPreview={previewing()} onCreate={saving(2)} onSaved={onSaved} />)
+
+    fillIn()
+    fireEvent.click(screen.getByRole('button', { name: 'Preview' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Confirm block' }))
+
+    expect(await screen.findByRole('status')).toHaveTextContent('2 bookings were flagged for review')
+    expect(onSaved).toHaveBeenCalled()
+    expect(screen.getByLabelText(/Reason/)).toHaveValue('')
+  })
+})
+
+describe('AC-012.2 — a refused block is explained', () => {
+  test('AC-012.2.28: a problem the service reports is shown, and nothing can be confirmed', async () => {
+    const onPreview = vi.fn().mockResolvedValue({ ok: false, reason: 'Only Venue Staff can block or unblock a venue.' })
+    render(<VenueBlockForm venueId="v1" onPreview={onPreview} onCreate={saving()} />)
+
+    fillIn()
+    fireEvent.click(screen.getByRole('button', { name: 'Preview' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Only Venue Staff can block or unblock a venue.')
+    expect(screen.queryByRole('button', { name: 'Confirm block' })).toBeNull()
+  })
+})
