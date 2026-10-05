@@ -7,6 +7,7 @@ import { supabase } from '../../lib/supabase'
 import type { SlotCode } from './slots'
 import { groupAffectedBookings, validateVenueBlock } from './venueBlockValidation'
 import type {
+  BlockableVenue,
   PreviewCell,
   VenueBlock,
   VenueBlockField,
@@ -19,6 +20,7 @@ export const VENUE_BLOCK_MESSAGES = {
   overlapsBlock: 'Part of this period is already blocked. Remove or change that block first.',
   notFound: 'That block or venue no longer exists. Reload the page to see the current blocks.',
   loadFailed: 'The current blocks could not be loaded. Please try again.',
+  venuesFailed: 'The venues could not be loaded. Please try again.',
   unexpected: 'Something went wrong and nothing was changed. Please try again.',
   // The block call may have committed even though its reply was lost.
   uncertain: 'We could not confirm whether the block was saved. Reload the page before trying again.',
@@ -52,6 +54,27 @@ function requestArgs(block: VenueBlockInput) {
     p_starts_on: block.startsOn,
     p_ends_on: block.endsOn,
     p_slots: block.slots,
+  }
+}
+
+interface VenueRow {
+  id: string
+  name: string
+  location: string | null
+}
+
+/** AC-012.2: the venues a block can be placed on. Retired venues cannot be blocked. */
+export async function listBlockableVenues(): Promise<VenueBlockResult<BlockableVenue[]>> {
+  const { data, error } = await supabase
+    .from('venues')
+    .select('id, name, location')
+    .neq('status', 'retired')
+    .order('name')
+  if (error) return { ok: false, reason: VENUE_BLOCK_MESSAGES.venuesFailed }
+
+  return {
+    ok: true,
+    value: ((data ?? []) as VenueRow[]).map((row) => ({ id: row.id, name: row.name, location: row.location ?? '' })),
   }
 }
 
