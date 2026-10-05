@@ -64,6 +64,10 @@ as $$
 begin
   perform public.venue_block_request_slots(p_venue_id, p_starts_on, p_ends_on, p_slots);
 
+  if btrim(p_reason) = '' then
+    raise exception 'A reason is required to block a venue' using errcode = '22023';
+  end if;
+
   raise exception 'Blocking a venue is not available yet' using errcode = '0A000';
 end;
 $$;
