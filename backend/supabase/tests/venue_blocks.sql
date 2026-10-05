@@ -37,3 +37,9 @@ select pg_temp.expect_error($q$delete from public.venue_closures
 select pg_temp.expect_error($q$update public.venue_closures set reason = 'Edited directly'
   where id = 'b12a0000-0000-0000-0000-0000000000c1'$q$, '42501',
   'AC-012.1.7: venue staff cannot change a block row directly');
+
+-- ===== AC-012.1 (cont.) Only Venue Staff can call block_venue =====
+select pg_temp.as_user('00000000-0000-0000-0000-000000000003');
+select pg_temp.expect_error($q$select public.block_venue('b12a0000-0000-0000-0000-0000000000f1',
+  '2040-05-01','2040-05-01',array['AM'],'Coordinator attempt')$q$, '42501',
+  'AC-012.1.1: a coordinator cannot block a venue');
