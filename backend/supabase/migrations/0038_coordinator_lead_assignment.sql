@@ -8,6 +8,13 @@ alter table public.profiles add constraint profiles_role_valid check (
            'venue_staff', 'tech_support', 'attendee')
 );
 
+-- Leads need submitted event information for assignment and supervision.
+-- This grants read access only; assignment writes still go through the scoped RPC.
+drop policy if exists events_select_for_coordinator_leads on public.events;
+create policy events_select_for_coordinator_leads on public.events
+  for select to authenticated
+  using (public.current_user_role() = 'coordinator_lead' and status <> 'draft');
+
 create or replace function public.guard_event_coordinator_assignment()
 returns trigger language plpgsql set search_path = '' as $$
 begin
