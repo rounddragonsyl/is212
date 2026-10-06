@@ -281,4 +281,39 @@ select pg_temp.assert_true(
     from public.events where id = '17100000-0000-0000-0000-000000000001'),
   'AC-017.4.1: reassignment denies the previous coordinator and permits the new coordinator to approve');
 
+-- AC6: the earlier scenario assigned event 001, rejected invalid attempts, then
+-- reassigned it. Its retained history must describe exactly those two changes.
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '17000000-0000-0000-0000-000000000001', true);
+-- Selecting the existing coordinator is not another assignment change.
+select public.assign_event_coordinator('17100000-0000-0000-0000-000000000001',
+  '17000000-0000-0000-0000-000000000005');
+do $$ begin
+  if to_regclass('public.event_coordinator_assignment_history') is null then
+    raise exception 'FAIL: AC-017.6.1: assignment history is not stored';
+  end if;
+  if (select count(*) from public.event_coordinator_assignment_history
+      where event_id = '17100000-0000-0000-0000-000000000001') <> 2 then
+    raise exception 'FAIL: AC-017.6.1: retain exactly the assignment and reassignment, not failed attempts or unchanged selections';
+  end if;
+  if not exists (
+    select 1 from public.event_coordinator_assignment_history
+    where event_id = '17100000-0000-0000-0000-000000000001'
+      and previous_coordinator_id is null
+      and new_coordinator_id = '17000000-0000-0000-0000-000000000003'
+      and assigned_by = '17000000-0000-0000-0000-000000000001'
+      and assigned_at between transaction_timestamp() and clock_timestamp()
+  ) or not exists (
+    select 1 from public.event_coordinator_assignment_history
+    where event_id = '17100000-0000-0000-0000-000000000001'
+      and previous_coordinator_id = '17000000-0000-0000-0000-000000000003'
+      and new_coordinator_id = '17000000-0000-0000-0000-000000000005'
+      and assigned_by = '17000000-0000-0000-0000-000000000001'
+      and assigned_at between transaction_timestamp() and clock_timestamp()
+  ) then
+    raise exception 'FAIL: AC-017.6.1: Lead must be able to read the actor, previous/new coordinator and time for each change';
+  end if;
+  raise notice 'PASS: AC-017.6.1: assignment history retains who, from/to and when, excluding failed and unchanged assignments';
+end $$;
+
 rollback;
