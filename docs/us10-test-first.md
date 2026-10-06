@@ -445,3 +445,7 @@ Six UI assertions fail: five non-pending statuses still show rejection and a ref
 ### AC12 form finality GREEN
 RED commit: 986e278. Only pending bookings show rejection. Failed decisions retain input and lock retries until a manual reload; double-submit is guarded. Full frontend: 76 files, 788 pass, 1 TODO. Full database: US10 19/19 pass. Both exit 0. Logs: us10-finality-green-{frontend,database}.log. Refreshed origin/main is still 60830eb with no upstream changes.
 
+
+### Review-page integration RED
+Four integration assertions fail on the readback/page scaffolds: saved decision mapping, routed rejection, read failure/reload, and saved decision display. Existing tested form behaviour is unchanged. Full frontend: 4 failed, 789 passed, 1 TODO (77 files). Full database US10 19/19 pass. Logs: us10-integration-red-{frontend,database}.log. This is an integration checkpoint for previously tested AC8/AC13 behaviour, not a new slice.
+

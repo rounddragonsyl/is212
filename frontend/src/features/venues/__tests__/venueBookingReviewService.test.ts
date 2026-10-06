@@ -1,5 +1,5 @@
 import { beforeEach, expect, test, vi } from 'vitest'
-import { rejectVenueBooking } from '../venueBookingReviewService'
+import { getVenueBookingReview, rejectVenueBooking } from '../venueBookingReviewService'
 import { BOOKING_ID, createSupabaseFake } from './fixtures/venueBooking'
 
 const mocks = vi.hoisted(() => ({ from: vi.fn() }))
@@ -54,4 +54,18 @@ test('AC-010.12.13: an interrupted request is not retried automatically', async 
   mocks.from.mockImplementation(() => { throw new Error('Connection lost') })
   expect(await rejectVenueBooking(BOOKING_ID, 'Unavailable')).toMatchObject({ ok: false })
   expect(mocks.from).toHaveBeenCalledOnce()
+})
+
+test('AC-010.13.4: review readback uses the saved decision identity, time and alternative', async () => {
+  fake.plan('venue_bookings', { data: {
+    id: BOOKING_ID, status: 'rejected', venues: { name: 'Alpha Hall' },
+    review_note: 'Unavailable', review_alternative: 'Try Friday',
+    reviewed_by: 'staff-1', reviewed_at: '2030-10-10T02:00:00Z',
+  } })
+  expect(await getVenueBookingReview(BOOKING_ID)).toEqual({ ok: true, booking: {
+    id: BOOKING_ID, status: 'rejected', venueName: 'Alpha Hall',
+    reviewNote: 'Unavailable', reviewAlternative: 'Try Friday',
+    reviewedBy: 'staff-1', reviewedAt: '2030-10-10T02:00:00Z',
+  } })
+  expect(fake.callsTo('venue_bookings', 'eq')).toEqual([['id', BOOKING_ID]])
 })
