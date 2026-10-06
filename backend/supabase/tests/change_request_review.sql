@@ -27,10 +27,12 @@ insert into auth.users (id,email) values
  ('00000000-0000-0000-0000-000000000002','other@example.test'),
  ('00000000-0000-0000-0000-000000000003','coordinator@example.test'),
  ('00000000-0000-0000-0000-000000000004','other-coordinator@example.test'),
- ('00000000-0000-0000-0000-000000000005','manager@example.test');
+ ('00000000-0000-0000-0000-000000000005','manager@example.test'),
+ ('00000000-0000-0000-0000-000000000006','lead@example.test');
 update public.profiles set role='coordinator' where id in
  ('00000000-0000-0000-0000-000000000003','00000000-0000-0000-0000-000000000004');
 update public.profiles set role='operations_manager' where id='00000000-0000-0000-0000-000000000005';
+update public.profiles set role='coordinator_lead' where id='00000000-0000-0000-0000-000000000006';
 insert into public.events (id,organiser_id,purpose,name,proposed_start,proposed_end,expected_attendance,status) values
  ('10000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000001','Original purpose','Original name','2030-01-01 01:00+00','2030-01-01 02:00+00',10,'submitted'),
  ('10000000-0000-0000-0000-000000000002','00000000-0000-0000-0000-000000000002','Other event','Other name','2030-01-01 01:00+00','2030-01-01 02:00+00',10,'submitted');
@@ -77,11 +79,14 @@ select pg_temp.expect_error($q$select public.assign_event_coordinator('10000000-
  'AC-007.2.3: coordinator cannot self-assign through function');
 select pg_temp.expect_error($q$update public.events set coordinator_id='00000000-0000-0000-0000-000000000003' where id='10000000-0000-0000-0000-000000000001'$q$,'42501',
  'AC-007.2.4: coordinator cannot self-assign through direct update');
-select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000005',false);
+select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000006',false);
 select public.assign_event_coordinator('10000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000003');
+-- Verify the saved assignment independently of Lead queue read permissions.
+reset role;
 select pg_temp.assert_true((select coordinator_id='00000000-0000-0000-0000-000000000003'
  from public.events where id='10000000-0000-0000-0000-000000000001'),
- 'AC-007.2.5: Operations Manager assigns a coordinator');
+ 'AC-007.2.5: Coordinator Lead assigns a coordinator');
+set role authenticated;
 select pg_temp.expect_error($q$select public.assign_event_coordinator('10000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000001')$q$,'22000',
  'AC-007.2.6: assignment refuses an organiser as coordinator');
 select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000004',false);
@@ -113,12 +118,12 @@ select pg_temp.expect_error($q$insert into public.event_change_requests(event_id
  'AC-007.2.16: organiser cannot spoof review metadata on insert');
 select pg_temp.expect_error($q$update public.event_change_requests set status='withdrawn',proposed_changes='{"name":"Forged"}' where id='20000000-0000-0000-0000-000000000012'$q$,'42501',
  'AC-007.2.17: withdrawal cannot rewrite the stored proposal');
-select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000005',false);
+select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000006',false);
 select public.assign_event_coordinator('10000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000004');
 select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000003',false);
 select pg_temp.expect_error($q$select pg_temp.review(1,'{"action":"clarify","note":"Explain"}')$q$,'42501',
  'AC-007.2.18: reassignment immediately removes previous reviewer access');
-select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000005',false);
+select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000006',false);
 select public.assign_event_coordinator('10000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000003');
 select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000003',false);
 
