@@ -409,3 +409,7 @@ RED commit: 31c226c. The unchanged AC-010.13.2 now passes with a server-stamped 
 ### AC9 storage RED
 AC-010.9.1 asserts that the booking row model retains a suggested alternative. It fails on the existing schema because that field is absent (JSON record conversion drops unknown fields); no SQL syntax/import failure. Full database: 10 pass, 1 fail, exit 3. Frontend: 762 pass, 1 TODO, exit 0. Logs: us10-ac9-red-{database,frontend}.log. Finality, spoofed reviewer and rollback cases passed on first execution and are regression coverage, not claimed RED cycles.
 
+
+### AC9 storage GREEN
+RED commit: 2647b6a. Added nullable review_alternative to the existing table in reserved migration 0040. Unchanged schema contract passes. Full database: 11/11 US10 pass, exit 0. Full frontend: 762 pass, 1 TODO, exit 0. Logs: us10-ac9-green-{database,frontend}.log. No second migration file or shared deployment.
+

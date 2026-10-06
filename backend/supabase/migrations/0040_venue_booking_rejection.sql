@@ -1,6 +1,9 @@
 -- US10 Slice 1, AC10: rejection and slot release must succeed together.
 begin;
 
+-- Free text supports another venue or a different arrangement; no new catalogue.
+alter table public.venue_bookings add column if not exists review_alternative text;
+
 create or replace function public.stamp_venue_booking_rejection()
 returns trigger
 language plpgsql
