@@ -433,3 +433,7 @@ RED commit: 865c11e. All five new assertions pass unchanged. Full frontend 76 fi
 ### AC4 access RED
 Real database tests exposed permissive-policy composition: a coordinator passed their own-booking USING policy and the staff-review WITH CHECK, which lacked a role check. AC-010.4.4 failed. Database US10 18 pass/1 fail; frontend seven role-visibility cases failed, 771 passed/1 TODO. Logs: us10-access-red-{frontend,database}.log. This is an actual authorization regression, not a mock-only failure.
 
+
+### AC4 access GREEN
+RED commit: cb14144. Added role to the review policy WITH CHECK and gated the form with the current session role. Unchanged tests pass: database US10 19/19; frontend 76 files, 778 pass, 1 TODO; both exit 0. Logs: us10-access-green-{frontend,database}.log. No coordinator cancellation or unrelated venue/equipment permissions changed.
+

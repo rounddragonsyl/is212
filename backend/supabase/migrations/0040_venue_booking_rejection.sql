@@ -4,6 +4,15 @@ begin;
 -- Free text supports another venue or a different arrangement; no new catalogue.
 alter table public.venue_bookings add column if not exists review_alternative text;
 
+-- Permissive policies combine: repeat the role check here so a coordinator's
+-- own-booking USING policy cannot combine with this decision WITH CHECK.
+drop policy if exists bookings_review_venue_staff on public.venue_bookings;
+create policy bookings_review_venue_staff on public.venue_bookings
+  for update to authenticated
+  using (public.current_user_role() = 'venue_staff' and status = 'pending_approval')
+  with check (public.current_user_role() = 'venue_staff'
+    and status in ('confirmed', 'rejected') and reviewed_by = auth.uid());
+
 create or replace function public.stamp_venue_booking_rejection()
 returns trigger
 language plpgsql

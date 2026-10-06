@@ -4,6 +4,7 @@ import { Button } from '../../../components/ui/Button'
 import { Field, TextArea } from '../../../components/ui/FormControls'
 import { rejectVenueBooking } from '../venueBookingReviewService'
 import { rejectionReasonError } from '../venueBookingReviewValidation'
+import { useCurrentUser } from '../../auth/sessionContext'
 
 export interface RejectionFormProps {
   bookingId: string
@@ -13,6 +14,7 @@ export interface RejectionFormProps {
 
 export function VenueBookingRejectionForm({ bookingId, onRejected }: RejectionFormProps) {
   const id = useId()
+  const { profile, loading } = useCurrentUser()
   const submitting = useRef(false)
   const [reason, setReason] = useState('')
   const [alternative, setAlternative] = useState('')
@@ -20,6 +22,7 @@ export function VenueBookingRejectionForm({ bookingId, onRejected }: RejectionFo
   const [done, setDone] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  if (loading || profile?.role !== 'venue_staff') return null
   if (done) return <p role="status">Booking rejected.</p>
 
   return (
