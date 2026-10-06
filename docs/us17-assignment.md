@@ -92,8 +92,27 @@ authenticated access; browser writes are revoked. No backfill or invented admini
 identity is recorded. Referenced events/profiles cannot be deleted while history references
 them. History UI is not included. The runner reapplies 0039 after historical 0008/0038 replay.
 
-0039 has not been applied to shared Supabase by this work. Apply after 0038 once reviewed;
-do not edit it after deployment. The AC's withdrawn-event wording needs confirming against
+Jaydon confirmed 0039 was applied to shared Supabase on 6 October 2026. Do not edit it
+after deployment. The AC's withdrawn-event wording needs confirming against
 the team's withdrawal workflow: there is no separate withdrawn event status in the schema.
 Remaining: queue/picker UI, notification triggers, cross-feature integration and live
 acceptance checks. Do not mark the whole story complete.
+
+## Slice 3 — assignment queue and coordinator picker (in progress)
+
+Branch: `us17slice3`. Scope: Lead queue/basic details (AC1), coordinator selection and
+assignment counts/assignment (AC2), and reassignment of eligible events (AC3), with
+clear save success/error feedback. Notifications remain slice 4.
+
+First cycle: AC-017.1.10 in `CoordinatorAssignmentQueue.test.tsx`.
+Red: no unassigned queue for the Lead. Green: `/requests` renders a Lead-specific
+queue containing only submitted requests with an explicitly null coordinator ID.
+The shared query now loads that ID; a missing ID is not treated as unassigned.
+The queue shows reference/name/purpose/type/start/end/attendance, with Singapore times.
+Navigation and the home page link to it; existing polling, refresh/error/loading handling
+are reused, and an empty queue has an explicit message. Other roles retain their views.
+
+Local checks: 763 frontend tests passed, one TODO; full database suite, typecheck, lint
+and build passed. Existing bundle-size warning remains. No additional non-TDD tests.
+The new test mocks the service: it verifies queue presentation, not a live Supabase flow.
+Picker, coordinator counts, save/reassignment controls and live acceptance remain pending.

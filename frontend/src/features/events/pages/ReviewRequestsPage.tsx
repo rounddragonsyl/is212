@@ -3,15 +3,13 @@ import { Card } from '../../../components/ui/Card'
 import { PageContainer } from '../../../components/layout/PageContainer'
 import { useCurrentUser } from '../../auth/sessionContext'
 import { RequestListItem } from '../components/RequestListItem'
+import { CoordinatorAssignmentQueue } from '../components/CoordinatorAssignmentQueue'
 import { listEventRequests } from '../eventReviewService'
 import { useRequestResource } from '../status/useRequestResource'
 
 /**
- * A coordinator's queue of incoming requests.
- *
- * No role filtering happens here. The query is identical whoever runs it, and RLS decides
- * what comes back — a coordinator sees every request, an organiser only their own. That is
- * the argument for enforcing authorisation in the database rather than the client.
+ * Role-specific request views. RLS controls readable rows; the Lead's queue further
+ * filters those rows to submitted requests still needing an assignment.
  */
 export function ReviewRequestsPage() {
   const { profile, loading: userLoading } = useCurrentUser()
@@ -27,18 +25,19 @@ export function ReviewRequestsPage() {
 
   const isCoordinator = profile?.role === 'coordinator'
   const isManager = profile?.role === 'operations_manager'
+  const isLead = profile?.role === 'coordinator_lead'
 
   return (
     <PageContainer>
       <div className="mb-8 max-w-3xl">
         <p className="text-xs font-semibold uppercase tracking-wider text-indigo-600">
-          {isManager ? 'Event operations manager' : isCoordinator ? 'Event coordinator' : 'Event requests'}
+          {isLead ? 'Coordinator Lead' : isManager ? 'Event operations manager' : isCoordinator ? 'Event coordinator' : 'Event requests'}
         </p>
         <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">
-          {isCoordinator || isManager ? 'Incoming requests' : 'Your requests'}
+          {isLead ? 'Coordinator assignments' : isCoordinator || isManager ? 'Incoming requests' : 'Your requests'}
         </h1>
         <p className="mt-3 text-sm leading-relaxed text-slate-600">
-          {isManager ? 'View submitted events and their current progress.' : isCoordinator
+          {isLead ? 'Review the details of submitted requests waiting for a coordinator.' : isManager ? 'View submitted events and their current progress.' : isCoordinator
             ? 'Every submitted request, newest first. Open one to see the full details and decide.'
             : 'Your event requests, including drafts. Status updates automatically every 30 seconds.'}
         </p>
@@ -55,6 +54,8 @@ export function ReviewRequestsPage() {
         >
           {error}
         </div>
+      ) : isLead ? (
+        <CoordinatorAssignmentQueue requests={requests} />
       ) : requests.length === 0 ? (
         <Card title="Nothing here yet">
           <p className="text-sm text-slate-600">

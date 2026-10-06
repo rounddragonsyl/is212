@@ -853,7 +853,7 @@ and `frontend/src/components/layout/__tests__/TopNav.test.tsx`):
 | AC-012.9 — current blocks can be viewed and removed | AC-012.9.1–9.11 | AC-012.9.12–9.25 |
 | AC-012.10 — who blocked, and when, is recorded | AC-012.10.1–10.4 | AC-012.10.5–10.6 |
 
-## US17 - Coordinator assignment, slices 1–2
+## US17 - Coordinator assignment
 
 Migration `0038_coordinator_lead_assignment.sql` adds the `coordinator_lead` role,
 non-draft event read access, and Lead-only assignment through the existing function
@@ -867,17 +867,20 @@ Lead assignment changes in `event_coordinator_assignment_history`, readable by L
 Browser users cannot write history; failed changes and unchanged assignments add no entries.
 Existing assignments and administrator SQL repairs are not backfilled as Lead actions.
 
-This is the backend foundation, not the assignment UI or completed US17. The queue/picker
-and notifications remain in later slices. The AC's withdrawn-event wording still needs
+Slice 3 now gives Leads an Assignments navigation link and a submitted/unassigned queue
+at `/requests`, with reference, name, purpose, type, Singapore start/end times and attendance.
+Drafts, assigned requests and closed events are excluded from that queue. The picker,
+assignment/reassignment save flow and notifications are still pending. The AC's withdrawn-event wording needs
 mapping to the team's event lifecycle; there is no separate `withdrawn` event status.
 Apply the reviewed migration after `0037`, once per shared environment; it has only
 been tested in disposable PostgreSQL during this slice. An administrator must provision
 a Lead account before assignment testing; the old Manager role no longer assigns.
 
-After review, apply 0039 after 0038; 0039 has only been tested locally. Coordinators now
+Jaydon confirmed applying 0039 to shared Supabase on 6 October 2026. Treat it as deployed
+and immutable; further database changes require a new claimed migration. Coordinators now
 need assignment before original-request review, including US4's existing update path.
 
-Tests: one frontend profile test and 18 SQL cases, with IDs, TDD cycles, additional
+Tests: two frontend tests (profile and Lead queue) and 18 SQL cases, with IDs, TDD cycles, additional
 coverage and deployment details in [US17 assignment](docs/us17-assignment.md).
 
 ## Shared Supabase state (5 October 2026)

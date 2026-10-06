@@ -40,6 +40,8 @@ function navItemsFor(role: UserRole | null): NavItem[] {
         ...(FEATURES.venueBooking ? [{ label: 'My bookings', to: '/venues/bookings' }] : []),
         ...(FEATURES.venueBlocks ? [{ label: 'Venue alerts', to: '/venues/alerts' }] : []),
       ]
+    case 'coordinator_lead':
+      return [home, { label: 'Assignments', to: '/requests' }]
     case 'operations_manager':
       return [home, { label: 'Requests', to: '/requests' }]
     case 'tech_support':

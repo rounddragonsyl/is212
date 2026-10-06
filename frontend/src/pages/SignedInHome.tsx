@@ -28,6 +28,7 @@ export function SignedInHome({ profile }: { profile: UserProfile }) {
   const isCoordinator = profile.role === 'coordinator'
   const isOrganiser = profile.role === 'organiser'
   const isManager = profile.role === 'operations_manager'
+  const isLead = profile.role === 'coordinator_lead'
   const canViewRequests = isOrganiser || isCoordinator || isManager
   const awaiting = requests?.filter((request) => request.status === 'submitted') ?? []
   const recent = requests?.slice(0, 3) ?? []
@@ -43,6 +44,9 @@ export function SignedInHome({ profile }: { profile: UserProfile }) {
         </p>
 
         <div className="mt-6 flex flex-wrap items-center gap-4">
+          {isLead && (
+            <Link to="/requests" className={primaryButton}>View coordinator assignments</Link>
+          )}
           {isOrganiser && (
             <Link to="/events/new" className={primaryButton}>
               Start a new request
@@ -70,7 +74,7 @@ export function SignedInHome({ profile }: { profile: UserProfile }) {
           )}
         </div>
 
-        {!canViewRequests && (
+        {!canViewRequests && !isLead && (
           <p className="mt-6 max-w-xl text-sm leading-relaxed text-slate-600">
             There is nothing for you to action here right now. Your coordinator will be in
             touch when an event needs you.

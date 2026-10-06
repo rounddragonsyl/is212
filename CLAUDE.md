@@ -160,6 +160,10 @@ Draft saves in eventDraftService must never change an existing request's status.
   reassignment rules. Those are future increments; do not mark the whole story complete.
 
 ## House style
+- US17 slice 3 in progress: Leads use /requests for the unassigned submitted queue.
+  listEventRequests loads coordinator_id; only explicit null denotes unassigned.
+  AC-017.1.10 covers queue presentation; picker/save flow are not implemented yet.
+  Jaydon confirmed 0039 deployed on 6 October 2026: do not edit that migration further.
 - US17 slice 2: 0039 blocks completed/cancelled reassignment and guards coordinator
   event updates using the current assignee. US4 review fixtures must have an assignment.
   Assignment history is trigger-written, Lead-readable, with no browser writes/backfill.
