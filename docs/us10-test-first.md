@@ -378,3 +378,26 @@ This is the minimum implementation for AC-010.10.2, not completion of Slice 1.
 Dedicated rollback/block interaction coverage, optional alternatives, finality,
 server-recorded decision identity/time and the review UI remain subsequent work.
 No migration was applied to shared Supabase. GREEN commit and push await approval.
+
+### Next checkpoint: AC13 RED (6 October 2026)
+
+AC10 GREEN was committed with approval as `b8b4399`
+(`fix(us10): release rejected booking slots atomically`). Nothing has been pushed.
+
+Added AC-010.13.2 to the existing SQL test file. Authenticated Venue Staff reject
+a fresh pending booking while supplying `reviewed_at = 2000-01-01T00:00:00Z`.
+The test requires the saved reviewer to match the session and the saved time to
+fall within the server-observed action window. The UPDATE affects exactly one
+row, but retains the supplied old timestamp: a behavioural RED, not a fixture error.
+This case covers rejection timestamp integrity; it does not prove spoofed actor
+handling or approval audit behaviour.
+
+- Full database runner: exit 3; US10 **6 checks, 5 passed, 1 failed**.
+  Only AC-010.13.2 fails; AC8 and AC10 remain green. Earlier regression suites run.
+- Full frontend suite: exit 0; **74 files passed, 762 tests passed, 1 TODO**.
+- Screenshot the AC13 FAIL row and `6 | 5 | 1` summary, plus frontend totals.
+  Raw local logs: `$env:TEMP/us10-ac13-red-database.log` and
+  `$env:TEMP/us10-ac13-red-frontend.log`.
+
+AC13 RED commit and implementation await approval. Migration 0040 is unchanged
+since the AC10 GREEN commit; no additional migration number has been consumed.

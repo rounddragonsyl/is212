@@ -12,13 +12,13 @@ insert into public.venues (id,name,location,capacity,layout,status) values
  ('b10a0000-0000-0000-0000-000000000003','US10 Review Hall','Test',100,'Theatre','active');
 insert into public.events (id,organiser_id,status)
 select ('b10a0000-0000-0000-0000-' || lpad(n::text,12,'0'))::uuid,
- 'b10a0000-0000-0000-0000-000000000002','draft' from generate_series(101,104) n;
+ 'b10a0000-0000-0000-0000-000000000002','draft' from generate_series(101,105) n;
 insert into public.venue_bookings (id,event_id,venue_id,requested_by,status)
 select ('b10a0000-0000-0000-0000-' || lpad(n::text,12,'0'))::uuid,
  ('b10a0000-0000-0000-0000-' || lpad((n-100)::text,12,'0'))::uuid,
  'b10a0000-0000-0000-0000-000000000003',
  'b10a0000-0000-0000-0000-000000000002','pending_approval'
-from generate_series(201,204) n;
+from generate_series(201,205) n;
 
 -- AC10 fixtures: event/setup/turnaround cells plus an unrelated pending booking.
 insert into public.venue_slot_claims (venue_id,slot_date,slot,kind,booking_id) values
@@ -75,6 +75,31 @@ select 'AC-010.10.2: rejection releases its event and buffer slots only',
  and exists(select 1 from public.venue_slot_claims
    where booking_id='b10a0000-0000-0000-0000-000000000201'
      and slot_date='2030-10-13' and slot='PM' and kind='event');
+-- AC13: the browser must not be the authority for the decision timestamp.
+create temp table us10_decision_window as select clock_timestamp() as started_at;
+set role authenticated;
+select set_config('request.jwt.claim.sub','b10a0000-0000-0000-0000-000000000001',false);
+do $$
+declare changed integer;
+begin
+ update public.venue_bookings
+ set status='rejected', review_note='Venue unsuitable',
+   reviewed_by=auth.uid(), reviewed_at='2000-01-01T00:00:00Z'
+ where id='b10a0000-0000-0000-0000-000000000205';
+ get diagnostics changed = row_count;
+ if changed <> 1 then
+   raise exception 'Fixture/access failure: expected one pending booking, got %', changed;
+ end if;
+end $$;
+reset role;
+insert into us10_results
+select 'AC-010.13.2: rejection records server time instead of a client-supplied timestamp',
+ exists(select 1 from public.venue_bookings b cross join us10_decision_window w
+   where b.id='b10a0000-0000-0000-0000-000000000205'
+     and b.status='rejected' and b.review_note='Venue unsuitable'
+     and b.reviewed_by='b10a0000-0000-0000-0000-000000000001'
+     and b.reviewed_at between w.started_at and clock_timestamp());
+
 select label, case when passed then 'PASS' else 'FAIL' end as result from us10_results;
 select count(*) as total, count(*) filter(where passed) as passed,
  count(*) filter(where not passed) as failed from us10_results;
