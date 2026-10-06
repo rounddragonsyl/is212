@@ -1,8 +1,10 @@
 -- Local disposable runner only; existing synthetic users come from its US7 fixtures.
 begin;
-insert into public.events (id,organiser_id,purpose,proposed_start,proposed_end,expected_attendance,status)
+-- Provision the reviewer relationship required by US17; keep all US4 assertions intact.
+select set_config('request.jwt.claim.sub', '', true);
+insert into public.events (id,organiser_id,coordinator_id,purpose,proposed_start,proposed_end,expected_attendance,status)
 select ('30000000-0000-0000-0000-'||lpad(n::text,12,'0'))::uuid,
- '00000000-0000-0000-0000-000000000001','Direct review fixture',
+ '00000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000003','Direct review fixture',
  '2030-01-01 01:00+00','2030-01-01 02:00+00',10,'submitted'
 from generate_series(1,3) n;
 set local role authenticated;

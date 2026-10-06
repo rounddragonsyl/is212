@@ -125,6 +125,8 @@ select pg_temp.expect_error($q$select pg_temp.review(1,'{"action":"clarify","not
  'AC-007.2.18: reassignment immediately removes previous reviewer access');
 select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000006',false);
 select public.assign_event_coordinator('10000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000003');
+-- The original-request review fixture also needs an assigned reviewer under US17.
+select public.assign_event_coordinator('10000000-0000-0000-0000-000000000002','00000000-0000-0000-0000-000000000003');
 select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-000000000003',false);
 
 -- Shared event-table regression: US4's original event review is a different workflow.

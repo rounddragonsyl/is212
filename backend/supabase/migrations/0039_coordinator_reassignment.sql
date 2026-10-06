@@ -30,4 +30,22 @@ begin
   return new;
 end $$;
 
+-- US4 supports both direct updates and an atomic review RPC. Guard the row itself
+-- so neither route can retain the previous coordinator's authority after reassignment.
+-- UPDATE locks serialize this check with assignment changes on the same event.
+create or replace function public.guard_assigned_coordinator_event_update()
+returns trigger language plpgsql set search_path = '' as $$
+begin
+  if auth.uid() is not null and public.current_user_role() = 'coordinator'
+     and old.coordinator_id is distinct from auth.uid() then
+    raise exception 'Only the assigned coordinator may change this event' using errcode = '42501';
+  end if;
+  return new;
+end $$;
+
+drop trigger if exists events_guard_assigned_coordinator_update on public.events;
+create trigger events_guard_assigned_coordinator_update
+  before update on public.events
+  for each row execute function public.guard_assigned_coordinator_event_update();
+
 commit;
