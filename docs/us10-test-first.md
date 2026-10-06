@@ -355,3 +355,26 @@ the frontend `74 passed` / `762 passed | 1 todo` summary. Raw local logs are
 `$env:TEMP/us10-ac10-red-frontend.log`; these logs are not committed artifacts.
 This document records the observed results for Git review. No GREEN result,
 RED commit, push or PR is claimed for this new branch yet.
+
+### AC10 GREEN checkpoint (6 October 2026)
+
+The RED checkpoint above is committed as `4b982cd`
+(`test(us10): record RED slot-release check AC-010.10.2`).
+Migration `0040_venue_booking_rejection.sql` adds an AFTER UPDATE trigger for
+pending-to-rejected bookings. It deletes only that booking's claims within the
+decision transaction and lets the existing claim-delete trigger retain covering
+maintenance blocks. No existing policies or reason constraints are replaced.
+
+The same test ran unchanged after implementation:
+
+- Full database runner: exit 0; US10 summary **5 passed, 0 failed**.
+  AC-010.10.2 changed from FAIL to PASS; all four AC8 checks still pass.
+- Full frontend suite: exit 0; **74 files passed, 762 tests passed, 1 TODO**.
+- Local raw logs: `$env:TEMP/us10-ac10-green-database.log` and
+  `$env:TEMP/us10-ac10-green-frontend.log`. Screenshot the final case table and
+  both totals alongside the RED screenshots.
+
+This is the minimum implementation for AC-010.10.2, not completion of Slice 1.
+Dedicated rollback/block interaction coverage, optional alternatives, finality,
+server-recorded decision identity/time and the review UI remain subsequent work.
+No migration was applied to shared Supabase. GREEN commit and push await approval.
