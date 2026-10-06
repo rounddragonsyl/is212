@@ -20,6 +20,13 @@ select ('b10a0000-0000-0000-0000-' || lpad(n::text,12,'0'))::uuid,
  'b10a0000-0000-0000-0000-000000000002','pending_approval'
 from generate_series(201,204) n;
 
+-- AC10 fixtures: event/setup/turnaround cells plus an unrelated pending booking.
+insert into public.venue_slot_claims (venue_id,slot_date,slot,kind,booking_id) values
+ ('b10a0000-0000-0000-0000-000000000003','2030-10-12','AM','buffer','b10a0000-0000-0000-0000-000000000204'),
+ ('b10a0000-0000-0000-0000-000000000003','2030-10-12','PM','event','b10a0000-0000-0000-0000-000000000204'),
+ ('b10a0000-0000-0000-0000-000000000003','2030-10-12','NIGHT','buffer','b10a0000-0000-0000-0000-000000000204'),
+ ('b10a0000-0000-0000-0000-000000000003','2030-10-13','PM','event','b10a0000-0000-0000-0000-000000000201');
+
 create temp table us10_results (label text, passed boolean);
 grant insert, select on us10_results to authenticated;
 create function pg_temp.check_rejection(booking_id uuid, reason text, should_refuse boolean, label text)
@@ -61,11 +68,18 @@ select pg_temp.check_rejection('b10a0000-0000-0000-0000-000000000203',E' \t\n ',
 select pg_temp.check_rejection('b10a0000-0000-0000-0000-000000000204','Venue unsuitable',false,
  'AC-010.8.12: Venue Staff can reject with a recorded nonblank reason');
 reset role;
+insert into us10_results
+select 'AC-010.10.2: rejection releases its event and buffer slots only',
+ not exists(select 1 from public.venue_slot_claims
+   where booking_id='b10a0000-0000-0000-0000-000000000204')
+ and exists(select 1 from public.venue_slot_claims
+   where booking_id='b10a0000-0000-0000-0000-000000000201'
+     and slot_date='2030-10-13' and slot='PM' and kind='event');
 select label, case when passed then 'PASS' else 'FAIL' end as result from us10_results;
 select count(*) as total, count(*) filter(where passed) as passed,
  count(*) filter(where not passed) as failed from us10_results;
 do $$ begin
  if exists(select 1 from us10_results where not passed) then
-   raise exception 'US10 AC8 assertions failed: rejection reasons must be mandatory';
+   raise exception 'US10 review assertions failed: inspect the case results above';
  end if;
 end $$;

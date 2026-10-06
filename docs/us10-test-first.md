@@ -323,3 +323,35 @@ npm.cmd test -- --exclude src/features/venues/__tests__/venueBookingReview.test.
 The exclusion was only for comparison with existing tests, not added to config or
 CI. A normal full test run includes the 8 red tests and must not pass yet.
 GREEN, REFACTOR, PR, CI, merge and branch deletion are not yet performed.
+
+## Current checkpoint: remaining Slice 1, AC10 RED (6 October 2026)
+
+This checkpoint supersedes the obsolete eight-test baseline above. AC8 and
+migration 0037 have already merged. The remaining Slice 1 work uses branch
+`us10/rejection-completion`, based on main `60830eb`. Migration 0040 is reserved;
+no new migration or implementation exists at this RED checkpoint.
+
+Added `AC-010.10.2` to `backend/supabase/tests/venue_booking_review.sql`:
+reject a pending booking through the existing authenticated Venue Staff UPDATE
+path, then verify its event and both buffer cells are released while another
+booking's cell remains. Fixtures insert all four cells before the action.
+The rejection succeeds, but its claims remain: this is the missing behaviour,
+not a missing export, SQL function, fixture or permission error.
+
+Full runs (no test exclusions):
+
+- Frontend: `npm.cmd test` from `frontend`, exit 0; 74 files passed,
+  762 tests passed and 1 TODO (763 total).
+- Database: `bash backend/supabase/tests/run_change_request_review.sh` from the
+  repository root, disposable PostgreSQL 17 in Docker, exit 3. All preceding
+  regression suites ran before the US10 checkpoint. US10: 5 checks, 4 passed,
+  1 failed. AC-010.8.9 through AC-010.8.12 passed; AC-010.10.2 failed.
+- The runner now places US10 after coordinator assignment so this expected
+  failure does not prevent that regression suite from running.
+
+Screenshot the US10 result table with its AC IDs and `5 | 4 | 1` summary, plus
+the frontend `74 passed` / `762 passed | 1 todo` summary. Raw local logs are
+`$env:TEMP/us10-ac10-red-database.log` and
+`$env:TEMP/us10-ac10-red-frontend.log`; these logs are not committed artifacts.
+This document records the observed results for Git review. No GREEN result,
+RED commit, push or PR is claimed for this new branch yet.
