@@ -240,4 +240,45 @@ begin
   raise notice 'PASS: AC-017.3.1: immediate active-event reassignment; completed/cancelled events remain unchanged';
 end $$;
 
+-- AC4: reuse the event just reassigned from coordinator 003 to coordinator 005.
+-- Exercise the same review operation as the UI, under each user's database identity.
+select set_config('request.jwt.claim.sub', '17000000-0000-0000-0000-000000000003', true);
+do $$
+declare refused boolean := false;
+begin
+  begin
+    perform public.review_submitted_event(
+      '17100000-0000-0000-0000-000000000001', 'approved', null);
+  exception when insufficient_privilege then
+    refused := true;
+  end;
+  if not refused then
+    raise exception 'FAIL: AC-017.4.1: previous coordinator must not approve a reassigned event';
+  end if;
+end $$;
+
+reset role;
+select set_config('request.jwt.claim.sub', '', true);
+do $$ begin
+  if not exists (select 1 from public.events
+      where id = '17100000-0000-0000-0000-000000000001'
+        and status = 'submitted' and reviewed_by is null
+        and coordinator_id = '17000000-0000-0000-0000-000000000005') then
+    raise exception 'FAIL: AC-017.4.1: denied review must leave the reassigned event unchanged';
+  end if;
+end $$;
+
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '17000000-0000-0000-0000-000000000005', true);
+select public.review_submitted_event(
+  '17100000-0000-0000-0000-000000000001', 'approved', null);
+reset role;
+select set_config('request.jwt.claim.sub', '', true);
+select pg_temp.assert_true(
+  (select status = 'approved'
+      and coordinator_id = '17000000-0000-0000-0000-000000000005'
+      and reviewed_by = '17000000-0000-0000-0000-000000000005'
+    from public.events where id = '17100000-0000-0000-0000-000000000001'),
+  'AC-017.4.1: reassignment denies the previous coordinator and permits the new coordinator to approve');
+
 rollback;
