@@ -1,0 +1,287 @@
+> **Updated 2026-10-06 after syncing to main f854749.** The original record below
+> is historical: its eight mocked tests and results are not current RED evidence.
+
+## Current first-AC tests (RED verified 2026-10-06)
+
+US10 remains Review Venue Booking Request, as confirmed by the user. Main also
+labels tentative-hold tests AC-010. Their IDs are left unchanged. The new cases
+use the next unused AC8 suffixes, .9-.12; the semantic story-number collision
+still needs team/Jira reconciliation. Do not relabel teammates' tests silently.
+
+- Archived the obsolete frontend file verbatim to `docs/us10-obsolete-tests.txt`.
+  It imported releaseVenueBooking, which main removed. The old file is no longer
+  in Vitest discovery, so it cannot generate misleading missing-import failures.
+- `backend/supabase/tests/venue_booking_review.sql` tests only AC8, against the
+  existing database UPDATE path as authenticated Venue Staff. No missing RPC,
+  fake production implementation or substitution of coordinator releaseHold.
+- AC-010.8.9: null reason; .10: empty; .11: whitespace-only. Expected refusal leaves
+  the request pending. .12: positive control verifies a valid reason is stored.
+- Verified RED result: three failed assertions and one passing control.
+  An RLS/fixture/setup error is not RED.
+- Appended the SQL file to the existing full database runner. All existing checks
+  run before it, and the new summary lists each case and total/pass/fail counts.
+- No production files or migrations changed. Latest migration remains 0036.
+- Full frontend and database suites were run before production changes. This
+  record and the tests form the local RED commit; no push or PR has been performed.
+
+### Screenshot checkpoint: first RED run
+
+To reproduce the recorded checkpoint, use VS Code Terminal at repository root:
+
+```powershell
+git branch --show-current
+git rev-parse --short HEAD
+cd frontend
+$env:TZ = 'Asia/Singapore'
+$env:VITE_SUPABASE_URL = 'https://example.supabase.co'
+$env:VITE_SUPABASE_ANON_KEY = 'ci-placeholder-anon-key'
+npm.cmd test -- --reporter=verbose
+cd ..
+& 'C:\Program Files\Git\bin\bash.exe' backend/supabase/tests/run_change_request_review.sh
+```
+
+Docker must be running and Bash must have Docker access. Capture the full frontend
+summary (expected to pass), then the database AC-010.8.9-.12 result table, count
+summary, and final assertion failure. This slice's RED evidence is **SQL**, not
+Vitest. Do not caption it as four failing frontend tests. Also record any earlier
+regression failures separately. The results below were obtained on this base.
+After GREEN, rerun the same full suites and capture the same cases passing.
+
+### Recorded RED evidence (2026-10-06)
+
+Branch: `us10/reject-venue-booking`. Production base: `f854749`.
+Execution: assistant-operated tools on the local machine, with user approval.
+This is a summary and excerpt of observed output, not a saved full raw log.
+
+Full frontend run: `npm.cmd test -- --reporter=verbose` from frontend, with the
+placeholder Supabase settings and Asia/Singapore timezone shown above; exit 0:
+
+```text
+Test Files  73 passed (73)
+Tests       761 passed | 1 todo (762)
+Duration    11.65s
+```
+
+Full database run: the existing runner with US10 checks appended, executed via
+Git Bash against disposable PostgreSQL 17 in Docker. No shared Supabase was used.
+All preceding checks completed without an assertion error; the final US10 checks
+returned the following results, and the runner exited 1:
+
+| Test ID | Expected behaviour | Observed result |
+| --- | --- | --- |
+| AC-010.8.9 | Missing reason refused; booking stays pending | FAIL |
+| AC-010.8.10 | Empty reason refused; booking stays pending | FAIL |
+| AC-010.8.11 | Whitespace-only reason refused; booking stays pending | FAIL |
+| AC-010.8.12 | Valid reason accepted and recorded by Venue Staff | PASS |
+
+```text
+total | passed | failed
+    4 |      1 |      3
+
+ERROR: US10 AC8 assertions failed: rejection reasons must be mandatory
+```
+
+Why this is valid RED: the existing database accepts null, empty and whitespace
+rejection reasons. The positive control confirms the Venue Staff write path and
+fixtures work. Failure is not caused by a missing import or nonexistent RPC.
+The earlier Docker-not-running attempt was a setup failure and is not RED evidence.
+
+Next checkpoint: after the RED commit, obtain approval for the minimal production
+fix. Rerun both full suites, capture these same four IDs passing, then create a
+separate GREEN commit. No implementation has been made in this RED commit.
+
+To find this evidence in Git:
+
+```powershell
+git log --oneline --grep="test(us10): record RED rejection-reason checks"
+git show <red-commit>:docs/us10-test-first.md
+git show --stat <red-commit>
+```
+
+---
+
+## Historical first prompt (superseded test plan and results)
+
+# US10 / SCRUM-17: Review Venue Booking Request - test-first record
+
+## Prompt 1: scope and source
+
+- Date: 2026-10-05.
+- User request: create a short-lived branch; write tests before implementation;
+  follow the supplied red -> green -> refactor image; explain documentation;
+  name cases AC-00X.Y.Z.
+- Requirements: US10.doc, Jira export updated 2026-10-04, SCRUM-17,
+  with 14 acceptance criteria in the exact bullet order below.
+- Process reference: TDD_instructions.jpg supplied by the user. Each slice repeats
+  red -> green -> refactor per criterion. Merge only when both CI jobs are green.
+- Numbering decision: use **AC-010.Y.Z**, because this attachment is US10. The
+  prompt's US3 wording was treated as an example copied from the previous story.
+- Base: `45dff322a47a79328184ac99a35b5b72d5f404ef`, main == origin/main after fetch.
+- Branch: `us10/reject-venue-booking`, local only. Initial working tree was clean.
+- No production implementation, schema changes, shared database writes, emails,
+  merge, push, or deletion of existing branches in this first prompt.
+
+For your submission, retain the original user prompt and attachments alongside
+this record. This section is a scope summary, not a verbatim copy of the prompt.
+Record later prompts separately so reviewers can see what was requested at each step.
+
+## Existing implementation inspected
+
+- `frontend/src/features/venues/venueBookingService.ts`: holdVenue and
+  releaseVenueBooking already exist. Reject uses a claim DELETE followed by a
+  booking UPDATE; there is no mandatory-reason check, atomic rejection, or
+  affected-row verification. A failed second write can leave claims released.
+- `backend/supabase/migrations/0018_venues_and_bookings.sql`: reuse venue_bookings,
+  venue_slot_claims, venue_closures and time_slots. Booking statuses are held,
+  pending_approval, confirmed, rejected, cancelled and expired. **confirmed is the
+  existing booking equivalent of approved**, separate from the overall event status.
+- The existing Venue Staff update policy requires pending_approval and the caller
+  as reviewed_by. The current release helper does not populate this field, so its
+  successful mock responses must not be taken as proof of a working live rejection.
+- No venue review queue/detail/approval service or existing AC-010 tests were found.
+- Keep half-open timing intervals and existing event/buffer/maintenance claims.
+  Explicit setup versus turnaround semantics need alignment with the booking owner.
+- `.github/workflows/ci.yml` already has `verify` and `database`. Database tests run
+  against disposable PostgreSQL, not shared Supabase.
+
+## First slice: rejection
+
+Eight executable tests are in
+`frontend/src/features/venues/__tests__/venueBookingReview.test.ts`.
+They import the real existing releaseVenueBooking function and mock only Supabase.
+No placeholder implementation, missing import, skipped test or expected-failure
+marker is used to manufacture a green suite.
+
+Proposed next-step persistence contract: rejection calls the single atomic RPC
+`reject_venue_booking({ p_booking_id, p_reason })`, returning `rejected` on success.
+This RPC does **not exist yet**. The test imports no nonexistent module and fails
+because the current helper makes unsafe separate writes / ignores RPC outcomes.
+The database implementation should authenticate Venue Staff, lock and recheck the
+pending booking, validate its reason, release its claims, record actor/time and
+queue notification atomically. Identity/time come from the server, never the client.
+The RPC name is a proposed contract for the next green step, not an existing API.
+The cancellation path must remain compatible and needs regression checks when edited.
+
+| Executable ID | Scenario and expectation |
+| --- | --- |
+| AC-010.4.1 | Server permission refusal is returned as failure, not success. |
+| AC-010.8.1 | Null rejection reason is refused before database operations. |
+| AC-010.8.2 | Empty rejection reason is refused before database operations. |
+| AC-010.8.3 | Whitespace-only rejection reason is refused before database operations. |
+| AC-010.8.4 | A nonblank reason is trimmed and sent with the booking ID to the atomic operation. |
+| AC-010.10.1 | A failed decision does not trigger a separate claim deletion. |
+| AC-010.12.1 | Server refusal of a second decision on confirmed booking is surfaced. |
+| AC-010.12.2 | Server refusal of a second decision on rejected booking is surfaced. |
+
+These tests prove client contract behaviour only. They do not prove RLS, actual
+slot availability, rollback, server finality or notification delivery. Those need
+real PostgreSQL tests in subsequent green slices. In particular AC4/10/12 are not
+fully covered merely by the mocked cases above.
+
+## Full acceptance-criterion test plan
+
+The following cases are planned/reserved, **not executable tests yet**. This keeps
+one short-lived slice focused while capturing the full story's test cases first.
+Do not count these as passing or implemented. Check allocations before adding cases.
+
+| AC (document order) | Planned IDs | Given / when / then |
+| --- | --- | --- |
+| 1 Pending queue | AC-010.1.1, .1.2 | Venue Staff loads mixed booking states -> only pending_approval; no pending rows -> explicit empty queue. |
+| 2 Timing and requirements | AC-010.2.1, .2.2 | Open a pending booking -> stored event timing/requirements shown; inaccessible/missing ID -> unavailable without leaking details. |
+| 3 Conflict display | AC-010.3.1, .3.2, .3.3 | Approved booking overlaps event or buffer -> conflict; blocked period overlaps setup/turnaround -> conflict; touching half-open boundaries without overlapping claimed cells -> no false conflict. |
+| 4 Venue Staff only | AC-010.4.2 through .4.7 | Direct database decisions refused for organiser, coordinator, operations_manager, tech_support, attendee and anonymous caller. One unique ID per role; existing .4.1 is the client refusal case. |
+| 5 Approval | AC-010.5.1 | Venue Staff approves unchanged, pending, conflict-free request -> booking confirmed, event status unchanged. |
+| 6 Approval-time conflict check | AC-010.6.1, .6.2, .6.3 | Approved booking or closure appears after viewing -> approval refused; two competing approvals -> at most one succeeds. |
+| 7 Approved slots unavailable | AC-010.7.1, .7.2 | After approval, another event cannot claim event or buffer slots; calendar/search agrees with database. |
+| 8 Rejection reason | AC-010.8.5, .8.6 | Bypass UI with blank reason -> database refuses; valid reason -> rejected and stored. Client .8.1-.8.4 are executable above. |
+| 9 Suggested alternatives | AC-010.9.1, .9.2 | Reject with optional alternative venue/arrangement -> retained and visible to coordinator; omit alternative -> valid rejection. |
+| 10 Release held slots | AC-010.10.2, .10.3 | Successful rejection releases only its own claims; forced decision/audit failure -> request and claims remain unchanged. Client .10.1 is executable above. |
+| 11 No amended approval | AC-010.11.1, .11.2 | Venue Staff cannot change timing/venue/requirements while approving; stale request changed by coordinator -> refuse and require reload. |
+| 12 Final decisions | AC-010.12.3, .12.4, .12.5 | Database refuses repeat decision on confirmed and rejected rows; competing decisions record only one outcome. Client .12.1-.12.2 are executable above. |
+| 13 Decision identity/time | AC-010.13.1, .13.2 | Approval and rejection retain server actor/time; spoofed client identity/time cannot override them. |
+| 14 Coordinator notification | AC-010.14.1, .14.2, .14.3 | Approval notifies correct coordinator; rejection includes reason/alternative; retry does not duplicate notification. Verify delivery separately from queuing. |
+
+## Dependencies / questions for the next slice
+
+- US9 booking submission must supply pending_approval requests and requested cells.
+- Reuse confirmed for approved bookings; do not add venue states to event.status.
+- Agree whether the notification recipient is events.coordinator_id or the original
+  booking requester if reassigned. Do not silently choose or send real messages.
+- Optional alternatives have no dedicated existing storage/API. Choose the smallest
+  compatible contract before implementing AC9; do not overwrite the requested venue.
+- Atomic SQL approval must recheck actual closures/claims, excluding its own held
+  claims. UI conflict display is advisory and cannot replace this database check.
+
+## How to run and collect evidence
+
+From PowerShell at the repository root:
+
+```powershell
+cd frontend
+$env:VITE_SUPABASE_URL = 'https://example.supabase.co'
+$env:VITE_SUPABASE_ANON_KEY = 'ci-placeholder-anon-key'
+npm.cmd test -- src/features/venues/__tests__/venueBookingReview.test.ts --reporter=verbose
+npm.cmd run typecheck
+npm.cmd run lint
+```
+
+The red-phase test command is expected to exit 1. A missing package, syntax error,
+missing fixture or blocked child process is NOT acceptable red evidence. Inspect
+actual assertion failures before writing production code.
+
+For the next green/refactor step, start with AC-010.8 blank-reason tests, write only
+the needed validation, rerun those cases, then continue with the atomic rejection
+slice. Add SQL tests before implementing its database behaviour. Run the complete
+frontend suite after green and both CI jobs before merging.
+
+## Documentation checklist for each prompt / TDD iteration
+
+1. Record prompt number/date, story/subtask, AC IDs, branch and starting commit.
+2. Keep requirement source and assumptions separate from implementation decisions.
+3. Describe each test's Given/When/Then and expected outcome; distinguish planned
+   cases, executable cases, mocks, database checks and manual checks.
+4. RED: capture command, actual assertion text, test counts and why the failure
+   demonstrates the missing behaviour. Save terminal output or a screenshot.
+5. GREEN: record the smallest production change and the same test passing.
+6. REFACTOR: record any cleanup plus unchanged passing tests (or explicitly none).
+7. Link commits, PR, both CI job results, reviewer and Jira subtask update. Only
+   mark complete after those exist; never substitute local results for CI evidence.
+8. After successful merge delete that merged branch, then create the next small
+   slice from updated main. Do not delete red, unmerged or teammates' branches.
+
+Trunk-based development is about frequent integration, not branch churn alone.
+Short-lived branches should normally merge within a day or two, then be deleted.
+Reference: https://trunkbaseddevelopment.com/short-lived-feature-branches/
+
+## Evidence from prompt 1
+
+| Check | Observed result |
+| --- | --- |
+| New US10 file, verbose run | 8 failed / 8, exit 1: expected RED. |
+| Existing suite, excluding only the new red file | 389 passed across 35 files, exit 0. |
+| Typecheck | Passed, exit 0. |
+| Lint | Passed, exit 0. |
+| Database suite / live Supabase | Not run; no SQL changes in this slice. |
+| CI jobs | Not run remotely; branch has not been pushed. |
+
+Actual failure examples:
+- AC-010.8.1-.8.3: `expected true to be false` because blank reasons currently succeed.
+- AC-010.8.4: RPC spy expected once, received zero calls: atomic operation not used.
+- AC-010.10.1: unexpected calls to venue_slot_claims then venue_bookings expose the
+  separate-write boundary, rather than one transaction owning both changes.
+- AC-010.4.1 and .12.1-.12.2: `expected true to be false`; current code never calls
+  the proposed RPC and therefore does not consume its refusal. These are contract
+  failures, not evidence that actual database permissions allow those decisions.
+
+An initial sandbox `spawn EPERM` prevented Vite startup. That attempt was excluded
+from RED evidence; the rerun outside the sandbox produced the assertion failures
+above. No secret environment values were used: only dummy CI Supabase settings.
+
+Baseline command (PowerShell from frontend):
+```powershell
+$env:TZ = 'Asia/Singapore'
+npm.cmd test -- --exclude src/features/venues/__tests__/venueBookingReview.test.ts
+```
+The exclusion was only for comparison with existing tests, not added to config or
+CI. A normal full test run includes the 8 red tests and must not pass yet.
+GREEN, REFACTOR, PR, CI, merge and branch deletion are not yet performed.

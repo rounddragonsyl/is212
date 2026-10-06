@@ -1,0 +1,66 @@
+import { beforeEach, describe, expect, test, vi } from 'vitest'
+import { releaseVenueBooking } from '../venueBookingService'
+
+const mocks = vi.hoisted(() => ({ from: vi.fn(), rpc: vi.fn(), getUser: vi.fn() }))
+vi.mock('../../../lib/supabase', () => ({
+  supabase: { from: mocks.from, rpc: mocks.rpc, auth: { getUser: mocks.getUser } },
+}))
+
+const BOOKING_ID = '10000000-0000-4000-8000-000000000010'
+
+beforeEach(() => {
+  vi.resetAllMocks()
+  mocks.getUser.mockResolvedValue({ data: { user: { id: 'venue-staff' } }, error: null })
+  // Proposed atomic rejection contract, documented in docs/us10-test-first.md.
+  // These are transport responses, not an implementation of the booking rules.
+  mocks.rpc.mockResolvedValue({ data: 'rejected', error: null })
+  // Keep the existing two-write implementation executable. Failures must be
+  // behavioural assertions, not missing mocks, imports or fixtures.
+  mocks.from.mockImplementation(() => ({
+    delete: vi.fn(() => ({ eq: vi.fn().mockResolvedValue({ error: null }) })),
+    update: vi.fn(() => ({ eq: vi.fn().mockResolvedValue({ error: null }) })),
+  }))
+})
+
+describe('US10 venue booking rejection - first TDD slice', () => {
+  test('AC-010.4.1: a server permission refusal is not reported as a successful rejection', async () => {
+    mocks.rpc.mockResolvedValue({ data: null, error: { code: '42501', message: 'Permission denied' } })
+    expect((await releaseVenueBooking(BOOKING_ID, 'rejected', 'Venue unsuitable')).ok).toBe(false)
+  })
+
+  test.each([
+    ['AC-010.8.1', null],
+    ['AC-010.8.2', ''],
+    ['AC-010.8.3', ' \t\n '],
+  ])('%s: rejects a missing or blank rejection reason before any database operation', async (_id, reason) => {
+    expect((await releaseVenueBooking(BOOKING_ID, 'rejected', reason)).ok).toBe(false)
+    expect(mocks.from).not.toHaveBeenCalled()
+    expect(mocks.rpc).not.toHaveBeenCalled()
+  })
+
+  test('AC-010.8.4: sends a trimmed reason and booking ID to the atomic rejection operation', async () => {
+    expect(await releaseVenueBooking(BOOKING_ID, 'rejected', '  Venue unsuitable  ')).toEqual({ ok: true })
+    expect(mocks.rpc).toHaveBeenCalledTimes(1)
+    expect(mocks.rpc).toHaveBeenCalledWith('reject_venue_booking', {
+      p_booking_id: BOOKING_ID, p_reason: 'Venue unsuitable',
+    })
+  })
+
+  test('AC-010.10.1: does not separately release claims when the rejection transaction fails', async () => {
+    mocks.rpc.mockResolvedValue({ data: null, error: { code: '23514', message: 'Decision could not be recorded' } })
+    const result = await releaseVenueBooking(BOOKING_ID, 'rejected', 'Venue unsuitable')
+    // One transaction must own both the decision and claim release. A mocked test
+    // verifies this boundary; rollback of actual rows still needs a SQL test.
+    expect(mocks.from).not.toHaveBeenCalled()
+    expect(result.ok).toBe(false)
+  })
+
+  test.each([
+    ['AC-010.12.1', 'confirmed'],
+    ['AC-010.12.2', 'rejected'],
+  ])('%s: surfaces the server refusal when a booking is already %s', async (_id, status) => {
+    mocks.rpc.mockResolvedValue({ data: null, error: { code: '22000', message: `Already ${status}` } })
+    expect((await releaseVenueBooking(BOOKING_ID, 'rejected', 'Venue unsuitable')).ok).toBe(false)
+    expect(mocks.rpc).toHaveBeenCalledTimes(1)
+  })
+})
