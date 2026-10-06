@@ -413,3 +413,7 @@ AC-010.9.1 asserts that the booking row model retains a suggested alternative. I
 ### AC9 storage GREEN
 RED commit: 2647b6a. Added nullable review_alternative to the existing table in reserved migration 0040. Unchanged schema contract passes. Full database: 11/11 US10 pass, exit 0. Full frontend: 762 pass, 1 TODO, exit 0. Logs: us10-ac9-green-{database,frontend}.log. No second migration file or shared deployment.
 
+
+### AC8 form/service RED
+Added four executable assertions AC-010.8.13-16 with compilable no-op scaffolds (no missing imports). They fail because blank reasons have no validation, valid decisions are not saved, and the form has no controls yet. Full frontend: 4 failed, 762 passed, 1 TODO; 2 failed files/74 passed. Full database remains 11/11 US10 pass. Logs: us10-form-red-{frontend,database}.log.
+
