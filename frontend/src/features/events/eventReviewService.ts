@@ -24,7 +24,7 @@ import type {
 // type by parsing this string at the type level, and a computed string collapses that to
 // an error type. Long lines are the price of typed results.
 const SUMMARY_COLUMNS =
-  'id, reference, organiser_id, name, purpose, event_type, proposed_start, proposed_end, expected_attendance, status, submitted_at, review_note'
+  'id, reference, organiser_id, coordinator_id, name, purpose, event_type, proposed_start, proposed_end, expected_attendance, status, submitted_at, review_note'
 
 const DETAIL_COLUMNS =
   'id, reference, organiser_id, name, purpose, event_type, proposed_start, proposed_end, expected_attendance, status, submitted_at, description, programme, layout_preference, accessibility_requirements, equipment_requirements, registration_required, special_arrangements, review_note, reviewed_at, created_at'
@@ -41,6 +41,7 @@ export const REVIEW_MESSAGES = {
 } as const
 
 interface EventRow {
+  coordinator_id?: string | null
   review_note?: string | null
   id: string
   reference: string | null
@@ -60,6 +61,7 @@ function toSummary(row: EventRow): EventRequestSummary {
     id: row.id,
     reference: row.reference,
     organiserId: row.organiser_id,
+    coordinatorId: row.coordinator_id,
     name: row.name,
     purpose: row.purpose,
     eventType: row.event_type,

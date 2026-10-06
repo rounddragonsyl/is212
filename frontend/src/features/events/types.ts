@@ -135,6 +135,8 @@ export interface SubmittedEvent {
 
 /** Enough of an event to list it. Dates stay as ISO strings until something renders them. */
 export interface EventRequestSummary {
+  /** Missing means not loaded; only explicit null means unassigned. */
+  coordinatorId?: string | null
   reviewNote?: string | null
   id: string
   reference: string | null

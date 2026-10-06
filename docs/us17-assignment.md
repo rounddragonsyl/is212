@@ -92,8 +92,73 @@ authenticated access; browser writes are revoked. No backfill or invented admini
 identity is recorded. Referenced events/profiles cannot be deleted while history references
 them. History UI is not included. The runner reapplies 0039 after historical 0008/0038 replay.
 
-0039 has not been applied to shared Supabase by this work. Apply after 0038 once reviewed;
-do not edit it after deployment. The AC's withdrawn-event wording needs confirming against
+Jaydon confirmed 0039 was applied to shared Supabase on 6 October 2026. Do not edit it
+after deployment. The AC's withdrawn-event wording needs confirming against
 the team's withdrawal workflow: there is no separate withdrawn event status in the schema.
 Remaining: queue/picker UI, notification triggers, cross-feature integration and live
 acceptance checks. Do not mark the whole story complete.
+
+## Slice 3 — assignment queue and coordinator dropdown
+
+Branch: `us17slice3`. Scope: Lead queue/basic details (AC1), coordinator selection and
+assignment counts/assignment (AC2), and reassignment of eligible events (AC3), with
+clear save success/error feedback. Notifications remain slice 4.
+
+First cycle: AC-017.1.10 in `CoordinatorAssignmentQueue.test.tsx`.
+Red: no unassigned queue for the Lead. Green: `/requests` renders a Lead-specific
+queue containing only submitted requests with an explicitly null coordinator ID.
+The shared query now loads that ID; a missing ID is not treated as unassigned.
+The queue shows reference/name/purpose/type/start/end/attendance, with Singapore times.
+Navigation and the home page link to it; existing polling, refresh/error/loading handling
+are reused, and an empty queue has an explicit message. Other roles retain their views.
+
+Local checks: 763 frontend tests passed, one TODO; full database suite, typecheck, lint
+and build passed. Existing bundle-size warning remains. No additional non-TDD tests.
+The new test mocks the service: it verifies queue presentation, not a live Supabase flow.
+Subsequent cycles:
+
+- AC-017.2.8 (SQL): Lead-only coordinator dropdown data, names and active counts including
+  zero. Red: function missing. Green: claimed 0041 adds `list_assignment_coordinators()`.
+  Active means submitted/under_review/approved/planning/confirmed; no workload limit imposed.
+- AC-017.2.9 (frontend): coordinator selection/counts, disabled save without selection,
+  failed save retaining selection, successful retry with exact RPC IDs and queue refresh.
+  Red: dropdown missing. Green: real UI/service with mocked Supabase RPC boundary passes.
+
+`coordinatorAssignmentService.ts` validates response shapes and IDs, maps errors and sends
+only event/coordinator IDs. `CoordinatorAssignmentForm` prevents duplicate pending saves
+and keeps selection after failure. Queue loads coordinator options once per mounted queue,
+refreshes them periodically/on focus and after success; errors/empty/loading have explicit
+messages. Success refreshes the event list too. Nothing auto-retries assignment writes.
+
+Latest local checks: 764 frontend tests pass, one TODO; full database suite, typecheck,
+lint and build pass. No new tests outside the three slice 3 TDD cycles so far. Existing
+bundle-size warning remains. Total US17 is three frontend tests and 19 SQL cases.
+0041 is not confirmed deployed. Apply through the team's migration process before live
+testing. Notification work remains slice 4.
+
+Final planned cycle: AC-017.3.2 verifies the current assignee, replacement selection,
+failed save preserving the assignment/selection, successful retry and refreshed name/count,
+with no completed/cancelled reassignment controls. Red: assigned-events section missing.
+Green: shared assignment form/card now supports assigned active events and rejects an
+unchanged coordinator selection. Forms reset if a refreshed event has a different assignee.
+No extra tests were added outside TDD. Final local suites: 765 frontend passed, one TODO;
+full database suite, typecheck, lint and build passed (existing bundle-size warning).
+US17 totals: four frontend tests and 19 SQL cases. Slice 3 adds three frontend tests and
+one SQL test across four red/green cycles. CI links remain in PR/shared TDD documentation.
+
+### Live acceptance before merging
+
+Confirm 0041 is deployed through the team's migration process (0039 already confirmed).
+Run the app from frontend and sign in with an administrator-provisioned Coordinator Lead.
+Use separate browser sessions for Lead/Coordinator accounts.
+
+1. Submit a new organiser request. As Lead, open Assignments: verify basic details in
+   Unassigned requests, coordinator names/counts and disabled save until selection.
+2. Assign it. Verify success, its move to Assigned events, current name and updated count.
+3. Select a different coordinator and reassign. Verify updated name/counts, and confirm
+   the old coordinator cannot review while the new coordinator can.
+4. Verify completed/cancelled events have no reassignment controls. Check assignment
+   history in Supabase for both actions; history UI is outside this slice.
+
+These live checks are not yet reported complete. Dropdown errors/failed-save retries are
+covered by automated tests; do not disrupt shared Supabase to manufacture failures.
