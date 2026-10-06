@@ -453,3 +453,7 @@ Four integration assertions fail on the readback/page scaffolds: saved decision 
 ### Review-page integration GREEN
 RED commit: 06a4866. Readback and routed-page assertions pass unchanged. Full frontend 77 files, 793 pass, 1 TODO; full database US10 19/19 pass. Both exit 0. Logs: us10-integration-green-{frontend,database}.log. Route: /venues/bookings/:bookingId/review behind the existing venueBooking flag. Pending-queue navigation and full request/conflict details remain Slice 2.
 
+
+### Late-response RED and final regressions
+AC-010.12.17 exposes a late successful response invoking a callback after the form is unmounted (for example after navigation). Full frontend: 1 failed, 794 passed, 1 TODO. Manual reload/final-status regression .12.16 passes. Full database US10 20/20 passes, including maintenance-block preservation .10.4. Logs: us10-reload-red-{frontend,database}.log.
+

@@ -87,3 +87,16 @@ test('AC-010.12.15: an unsuccessful decision preserves the reason and locks retr
   expect(screen.getByRole('button', { name: 'Reject booking' })).toBeDisabled()
   expect(onRejected).not.toHaveBeenCalled()
 })
+
+test('AC-010.12.17: a response after leaving the form cannot update a different booking page', async () => {
+  let finish!: (result: { ok: true }) => void
+  mocks.reject.mockReturnValue(new Promise((resolve) => { finish = resolve }))
+  const onRejected = vi.fn()
+  const view = render(<VenueBookingRejectionForm bookingId="booking-1" status="pending_approval" onRejected={onRejected} />)
+  const user = userEvent.setup()
+  await user.type(screen.getByLabelText('Rejection reason'), 'Unavailable')
+  await user.click(screen.getByRole('button', { name: 'Reject booking' }))
+  view.unmount()
+  await act(async () => finish({ ok: true }))
+  expect(onRejected).not.toHaveBeenCalled()
+})

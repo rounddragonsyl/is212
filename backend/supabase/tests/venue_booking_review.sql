@@ -12,13 +12,13 @@ insert into public.venues (id,name,location,capacity,layout,status) values
  ('b10a0000-0000-0000-0000-000000000003','US10 Review Hall','Test',100,'Theatre','active');
 insert into public.events (id,organiser_id,status)
 select ('b10a0000-0000-0000-0000-' || lpad(n::text,12,'0'))::uuid,
- 'b10a0000-0000-0000-0000-000000000002','draft' from generate_series(101,109) n;
+ 'b10a0000-0000-0000-0000-000000000002','draft' from generate_series(101,110) n;
 insert into public.venue_bookings (id,event_id,venue_id,requested_by,status)
 select ('b10a0000-0000-0000-0000-' || lpad(n::text,12,'0'))::uuid,
  ('b10a0000-0000-0000-0000-' || lpad((n-100)::text,12,'0'))::uuid,
  'b10a0000-0000-0000-0000-000000000003',
  'b10a0000-0000-0000-0000-000000000002','pending_approval'
-from generate_series(201,209) n;
+from generate_series(201,210) n;
 
 -- AC10 fixtures: event/setup/turnaround cells plus an unrelated pending booking.
 insert into public.venue_slot_claims (venue_id,slot_date,slot,kind,booking_id) values
@@ -177,6 +177,21 @@ select 'AC-010.9.2: alternative persists with rejection and may also be omitted'
    and status='rejected' and review_alternative='Try the smaller hall on Friday')
  and exists(select 1 from public.venue_bookings where id='b10a0000-0000-0000-0000-000000000204'
    and status='rejected' and review_alternative is null);
+
+-- A released booking cell covered by maintenance stays unavailable.
+insert into public.venue_slot_claims(venue_id,slot_date,slot,kind,booking_id) values
+ ('b10a0000-0000-0000-0000-000000000003','2030-10-15','AM','buffer','b10a0000-0000-0000-0000-000000000210');
+set role authenticated;
+select public.block_venue('b10a0000-0000-0000-0000-000000000003','2030-10-15','2030-10-15',array['AM'],'Maintenance');
+update public.venue_bookings set status='rejected', review_note='Maintenance'
+ where id='b10a0000-0000-0000-0000-000000000210';
+reset role;
+insert into us10_results
+select 'AC-010.10.4: rejection preserves a covering maintenance block',
+ not exists(select 1 from public.venue_slot_claims where booking_id='b10a0000-0000-0000-0000-000000000210')
+ and exists(select 1 from public.venue_slot_claims
+   where venue_id='b10a0000-0000-0000-0000-000000000003' and slot_date='2030-10-15' and slot='AM'
+     and kind='maintenance' and closure_id is not null);
 
 -- Exercise each real role against RLS, not a service mock. Roll back every trial
 -- even on an unexpected success so later cases still see the same pending row.

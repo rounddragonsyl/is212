@@ -53,6 +53,20 @@ test('AC-010.8.18: a failed read offers reload without a rejection form', async 
   expect(screen.queryByRole('button', { name: 'Reject booking' })).not.toBeInTheDocument()
 })
 
+test('AC-010.12.16: reload after a refused decision reads the final status and removes the form', async () => {
+  mocks.get.mockResolvedValueOnce({ ok: true, booking: PENDING })
+  mocks.reject.mockResolvedValue({ ok: false, reason: 'Already reviewed. Reload.' })
+  show()
+  const user = userEvent.setup()
+  await user.type(await screen.findByLabelText('Rejection reason'), 'Unavailable')
+  await user.click(screen.getByRole('button', { name: 'Reject booking' }))
+  expect(await screen.findByRole('alert')).toHaveTextContent('Already reviewed.')
+  await user.click(screen.getByRole('button', { name: 'Reload booking' }))
+  expect(await screen.findByText('Rejected')).toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: 'Reject booking' })).not.toBeInTheDocument()
+  expect(mocks.reject).toHaveBeenCalledOnce()
+})
+
 test('AC-010.13.5: staff see the saved rejection reason, alternative and decision record', async () => {
   show()
   expect(await screen.findByText('Alpha Hall')).toBeInTheDocument()
