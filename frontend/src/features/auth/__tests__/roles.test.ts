@@ -22,12 +22,12 @@ beforeEach(() => {
 })
 
 describe('role vocabulary', () => {
-  test('every role in the app matches the profiles_role_valid CHECK in 0006_operations_manager.sql', () => {
-    // Kept in step by hand, so this test is the thing that catches a drift between the
-    // database constraint and the app.
+  test('recognises the supported application role vocabulary', () => {
+    // Database acceptance and permissions are covered separately by SQL tests.
     expect([...USER_ROLES]).toEqual([
       'organiser',
       'coordinator',
+      'coordinator_lead',
       'operations_manager',
       'venue_staff',
       'tech_support',

@@ -1,6 +1,7 @@
 export const USER_ROLES = [
   'organiser',
   'coordinator',
+  'coordinator_lead',
   'operations_manager',
   'venue_staff',
   'tech_support',
@@ -9,10 +10,11 @@ export const USER_ROLES = [
 
 export type UserRole = (typeof USER_ROLES)[number]
 
-// Stored lowercase to match profiles_role_valid exactly; wording is presentation.
+// Database role keys are lowercase; labels are presentation only.
 export const USER_ROLE_LABELS: Record<UserRole, string> = {
   organiser: 'Event Organiser',
   coordinator: 'Event Coordinator',
+  coordinator_lead: 'Coordinator Lead',
   operations_manager: 'Event Operations Manager',
   venue_staff: 'Venue Staff',
   tech_support: 'Technical Support',
