@@ -437,3 +437,7 @@ Real database tests exposed permissive-policy composition: a coordinator passed 
 ### AC4 access GREEN
 RED commit: cb14144. Added role to the review policy WITH CHECK and gated the form with the current session role. Unchanged tests pass: database US10 19/19; frontend 76 files, 778 pass, 1 TODO; both exit 0. Logs: us10-access-green-{frontend,database}.log. No coordinator cancellation or unrelated venue/equipment permissions changed.
 
+
+### AC12 form finality RED
+Six UI assertions fail: five non-pending statuses still show rejection and a refused decision allows retry. Double-click and service stale/error/network cases already pass and are regression coverage. Full frontend 6 failed, 782 pass, 1 TODO; full database US10 19/19 pass. Logs: us10-finality-red-{frontend,database}.log.
+

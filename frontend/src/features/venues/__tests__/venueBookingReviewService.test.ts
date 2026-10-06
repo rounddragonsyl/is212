@@ -37,3 +37,21 @@ test('AC-010.9.7: an omitted alternative is stored as null', async () => {
   await rejectVenueBooking(BOOKING_ID, 'Unavailable')
   expect(fake.callsTo('venue_bookings', 'update')[0][0]).toHaveProperty('review_alternative', null)
 })
+
+test('AC-010.12.11: a stale decision affecting no booking is not reported as success', async () => {
+  fake.plan('venue_bookings', { data: null })
+  expect(await rejectVenueBooking(BOOKING_ID, 'Unavailable')).toMatchObject({ ok: false })
+  expect(fake.tablesTouched()).toEqual(['venue_bookings'])
+})
+
+test('AC-010.12.12: a database refusal is reported without separate slot deletion', async () => {
+  fake.plan('venue_bookings', { error: { code: '42501' } })
+  expect(await rejectVenueBooking(BOOKING_ID, 'Unavailable')).toMatchObject({ ok: false })
+  expect(fake.tablesTouched()).toEqual(['venue_bookings'])
+})
+
+test('AC-010.12.13: an interrupted request is not retried automatically', async () => {
+  mocks.from.mockImplementation(() => { throw new Error('Connection lost') })
+  expect(await rejectVenueBooking(BOOKING_ID, 'Unavailable')).toMatchObject({ ok: false })
+  expect(mocks.from).toHaveBeenCalledOnce()
+})
