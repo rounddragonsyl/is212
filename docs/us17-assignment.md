@@ -115,4 +115,23 @@ are reused, and an empty queue has an explicit message. Other roles retain their
 Local checks: 763 frontend tests passed, one TODO; full database suite, typecheck, lint
 and build passed. Existing bundle-size warning remains. No additional non-TDD tests.
 The new test mocks the service: it verifies queue presentation, not a live Supabase flow.
-Picker, coordinator counts, save/reassignment controls and live acceptance remain pending.
+Subsequent cycles:
+
+- AC-017.2.8 (SQL): Lead-only coordinator dropdown data, names and active counts including
+  zero. Red: function missing. Green: claimed 0041 adds `list_assignment_coordinators()`.
+  Active means submitted/under_review/approved/planning/confirmed; no workload limit imposed.
+- AC-017.2.9 (frontend): coordinator selection/counts, disabled save without selection,
+  failed save retaining selection, successful retry with exact RPC IDs and queue refresh.
+  Red: dropdown missing. Green: real UI/service with mocked Supabase RPC boundary passes.
+
+`coordinatorAssignmentService.ts` validates response shapes and IDs, maps errors and sends
+only event/coordinator IDs. `CoordinatorAssignmentForm` prevents duplicate pending saves
+and keeps selection after failure. Queue loads coordinator options once per mounted queue,
+refreshes them periodically/on focus and after success; errors/empty/loading have explicit
+messages. Success refreshes the event list too. Nothing auto-retries assignment writes.
+
+Latest local checks: 764 frontend tests pass, one TODO; full database suite, typecheck,
+lint and build pass. No new tests outside the three slice 3 TDD cycles so far. Existing
+bundle-size warning remains. Total US17 is three frontend tests and 19 SQL cases.
+0041 is not confirmed deployed. Apply through the team's migration process before live
+testing. Reassignment controls, live acceptance and notification work remain pending.

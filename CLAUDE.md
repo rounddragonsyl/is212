@@ -162,7 +162,10 @@ Draft saves in eventDraftService must never change an existing request's status.
 ## House style
 - US17 slice 3 in progress: Leads use /requests for the unassigned submitted queue.
   listEventRequests loads coordinator_id; only explicit null denotes unassigned.
-  AC-017.1.10 covers queue presentation; picker/save flow are not implemented yet.
+  AC-017.1.10 covers queue presentation; AC-017.2.9 covers selection/save failure/retry.
+  coordinatorAssignmentService.ts alone calls dropdown/assignment RPCs. Apply 0041 before
+  live dropdown testing (deployment unconfirmed); AC-017.2.8 covers its Lead-only counts.
+  Reassignment controls are still pending. Active counts exclude draft/completed/cancelled/rejected.
   Jaydon confirmed 0039 deployed on 6 October 2026: do not edit that migration further.
 - US17 slice 2: 0039 blocks completed/cancelled reassignment and guards coordinator
   event updates using the current assignee. US4 review fixtures must have an assignment.

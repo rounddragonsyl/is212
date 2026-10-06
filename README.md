@@ -869,8 +869,11 @@ Existing assignments and administrator SQL repairs are not backfilled as Lead ac
 
 Slice 3 now gives Leads an Assignments navigation link and a submitted/unassigned queue
 at `/requests`, with reference, name, purpose, type, Singapore start/end times and attendance.
-Drafts, assigned requests and closed events are excluded from that queue. The picker,
-assignment/reassignment save flow and notifications are still pending. The AC's withdrawn-event wording needs
+Drafts, assigned requests and closed events are excluded from that queue. The coordinator
+dropdown now shows names and active event counts and saves through the existing assignment
+RPC, with error/retry feedback and a refreshed queue/counts on success. Apply migration
+`0041_coordinator_assignment_options.sql` before live dropdown testing; deployment is not
+yet confirmed. Reassignment controls and notifications remain pending. The AC's withdrawn-event wording needs
 mapping to the team's event lifecycle; there is no separate `withdrawn` event status.
 Apply the reviewed migration after `0037`, once per shared environment; it has only
 been tested in disposable PostgreSQL during this slice. An administrator must provision
@@ -880,7 +883,7 @@ Jaydon confirmed applying 0039 to shared Supabase on 6 October 2026. Treat it as
 and immutable; further database changes require a new claimed migration. Coordinators now
 need assignment before original-request review, including US4's existing update path.
 
-Tests: two frontend tests (profile and Lead queue) and 18 SQL cases, with IDs, TDD cycles, additional
+Tests: three frontend tests (profile, Lead queue and assignment flow) and 19 SQL cases, with IDs, TDD cycles, additional
 coverage and deployment details in [US17 assignment](docs/us17-assignment.md).
 
 ## Shared Supabase state (5 October 2026)

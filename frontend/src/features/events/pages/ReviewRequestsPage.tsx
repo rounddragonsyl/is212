@@ -55,7 +55,7 @@ export function ReviewRequestsPage() {
           {error}
         </div>
       ) : isLead ? (
-        <CoordinatorAssignmentQueue requests={requests} />
+        <CoordinatorAssignmentQueue requests={requests} onAssigned={refresh} />
       ) : requests.length === 0 ? (
         <Card title="Nothing here yet">
           <p className="text-sm text-slate-600">
