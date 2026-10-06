@@ -34,3 +34,12 @@ test('AC-010.8.16: a valid rejection reports success and closes the action', asy
   expect(onRejected).toHaveBeenCalledOnce()
   expect(screen.queryByRole('button', { name: 'Reject booking' })).not.toBeInTheDocument()
 })
+
+test('AC-010.9.4: Venue Staff can suggest an alternative arrangement when rejecting', async () => {
+  render(<VenueBookingRejectionForm bookingId="booking-1" status="pending_approval" onRejected={vi.fn()} />)
+  const user = userEvent.setup()
+  await user.type(screen.getByLabelText('Rejection reason'), 'Unavailable')
+  await user.type(screen.getByLabelText('Suggested alternative (optional)'), 'Try Friday')
+  await user.click(screen.getByRole('button', { name: 'Reject booking' }))
+  expect(mocks.reject).toHaveBeenCalledWith('booking-1', 'Unavailable', 'Try Friday')
+})

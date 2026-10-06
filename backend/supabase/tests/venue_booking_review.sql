@@ -166,6 +166,18 @@ end $$;
 reset role;
 drop trigger us10_test_cleanup_failure on public.venue_slot_claims;
 
+set role authenticated;
+update public.venue_bookings set status='rejected',review_note='Unavailable',
+ review_alternative='Try the smaller hall on Friday'
+ where id='b10a0000-0000-0000-0000-000000000209';
+reset role;
+insert into us10_results
+select 'AC-010.9.2: alternative persists with rejection and may also be omitted',
+ exists(select 1 from public.venue_bookings where id='b10a0000-0000-0000-0000-000000000209'
+   and status='rejected' and review_alternative='Try the smaller hall on Friday')
+ and exists(select 1 from public.venue_bookings where id='b10a0000-0000-0000-0000-000000000204'
+   and status='rejected' and review_alternative is null);
+
 select label, case when passed then 'PASS' else 'FAIL' end as result from us10_results;
 select count(*) as total, count(*) filter(where passed) as passed,
  count(*) filter(where not passed) as failed from us10_results;

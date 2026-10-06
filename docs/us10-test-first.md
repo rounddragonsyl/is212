@@ -421,3 +421,7 @@ Added four executable assertions AC-010.8.13-16 with compilable no-op scaffolds 
 ### AC8 form/service GREEN
 RED commit: 81c41b0. Same four tests pass after pure reason validation, a single guarded update, and the rejection form. Full frontend: 76 files, 766 passed, 1 TODO. Full database: 11/11 US10 pass. Both exit 0. Logs: us10-form-green-{frontend,database}.log.
 
+
+### AC9 form/readback RED
+Five new alternative tests fail on absent form controls, omitted update payload, missing query mapping and missing coordinator display (AC-010.9.3-7). Full frontend: 5 failed, 766 pass, 1 TODO. Database persistence/omission regression .9.2 passes: full US10 12/12, exit 0. Logs: us10-alternative-ui-red-{frontend,database}.log. Existing reason assertion now allows the added alternative field while preserving status/reason expectations.
+

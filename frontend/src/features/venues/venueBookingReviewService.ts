@@ -3,7 +3,8 @@ import { supabase } from '../../lib/supabase'
 import { rejectionReasonError } from './venueBookingReviewValidation'
 
 // Actor, time and slot release are owned by the database in the same transaction.
-export async function rejectVenueBooking(bookingId: string, reason: string): Promise<VenueBookingActionResult> {
+export async function rejectVenueBooking(bookingId: string, reason: string, alternative?: string): Promise<VenueBookingActionResult> {
+  void alternative // AC9 RED: signature scaffold; storage contract is tested first.
   const invalid = rejectionReasonError(reason)
   if (invalid) return { ok: false, reason: invalid }
   try {
