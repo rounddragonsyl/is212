@@ -457,3 +457,7 @@ RED commit: 06a4866. Readback and routed-page assertions pass unchanged. Full fr
 ### Late-response RED and final regressions
 AC-010.12.17 exposes a late successful response invoking a callback after the form is unmounted (for example after navigation). Full frontend: 1 failed, 794 passed, 1 TODO. Manual reload/final-status regression .12.16 passes. Full database US10 20/20 passes, including maintenance-block preservation .10.4. Logs: us10-reload-red-{frontend,database}.log.
 
+
+### Final Slice 1 GREEN
+RED commit: 3bf1756. The unchanged late-response test now passes after suppressing callbacks from an unmounted form. Full frontend: 77 files, 795 passed, 1 existing TODO. Full database: US10 20/20 passed, entire runner exit 0. Typecheck, lint and production build all exit 0 after the fix. Build retains a non-failing chunk-size warning. Logs: us10-reload-green-{frontend,database}.log and us10-final-{typecheck,lint,build}.log. Labelled evidence excerpts are retained under docs/us10-evidence. No push, PR, shared migration application or main merge has occurred for this branch.
+

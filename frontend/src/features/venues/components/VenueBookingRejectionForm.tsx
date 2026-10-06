@@ -1,5 +1,5 @@
 import type { VenueBookingStatus } from '../bookingTypes'
-import { useId, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { Button } from '../../../components/ui/Button'
 import { Field, TextArea } from '../../../components/ui/FormControls'
 import { rejectVenueBooking } from '../venueBookingReviewService'
@@ -16,12 +16,18 @@ export function VenueBookingRejectionForm({ bookingId, status, onRejected }: Rej
   const id = useId()
   const { profile, loading } = useCurrentUser()
   const submitting = useRef(false)
+  const mounted = useRef(true)
   const [reason, setReason] = useState('')
   const [alternative, setAlternative] = useState('')
   const [busy, setBusy] = useState(false)
   const [done, setDone] = useState(false)
   const [failed, setFailed] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    mounted.current = true
+    return () => { mounted.current = false }
+  }, [])
 
   if (loading || profile?.role !== 'venue_staff') return null
   if (done) return <p role="status">Booking rejected.</p>
@@ -39,6 +45,8 @@ export function VenueBookingRejectionForm({ bookingId, status, onRejected }: Rej
       const result = alternative.trim()
         ? await rejectVenueBooking(bookingId, reason, alternative)
         : await rejectVenueBooking(bookingId, reason)
+      // Navigation or manual reload may have replaced this form while saving.
+      if (!mounted.current) return
       submitting.current = false
       setBusy(false)
       if (!result.ok) { setError(result.reason); setFailed(true); return }
