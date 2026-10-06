@@ -441,3 +441,7 @@ RED commit: cb14144. Added role to the review policy WITH CHECK and gated the fo
 ### AC12 form finality RED
 Six UI assertions fail: five non-pending statuses still show rejection and a refused decision allows retry. Double-click and service stale/error/network cases already pass and are regression coverage. Full frontend 6 failed, 782 pass, 1 TODO; full database US10 19/19 pass. Logs: us10-finality-red-{frontend,database}.log.
 
+
+### AC12 form finality GREEN
+RED commit: 986e278. Only pending bookings show rejection. Failed decisions retain input and lock retries until a manual reload; double-submit is guarded. Full frontend: 76 files, 788 pass, 1 TODO. Full database: US10 19/19 pass. Both exit 0. Logs: us10-finality-green-{frontend,database}.log. Refreshed origin/main is still 60830eb with no upstream changes.
+
