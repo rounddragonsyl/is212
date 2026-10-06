@@ -14,6 +14,17 @@ beforeEach(() => {
   mocks.reject.mockResolvedValue({ ok: true })
 })
 
+test.each([
+  ['AC-010.4.10', 'organiser'], ['AC-010.4.11', 'coordinator'],
+  ['AC-010.4.12', 'coordinator_lead'], ['AC-010.4.13', 'operations_manager'],
+  ['AC-010.4.14', 'tech_support'], ['AC-010.4.15', 'attendee'], ['AC-010.4.16', ''],
+])('%s: %s cannot access the rejection form', (_id, role) => {
+  mocks.role = role
+  render(<VenueBookingRejectionForm bookingId="booking-1" status="pending_approval" onRejected={vi.fn()} />)
+  expect(screen.queryByRole('button', { name: 'Reject booking' })).not.toBeInTheDocument()
+  expect(mocks.reject).not.toHaveBeenCalled()
+})
+
 test('AC-010.8.15: the form requires a nonblank reason before rejection', async () => {
   render(<VenueBookingRejectionForm bookingId="booking-1" status="pending_approval" onRejected={vi.fn()} />)
   const user = userEvent.setup()

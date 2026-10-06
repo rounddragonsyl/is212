@@ -178,6 +178,46 @@ select 'AC-010.9.2: alternative persists with rejection and may also be omitted'
  and exists(select 1 from public.venue_bookings where id='b10a0000-0000-0000-0000-000000000204'
    and status='rejected' and review_alternative is null);
 
+-- Exercise each real role against RLS, not a service mock. Roll back every trial
+-- even on an unexpected success so later cases still see the same pending row.
+do $$
+declare
+ role_name text;
+ case_number integer := 3;
+ changed integer;
+ denied boolean;
+begin
+ foreach role_name in array array['organiser','coordinator','coordinator_lead',
+   'operations_manager','tech_support','attendee',''] loop
+   perform set_config('request.jwt.claim.sub','',false);
+   if role_name <> '' then
+     update public.profiles set role=role_name where id='b10a0000-0000-0000-0000-000000000002';
+     perform set_config('request.jwt.claim.sub','b10a0000-0000-0000-0000-000000000002',false);
+   end if;
+   execute 'set local role authenticated';
+   changed := 0;
+   denied := false;
+   begin
+     update public.venue_bookings set status='rejected',review_note='Unauthorised rejection'
+     where id='b10a0000-0000-0000-0000-000000000208';
+     get diagnostics changed = row_count;
+     raise exception 'Rollback role trial' using errcode='P1040';
+   exception
+     when insufficient_privilege then denied := true;
+     when sqlstate 'P1040' then null;
+   end;
+   execute 'reset role';
+   insert into us10_results
+   select format('AC-010.4.%s: %s cannot reject a pending booking',case_number,
+     coalesce(nullif(role_name,''),'signed-out caller')),
+     (denied or changed=0) and exists(select 1 from public.venue_bookings
+       where id='b10a0000-0000-0000-0000-000000000208' and status='pending_approval');
+   case_number := case_number + 1;
+ end loop;
+ perform set_config('request.jwt.claim.sub','',false);
+ update public.profiles set role='organiser' where id='b10a0000-0000-0000-0000-000000000002';
+end $$;
+
 select label, case when passed then 'PASS' else 'FAIL' end as result from us10_results;
 select count(*) as total, count(*) filter(where passed) as passed,
  count(*) filter(where not passed) as failed from us10_results;

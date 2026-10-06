@@ -429,3 +429,7 @@ Five new alternative tests fail on absent form controls, omitted update payload,
 ### AC9 form/readback GREEN
 RED commit: 865c11e. All five new assertions pass unchanged. Full frontend 76 files, 771 pass, 1 TODO; full database 12/12 US10 pass; both exit 0. Optional alternatives are saved with the reason and displayed on the coordinator booking page. Logs: us10-alternative-ui-green-{frontend,database}.log.
 
+
+### AC4 access RED
+Real database tests exposed permissive-policy composition: a coordinator passed their own-booking USING policy and the staff-review WITH CHECK, which lacked a role check. AC-010.4.4 failed. Database US10 18 pass/1 fail; frontend seven role-visibility cases failed, 771 passed/1 TODO. Logs: us10-access-red-{frontend,database}.log. This is an actual authorization regression, not a mock-only failure.
+
