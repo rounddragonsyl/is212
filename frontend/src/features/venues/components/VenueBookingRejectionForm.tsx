@@ -15,6 +15,7 @@ export function VenueBookingRejectionForm({ bookingId, onRejected }: RejectionFo
   const id = useId()
   const submitting = useRef(false)
   const [reason, setReason] = useState('')
+  const [alternative, setAlternative] = useState('')
   const [busy, setBusy] = useState(false)
   const [done, setDone] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -30,7 +31,9 @@ export function VenueBookingRejectionForm({ bookingId, onRejected }: RejectionFo
       if (invalid) return
       submitting.current = true
       setBusy(true)
-      const result = await rejectVenueBooking(bookingId, reason)
+      const result = alternative.trim()
+        ? await rejectVenueBooking(bookingId, reason, alternative)
+        : await rejectVenueBooking(bookingId, reason)
       submitting.current = false
       setBusy(false)
       if (!result.ok) { setError(result.reason); return }
@@ -40,6 +43,10 @@ export function VenueBookingRejectionForm({ bookingId, onRejected }: RejectionFo
       <Field id={id} label="Rejection reason">
         <TextArea id={id} required value={reason} disabled={busy}
           onChange={(event) => setReason(event.target.value)} />
+      </Field>
+      <Field id={`${id}-alternative`} label="Suggested alternative (optional)">
+        <TextArea id={`${id}-alternative`} value={alternative} disabled={busy}
+          onChange={(event) => setAlternative(event.target.value)} />
       </Field>
       {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
       <Button type="submit" disabled={busy}>{busy ? 'Rejecting…' : 'Reject booking'}</Button>

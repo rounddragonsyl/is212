@@ -117,6 +117,12 @@ export function MyVenueBookingsPage() {
                       </p>
                     )}
 
+                    {booking.reviewAlternative && (
+                      <p className="mt-2 text-sm text-slate-700">
+                        <span className="text-slate-500">Suggested alternative: </span>{booking.reviewAlternative}
+                      </p>
+                    )}
+
                     <div className="mt-4">
                       <SlotClaimPreview cells={booking.cells} />
                     </div>

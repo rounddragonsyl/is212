@@ -425,3 +425,7 @@ RED commit: 81c41b0. Same four tests pass after pure reason validation, a single
 ### AC9 form/readback RED
 Five new alternative tests fail on absent form controls, omitted update payload, missing query mapping and missing coordinator display (AC-010.9.3-7). Full frontend: 5 failed, 766 pass, 1 TODO. Database persistence/omission regression .9.2 passes: full US10 12/12, exit 0. Logs: us10-alternative-ui-red-{frontend,database}.log. Existing reason assertion now allows the added alternative field while preserving status/reason expectations.
 
+
+### AC9 form/readback GREEN
+RED commit: 865c11e. All five new assertions pass unchanged. Full frontend 76 files, 771 pass, 1 TODO; full database 12/12 US10 pass; both exit 0. Optional alternatives are saved with the reason and displayed on the coordinator booking page. Logs: us10-alternative-ui-green-{frontend,database}.log.
+
