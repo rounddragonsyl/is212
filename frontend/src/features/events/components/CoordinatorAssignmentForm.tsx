@@ -5,18 +5,19 @@ import type { CoordinatorOption } from '../coordinatorAssignmentService'
 interface Props {
   eventId: string
   eventName: string
+  currentCoordinatorId?: string | null
   coordinators: CoordinatorOption[]
   disabled: boolean
   onAssigned: () => void
 }
 
-export function CoordinatorAssignmentForm({ eventId, eventName, coordinators, disabled, onAssigned }: Props) {
+export function CoordinatorAssignmentForm({ eventId, eventName, currentCoordinatorId = null, coordinators, disabled, onAssigned }: Props) {
   const inputId = useId()
   const pending = useRef(false)
   const [selected, setSelected] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const validSelection = coordinators.some(coordinator => coordinator.id === selected)
+  const validSelection = selected !== currentCoordinatorId && coordinators.some(coordinator => coordinator.id === selected)
 
   async function save() {
     if (pending.current || disabled || !validSelection) return
@@ -48,7 +49,7 @@ export function CoordinatorAssignmentForm({ eventId, eventName, coordinators, di
         </select>
         <button type="submit" disabled={disabled || saving || !validSelection}
           className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50">
-          {saving ? 'Assigning…' : 'Assign coordinator'}
+          {saving ? 'Saving…' : currentCoordinatorId ? 'Reassign coordinator' : 'Assign coordinator'}
         </button>
       </div>
       {error && <p role="alert" className="mt-3 text-sm text-red-700">{error}</p>}

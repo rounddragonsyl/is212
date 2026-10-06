@@ -37,7 +37,7 @@ export function ReviewRequestsPage() {
           {isLead ? 'Coordinator assignments' : isCoordinator || isManager ? 'Incoming requests' : 'Your requests'}
         </h1>
         <p className="mt-3 text-sm leading-relaxed text-slate-600">
-          {isLead ? 'Review the details of submitted requests waiting for a coordinator.' : isManager ? 'View submitted events and their current progress.' : isCoordinator
+          {isLead ? 'Assign submitted requests and manage coordinator assignments for active events.' : isManager ? 'View submitted events and their current progress.' : isCoordinator
             ? 'Every submitted request, newest first. Open one to see the full details and decide.'
             : 'Your event requests, including drafts. Status updates automatically every 30 seconds.'}
         </p>

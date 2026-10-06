@@ -98,7 +98,7 @@ the team's withdrawal workflow: there is no separate withdrawn event status in t
 Remaining: queue/picker UI, notification triggers, cross-feature integration and live
 acceptance checks. Do not mark the whole story complete.
 
-## Slice 3 — assignment queue and coordinator picker (in progress)
+## Slice 3 — assignment queue and coordinator dropdown
 
 Branch: `us17slice3`. Scope: Lead queue/basic details (AC1), coordinator selection and
 assignment counts/assignment (AC2), and reassignment of eligible events (AC3), with
@@ -134,4 +134,31 @@ Latest local checks: 764 frontend tests pass, one TODO; full database suite, typ
 lint and build pass. No new tests outside the three slice 3 TDD cycles so far. Existing
 bundle-size warning remains. Total US17 is three frontend tests and 19 SQL cases.
 0041 is not confirmed deployed. Apply through the team's migration process before live
-testing. Reassignment controls, live acceptance and notification work remain pending.
+testing. Notification work remains slice 4.
+
+Final planned cycle: AC-017.3.2 verifies the current assignee, replacement selection,
+failed save preserving the assignment/selection, successful retry and refreshed name/count,
+with no completed/cancelled reassignment controls. Red: assigned-events section missing.
+Green: shared assignment form/card now supports assigned active events and rejects an
+unchanged coordinator selection. Forms reset if a refreshed event has a different assignee.
+No extra tests were added outside TDD. Final local suites: 765 frontend passed, one TODO;
+full database suite, typecheck, lint and build passed (existing bundle-size warning).
+US17 totals: four frontend tests and 19 SQL cases. Slice 3 adds three frontend tests and
+one SQL test across four red/green cycles. CI links remain in PR/shared TDD documentation.
+
+### Live acceptance before merging
+
+Confirm 0041 is deployed through the team's migration process (0039 already confirmed).
+Run the app from frontend and sign in with an administrator-provisioned Coordinator Lead.
+Use separate browser sessions for Lead/Coordinator accounts.
+
+1. Submit a new organiser request. As Lead, open Assignments: verify basic details in
+   Unassigned requests, coordinator names/counts and disabled save until selection.
+2. Assign it. Verify success, its move to Assigned events, current name and updated count.
+3. Select a different coordinator and reassign. Verify updated name/counts, and confirm
+   the old coordinator cannot review while the new coordinator can.
+4. Verify completed/cancelled events have no reassignment controls. Check assignment
+   history in Supabase for both actions; history UI is outside this slice.
+
+These live checks are not yet reported complete. Dropdown errors/failed-save retries are
+covered by automated tests; do not disrupt shared Supabase to manufacture failures.
