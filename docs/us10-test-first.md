@@ -1,6 +1,44 @@
 > **Updated 2026-10-06 after syncing to main f854749.** The original record below
 > is historical: its eight mocked tests and results are not current RED evidence.
 
+## GREEN checkpoint (2026-10-06)
+
+RED commit: `74d9307`. Tests and assertions are unchanged from that commit.
+Production change: `backend/supabase/migrations/0037_venue_booking_rejection_reason.sql`.
+Fetched origin/main before allocating 0037; latest main was f854749 with migrations
+through 0036. Recheck numbering again before PR integration.
+
+The new CHECK constraint requires a non-null review_note containing at least one
+non-whitespace character whenever booking status is rejected. NOT VALID preserves
+legacy rows without inventing historical reasons; all new inserts and updates
+are checked. Existing invalid rejected rows also need a valid reason if updated.
+No frontend implementation or other acceptance criteria were added.
+
+User authorised implementation and both full-suite runs. Assistant-operated local
+tools ran these checks; the following is an observed result summary, not a full log:
+
+| Check | Result |
+| --- | --- |
+| Full frontend suite (`npm.cmd test`, frontend directory, same CI placeholder env/TZ as RED) | 73 files passed; 761 tests passed, 1 existing TODO; exit 0; duration 14.01s |
+| Full database runner (Git Bash, disposable Docker PostgreSQL 17) | Completed successfully, exit 0; all four US10 cases PASS |
+
+```text
+AC-010.8.9   PASS - missing reason refused
+AC-010.8.10  PASS - empty reason refused
+AC-010.8.11  PASS - whitespace-only reason refused
+AC-010.8.12  PASS - valid reason accepted and recorded
+
+total | passed | failed
+    4 |      4 |      0
+```
+
+Frontend output also included React act(...) warnings from VenueBlockForm tests;
+these were not failures. No production changes were made to those components.
+
+Refactor: none needed for this small constraint. The GREEN commit awaits user
+approval. No push, PR, remote CI run, or shared Supabase migration application.
+This completes only AC8 database validation, not the entire rejection slice.
+
 ## Current first-AC tests (RED verified 2026-10-06)
 
 US10 remains Review Venue Booking Request, as confirmed by the user. Main also
