@@ -13,10 +13,24 @@ export interface VenueBookingReview {
 }
 export type VenueBookingReviewResult = { ok: true; booking: VenueBookingReview } | { ok: false; reason: string }
 
-// Readback integration RED scaffold.
 export async function getVenueBookingReview(bookingId: string): Promise<VenueBookingReviewResult> {
-  void bookingId
-  return { ok: false, reason: 'Booking review is not available yet.' }
+  const unavailable = { ok: false as const, reason: 'This booking could not be loaded. Check your access and reload.' }
+  try {
+    const { data, error } = await supabase.from('venue_bookings')
+      .select('id, status, review_note, review_alternative, reviewed_by, reviewed_at, venues(name)')
+      .eq('id', bookingId).maybeSingle()
+    if (error || !data) return unavailable
+    const row = data as unknown as {
+      id: string; status: VenueBookingStatus; review_note: string | null
+      review_alternative: string | null; reviewed_by: string | null; reviewed_at: string | null
+      venues: { name: string } | null
+    }
+    return { ok: true, booking: {
+      id: row.id, status: row.status, venueName: row.venues?.name ?? 'Venue booking',
+      reviewNote: row.review_note, reviewAlternative: row.review_alternative,
+      reviewedBy: row.reviewed_by, reviewedAt: row.reviewed_at,
+    } }
+  } catch { return unavailable }
 }
 
 // Actor, time and slot release are owned by the database in the same transaction.

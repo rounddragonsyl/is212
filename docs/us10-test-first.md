@@ -449,3 +449,7 @@ RED commit: 986e278. Only pending bookings show rejection. Failed decisions reta
 ### Review-page integration RED
 Four integration assertions fail on the readback/page scaffolds: saved decision mapping, routed rejection, read failure/reload, and saved decision display. Existing tested form behaviour is unchanged. Full frontend: 4 failed, 789 passed, 1 TODO (77 files). Full database US10 19/19 pass. Logs: us10-integration-red-{frontend,database}.log. This is an integration checkpoint for previously tested AC8/AC13 behaviour, not a new slice.
 
+
+### Review-page integration GREEN
+RED commit: 06a4866. Readback and routed-page assertions pass unchanged. Full frontend 77 files, 793 pass, 1 TODO; full database US10 19/19 pass. Both exit 0. Logs: us10-integration-green-{frontend,database}.log. Route: /venues/bookings/:bookingId/review behind the existing venueBooking flag. Pending-queue navigation and full request/conflict details remain Slice 2.
+
