@@ -37,6 +37,10 @@ insert into public.events (
   'US17 submitted event', 'Assignment test',
   '2030-01-01 01:00+00', '2030-01-01 02:00+00', 10, 'submitted'
 );
+insert into public.events (id, organiser_id, name, status) values (
+  '17100000-0000-0000-0000-000000000002',
+  '17000000-0000-0000-0000-000000000002', 'Private draft', 'draft'
+);
 
 -- Execute as a browser user and distinguish permission denial from unrelated SQL errors.
 create function pg_temp.us17_assignment_attempt(actor uuid, direct_update boolean)
@@ -80,6 +84,22 @@ select pg_temp.assert_true(
   'AC-017.1.8: legacy Operations Manager cannot assign through a direct update');
 
 select set_config('request.jwt.claim.sub', '17000000-0000-0000-0000-000000000001', true);
+-- Do not filter out drafts in the query: database access must keep them private.
+select pg_temp.assert_true(
+  (select array_agg(id::text order by id) from public.events
+    where organiser_id = '17000000-0000-0000-0000-000000000002')
+      = array['17100000-0000-0000-0000-000000000001']::text[]
+  and exists (
+    select 1 from public.events
+    where id = '17100000-0000-0000-0000-000000000001'
+      and coordinator_id is null
+      and name = 'US17 submitted event'
+      and purpose = 'Assignment test'
+      and proposed_start = '2030-01-01 01:00+00'::timestamptz
+      and expected_attendance = 10
+  ),
+  'AC-017.1.9: Lead reads unassigned submitted event details while drafts stay private');
+
 do $$
 begin
   perform public.assign_event_coordinator(
