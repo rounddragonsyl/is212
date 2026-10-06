@@ -246,8 +246,8 @@ This is local verification, not deployment to or testing against shared Supabase
 adds `events.coordinator_id` and `event_change_requests.field_decisions`, plus
 `partially_approved` and `clarification_requested` request statuses. Existing events
 start unassigned; there is no automatic assignment or assignment screen in this change.
-An authenticated Operations Manager can call
-`assign_event_coordinator(p_event_id, p_coordinator_id)` to assign/reassign an event.
+Originally an Operations Manager called the assignment function. US17 migration `0038`
+moves `assign_event_coordinator(p_event_id, p_coordinator_id)` to Coordinator Lead only.
 Direct attempts by other signed-in roles to change that field are blocked.
 
 `review_event_change_request(p_request_id, p_event_updated_at, p_review)` accepts the
@@ -852,6 +852,23 @@ and `frontend/src/components/layout/__tests__/TopNav.test.tsx`):
 | AC-012.8 — overlapping bookings are flagged, not cancelled, and coordinators notified | AC-012.8.1–8.13 | AC-012.8.14–8.25 |
 | AC-012.9 — current blocks can be viewed and removed | AC-012.9.1–9.11 | AC-012.9.12–9.25 |
 | AC-012.10 — who blocked, and when, is recorded | AC-012.10.1–10.4 | AC-012.10.5–10.6 |
+
+## US17 - Coordinator assignment, slice 1
+
+Migration `0038_coordinator_lead_assignment.sql` adds the `coordinator_lead` role,
+non-draft event read access, and Lead-only assignment through the existing function
+and guard. Drafts, null targets and non-coordinator targets are refused; a coordinator
+can hold multiple events. Existing accounts are not automatically converted, and
+unrelated Operations Manager permissions are retained.
+
+This is the backend foundation, not the assignment UI or completed US17. Reassignment
+lifecycle restrictions/history, the queue/picker and notifications remain in later slices.
+Apply the reviewed migration after `0037`, once per shared environment; it has only
+been tested in disposable PostgreSQL during this slice. An administrator must provision
+a Lead account before assignment testing; the old Manager role no longer assigns.
+
+Tests: one frontend profile test and 15 SQL cases, with IDs, TDD cycles, additional
+coverage and deployment details in [US17 slice 1](docs/us17-assignment.md).
 
 ## Shared Supabase state (5 October 2026)
 

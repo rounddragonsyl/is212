@@ -1,0 +1,180 @@
+-- US17: disposable PostgreSQL fixtures only; run through the database test runner.
+begin;
+reset role;
+select set_config('request.jwt.claim.sub', '', true);
+
+insert into auth.users (id, email) values
+  ('17000000-0000-0000-0000-000000000001', 'lead-us17@example.test');
+
+-- AC1 prerequisite: an administrator can provision the role used for assignment.
+do $$
+begin
+  update public.profiles set role = 'coordinator_lead'
+    where id = '17000000-0000-0000-0000-000000000001';
+exception when check_violation then
+  raise exception 'FAIL: AC-017.1.2: database accepts an administrator-assigned Coordinator Lead profile. %', sqlerrm;
+end $$;
+
+select pg_temp.assert_true(
+  (select role = 'coordinator_lead' from public.profiles
+    where id = '17000000-0000-0000-0000-000000000001'),
+  'AC-017.1.2: database accepts an administrator-assigned Coordinator Lead profile');
+
+insert into auth.users (id, email) values
+  ('17000000-0000-0000-0000-000000000002', 'organiser-us17@example.test'),
+  ('17000000-0000-0000-0000-000000000003', 'coordinator-us17@example.test'),
+  ('17000000-0000-0000-0000-000000000004', 'manager-us17@example.test');
+update public.profiles set role = 'coordinator'
+  where id = '17000000-0000-0000-0000-000000000003';
+update public.profiles set role = 'operations_manager'
+  where id = '17000000-0000-0000-0000-000000000004';
+insert into public.events (
+  id, organiser_id, name, purpose, proposed_start, proposed_end,
+  expected_attendance, status
+) values (
+  '17100000-0000-0000-0000-000000000001',
+  '17000000-0000-0000-0000-000000000002',
+  'US17 submitted event', 'Assignment test',
+  '2030-01-01 01:00+00', '2030-01-01 02:00+00', 10, 'submitted'
+);
+insert into public.events (id, organiser_id, name, status) values (
+  '17100000-0000-0000-0000-000000000002',
+  '17000000-0000-0000-0000-000000000002', 'Private draft', 'draft'
+);
+
+-- Execute as a browser user and distinguish permission denial from unrelated SQL errors.
+create function pg_temp.us17_assignment_attempt(actor uuid, direct_update boolean)
+returns text language plpgsql as $$
+declare affected integer;
+begin
+  perform set_config('request.jwt.claim.sub', actor::text, true);
+  if direct_update then
+    update public.events set coordinator_id = '17000000-0000-0000-0000-000000000003'
+      where id = '17100000-0000-0000-0000-000000000001';
+    get diagnostics affected = row_count;
+    return 'rows:' || affected;
+  end if;
+  perform public.assign_event_coordinator(
+    '17100000-0000-0000-0000-000000000001',
+    '17000000-0000-0000-0000-000000000003'
+  );
+  return 'allowed';
+exception when insufficient_privilege then
+  return '42501';
+end $$;
+
+set local role authenticated;
+select pg_temp.assert_true(
+  pg_temp.us17_assignment_attempt('17000000-0000-0000-0000-000000000002', false) = '42501',
+  'AC-017.1.3: organiser cannot assign through the function');
+select pg_temp.assert_true(
+  pg_temp.us17_assignment_attempt('17000000-0000-0000-0000-000000000002', true) in ('42501', 'rows:0'),
+  'AC-017.1.4: organiser cannot assign through a direct update');
+select pg_temp.assert_true(
+  pg_temp.us17_assignment_attempt('17000000-0000-0000-0000-000000000003', false) = '42501',
+  'AC-017.1.5: coordinator cannot self-assign through the function');
+select pg_temp.assert_true(
+  pg_temp.us17_assignment_attempt('17000000-0000-0000-0000-000000000003', true) in ('42501', 'rows:0'),
+  'AC-017.1.6: coordinator cannot self-assign through a direct update');
+select pg_temp.assert_true(
+  pg_temp.us17_assignment_attempt('17000000-0000-0000-0000-000000000004', false) = '42501',
+  'AC-017.1.7: legacy Operations Manager cannot assign through the function');
+select pg_temp.assert_true(
+  pg_temp.us17_assignment_attempt('17000000-0000-0000-0000-000000000004', true) in ('42501', 'rows:0'),
+  'AC-017.1.8: legacy Operations Manager cannot assign through a direct update');
+
+select set_config('request.jwt.claim.sub', '17000000-0000-0000-0000-000000000001', true);
+-- Do not filter out drafts in the query: database access must keep them private.
+select pg_temp.assert_true(
+  (select array_agg(id::text order by id) from public.events
+    where organiser_id = '17000000-0000-0000-0000-000000000002')
+      = array['17100000-0000-0000-0000-000000000001']::text[]
+  and exists (
+    select 1 from public.events
+    where id = '17100000-0000-0000-0000-000000000001'
+      and coordinator_id is null
+      and name = 'US17 submitted event'
+      and purpose = 'Assignment test'
+      and proposed_start = '2030-01-01 01:00+00'::timestamptz
+      and expected_attendance = 10
+  ),
+  'AC-017.1.9: Lead reads unassigned submitted event details while drafts stay private');
+
+do $$
+begin
+  perform public.assign_event_coordinator(
+    '17100000-0000-0000-0000-000000000001',
+    '17000000-0000-0000-0000-000000000003'
+  );
+exception when insufficient_privilege then
+  raise exception 'FAIL: AC-017.2.1: Coordinator Lead assigns a submitted event to an Event Coordinator. %', sqlerrm;
+end $$;
+
+-- Inspect persistence as the test administrator; Lead queue read access is a separate check.
+reset role;
+select set_config('request.jwt.claim.sub', '', true);
+select pg_temp.assert_true(
+  (select coordinator_id = '17000000-0000-0000-0000-000000000003'
+      and status = 'submitted'
+      and organiser_id = '17000000-0000-0000-0000-000000000002'
+    from public.events where id = '17100000-0000-0000-0000-000000000001'),
+  'AC-017.2.1: Coordinator Lead assigns a submitted event to an Event Coordinator');
+
+-- These rules predate US17; verify them against the new Lead role without claiming TDD red.
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '17000000-0000-0000-0000-000000000001', true);
+select pg_temp.expect_error($q$
+  select public.assign_event_coordinator('17100000-0000-0000-0000-000000000002',
+    '17000000-0000-0000-0000-000000000003')$q$, '22000',
+  'AC-017.2.2: Lead cannot assign a draft');
+select pg_temp.expect_error($q$
+  select public.assign_event_coordinator('17100000-0000-0000-0000-000000000001', null)$q$, '22000',
+  'AC-017.2.3: Lead must select a coordinator');
+select pg_temp.expect_error($q$
+  select public.assign_event_coordinator('17100000-0000-0000-0000-000000000001',
+    '17000000-0000-0000-0000-000000000002')$q$, '22000',
+  'AC-017.2.4: Lead cannot select an organiser as coordinator');
+select pg_temp.expect_error($q$
+  select public.assign_event_coordinator('17100000-0000-0000-0000-000000000001',
+    '17000000-0000-0000-0000-000000000099')$q$, '22000',
+  'AC-017.2.5: Lead cannot select a nonexistent coordinator');
+
+reset role;
+select set_config('request.jwt.claim.sub', '', true);
+-- Rejected attempts must leave both the draft and the existing assignment unchanged.
+do $$ begin
+  if not exists (select 1 from public.events
+      where id = '17100000-0000-0000-0000-000000000002'
+        and coordinator_id is null and status = 'draft')
+    or not exists (select 1 from public.events
+      where id = '17100000-0000-0000-0000-000000000001'
+        and coordinator_id = '17000000-0000-0000-0000-000000000003'
+        and status = 'submitted') then
+    raise exception 'FAIL: AC-017.2.2–5: rejected assignments changed event data';
+  end if;
+end $$;
+insert into public.events (
+  id, organiser_id, name, purpose, proposed_start, proposed_end,
+  expected_attendance, status
+) values (
+  '17100000-0000-0000-0000-000000000003',
+  '17000000-0000-0000-0000-000000000002',
+  'Second US17 event', 'Multiple assignments',
+  '2030-01-02 01:00+00', '2030-01-02 02:00+00', 20, 'submitted'
+);
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '17000000-0000-0000-0000-000000000001', true);
+select public.assign_event_coordinator('17100000-0000-0000-0000-000000000003',
+  '17000000-0000-0000-0000-000000000003');
+select pg_temp.assert_true(
+  (select count(*) = 2 from public.events
+    where id in ('17100000-0000-0000-0000-000000000001', '17100000-0000-0000-0000-000000000003')
+      and coordinator_id = '17000000-0000-0000-0000-000000000003'
+      and status = 'submitted'),
+  'AC-017.2.6: one coordinator can hold multiple submitted events');
+select pg_temp.expect_error($q$
+  select public.assign_event_coordinator('17100000-0000-0000-0000-000000000099',
+    '17000000-0000-0000-0000-000000000003')$q$, '22000',
+  'AC-017.2.7: Lead cannot assign a nonexistent event');
+
+rollback;

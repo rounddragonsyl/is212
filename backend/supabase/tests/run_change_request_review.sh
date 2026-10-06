@@ -26,6 +26,8 @@ if [ "$ready" != true ]; then echo 'Temporary database did not become ready.' >&
   for migration in "$repo_root"/supabase/migrations/*.sql; do cat "$migration"; printf '\n'; done
   cat "$repo_root/supabase/tests/change_request_review.sql"
   cat "$repo_root/supabase/migrations/0008_change_request_review.sql"
+  # Restore the current assignment rules after the historical migration replay.
+  cat "$repo_root/supabase/migrations/0038_coordinator_lead_assignment.sql"
   # Replay later replacements too: replaying 0008 alone would restore an old RPC.
   cat "$repo_root/supabase/migrations/0010_change_request_field_clarification.sql"
   cat <<'SQL'
@@ -187,4 +189,5 @@ select pg_temp.assert_true(
   'AC-012.10.4: replaying the US12 migrations preserves blocks, flags and blocked cells');
 SQL
   cat "$repo_root/supabase/tests/venue_booking_review.sql"
+  cat "$repo_root/supabase/tests/coordinator_assignment.sql"
 } | docker exec -i "$container" psql -X -U postgres -v ON_ERROR_STOP=1

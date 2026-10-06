@@ -32,12 +32,14 @@ insert into auth.users (id, email) values
  ('13000000-0000-0000-0000-000000000005', 'us13-tech-2@example.test'),
  ('13000000-0000-0000-0000-000000000006', 'us13-manager@example.test'),
  ('13000000-0000-0000-0000-000000000007', 'us13-venue@example.test'),
- ('13000000-0000-0000-0000-000000000008', 'us13-attendee@example.test');
+ ('13000000-0000-0000-0000-000000000008', 'us13-attendee@example.test'),
+ ('13000000-0000-0000-0000-000000000009', 'us13-lead@example.test');
 update public.profiles set role = 'coordinator' where id in
  ('13000000-0000-0000-0000-000000000002', '13000000-0000-0000-0000-000000000003');
 update public.profiles set role = 'tech_support' where id in
  ('13000000-0000-0000-0000-000000000004', '13000000-0000-0000-0000-000000000005');
 update public.profiles set role = 'operations_manager' where id = '13000000-0000-0000-0000-000000000006';
+update public.profiles set role = 'coordinator_lead' where id = '13000000-0000-0000-0000-000000000009';
 update public.profiles set role = 'venue_staff' where id = '13000000-0000-0000-0000-000000000007';
 update public.profiles set role = 'attendee' where id = '13000000-0000-0000-0000-000000000008';
 
@@ -205,7 +207,7 @@ select pg_temp.assert_true(pg_temp.us13_try('13000000-0000-0000-0000-00000000000
   update public.event_equipment_requirements set event_id = '13400000-0000-0000-0000-000000000002'
   where id = '13700000-0000-0000-0000-000000000003'$q$) = '42501',
  'AC-013.1.22: a requirement cannot be moved to another event');
-select pg_temp.us13_try('13000000-0000-0000-0000-000000000006', $q$
+select pg_temp.us13_try('13000000-0000-0000-0000-000000000009', $q$
   select public.assign_event_coordinator('13400000-0000-0000-0000-000000000022', '13000000-0000-0000-0000-000000000003')$q$);
 select pg_temp.assert_true(
   pg_temp.us13_try('13000000-0000-0000-0000-000000000002', $q$
