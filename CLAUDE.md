@@ -51,7 +51,7 @@ Supabase (PostgreSQL + Auth + RLS) · Vitest + React Testing Library · GitHub A
   tests require a separate test environment, fixtures and cleanup.
 
 ## Roles and authorisation
-- Roles live in public.profiles.role, never in auth.users. Values: organiser, coordinator,
+- Roles live in public.profiles.role, never in auth.users. Values: organiser, coordinator, coordinator_lead,
   operations_manager, venue_staff, tech_support, attendee.
 - Read the caller's role in SQL with public.current_user_role(). It is SECURITY DEFINER on
   purpose: a policy on profiles that queries profiles recurses infinitely.
@@ -110,7 +110,8 @@ Draft saves in eventDraftService must never change an existing request's status.
   RPC payload by the presence of decisions, not by status: field-level clarification
   also uses action=decide. Legacy whole-request action=clarify remains supported.
 - `0008_change_request_review.sql` adds coordinator assignment and the atomic review
-  RPC. Only Operations Managers assign; only the assigned coordinator reviews a
+  RPC. Originally Operations Managers assigned; 0038 moves assignment to Coordinator Lead.
+  Only the assigned coordinator reviews a
   pending request with a matching event updated_at. Values come from the stored
   proposal. Submitted event details cannot be edited directly by the browser;
   US4 status transitions and US1 draft edits still work. Never apply this migration
@@ -144,6 +145,19 @@ Draft saves in eventDraftService must never change an existing request's status.
 - Emails are sent by the Edge Function `backend/supabase/functions/send-review-notifications`
   (Deno, not part of the Vite build). Provider keys live in Supabase secrets, never `VITE_`.
 - Database checks: `backend/supabase/tests/review_decisions_test.sql`, disposable databases only.
+
+## US17 slice 1 (current assignment rules)
+- `0038_coordinator_lead_assignment.sql` accepts coordinator_lead and grants SELECT on
+  non-draft events. The existing assignment RPC and guard now require that role.
+- Do not convert existing Manager accounts automatically or grant Leads unrelated
+  venue/equipment management rights. Admin provisioning remains required.
+- Keep later migration replacements after historical replay in the database runner:
+  replaying 0008 alone restores obsolete Manager-only assignment.
+- Test IDs: AC-017.1.1 app, .1.2-9 and .2.1-7 SQL. Next IDs: .1.10 and .2.8.
+  Red-green cycles: .1.1, .1.2, .1.9, .2.1. Other cases are additional coverage,
+  not retrospectively claimed TDD. See docs/us17-assignment.md.
+- Slice 1 has no queue UI, assignment history, notifications or terminal-event
+  reassignment rules. Those are future increments; do not mark the whole story complete.
 
 ## House style
 - Shared event date/time displays use Asia/Singapore explicitly in formatters.ts;

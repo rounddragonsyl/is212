@@ -120,4 +120,61 @@ select pg_temp.assert_true(
     from public.events where id = '17100000-0000-0000-0000-000000000001'),
   'AC-017.2.1: Coordinator Lead assigns a submitted event to an Event Coordinator');
 
+-- These rules predate US17; verify them against the new Lead role without claiming TDD red.
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '17000000-0000-0000-0000-000000000001', true);
+select pg_temp.expect_error($q$
+  select public.assign_event_coordinator('17100000-0000-0000-0000-000000000002',
+    '17000000-0000-0000-0000-000000000003')$q$, '22000',
+  'AC-017.2.2: Lead cannot assign a draft');
+select pg_temp.expect_error($q$
+  select public.assign_event_coordinator('17100000-0000-0000-0000-000000000001', null)$q$, '22000',
+  'AC-017.2.3: Lead must select a coordinator');
+select pg_temp.expect_error($q$
+  select public.assign_event_coordinator('17100000-0000-0000-0000-000000000001',
+    '17000000-0000-0000-0000-000000000002')$q$, '22000',
+  'AC-017.2.4: Lead cannot select an organiser as coordinator');
+select pg_temp.expect_error($q$
+  select public.assign_event_coordinator('17100000-0000-0000-0000-000000000001',
+    '17000000-0000-0000-0000-000000000099')$q$, '22000',
+  'AC-017.2.5: Lead cannot select a nonexistent coordinator');
+
+reset role;
+select set_config('request.jwt.claim.sub', '', true);
+-- Rejected attempts must leave both the draft and the existing assignment unchanged.
+do $$ begin
+  if not exists (select 1 from public.events
+      where id = '17100000-0000-0000-0000-000000000002'
+        and coordinator_id is null and status = 'draft')
+    or not exists (select 1 from public.events
+      where id = '17100000-0000-0000-0000-000000000001'
+        and coordinator_id = '17000000-0000-0000-0000-000000000003'
+        and status = 'submitted') then
+    raise exception 'FAIL: AC-017.2.2–5: rejected assignments changed event data';
+  end if;
+end $$;
+insert into public.events (
+  id, organiser_id, name, purpose, proposed_start, proposed_end,
+  expected_attendance, status
+) values (
+  '17100000-0000-0000-0000-000000000003',
+  '17000000-0000-0000-0000-000000000002',
+  'Second US17 event', 'Multiple assignments',
+  '2030-01-02 01:00+00', '2030-01-02 02:00+00', 20, 'submitted'
+);
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '17000000-0000-0000-0000-000000000001', true);
+select public.assign_event_coordinator('17100000-0000-0000-0000-000000000003',
+  '17000000-0000-0000-0000-000000000003');
+select pg_temp.assert_true(
+  (select count(*) = 2 from public.events
+    where id in ('17100000-0000-0000-0000-000000000001', '17100000-0000-0000-0000-000000000003')
+      and coordinator_id = '17000000-0000-0000-0000-000000000003'
+      and status = 'submitted'),
+  'AC-017.2.6: one coordinator can hold multiple submitted events');
+select pg_temp.expect_error($q$
+  select public.assign_event_coordinator('17100000-0000-0000-0000-000000000099',
+    '17000000-0000-0000-0000-000000000003')$q$, '22000',
+  'AC-017.2.7: Lead cannot assign a nonexistent event');
+
 rollback;
