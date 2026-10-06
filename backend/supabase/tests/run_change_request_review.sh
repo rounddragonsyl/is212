@@ -187,4 +187,5 @@ select pg_temp.assert_true(
   'AC-012.10.4: replaying the US12 migrations preserves blocks, flags and blocked cells');
 SQL
   cat "$repo_root/supabase/tests/venue_booking_review.sql"
+  cat "$repo_root/supabase/tests/coordinator_assignment.sql"
 } | docker exec -i "$container" psql -X -U postgres -v ON_ERROR_STOP=1
