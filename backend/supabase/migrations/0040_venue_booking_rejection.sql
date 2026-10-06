@@ -1,6 +1,26 @@
 -- US10 Slice 1, AC10: rejection and slot release must succeed together.
 begin;
 
+create or replace function public.stamp_venue_booking_rejection()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+begin
+  new.reviewed_by := auth.uid();
+  new.reviewed_at := clock_timestamp();
+  return new;
+end;
+$$;
+revoke execute on function public.stamp_venue_booking_rejection()
+  from public, anon, authenticated;
+drop trigger if exists venue_bookings_stamp_rejection on public.venue_bookings;
+create trigger venue_bookings_stamp_rejection
+  before update of status on public.venue_bookings
+  for each row
+  when (old.status = 'pending_approval' and new.status = 'rejected')
+  execute function public.stamp_venue_booking_rejection();
+
 create or replace function public.release_rejected_venue_booking_claims()
 returns trigger
 language plpgsql
