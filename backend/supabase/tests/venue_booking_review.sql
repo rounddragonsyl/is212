@@ -12,13 +12,13 @@ insert into public.venues (id,name,location,capacity,layout,status) values
  ('b10a0000-0000-0000-0000-000000000003','US10 Review Hall','Test',100,'Theatre','active');
 insert into public.events (id,organiser_id,status)
 select ('b10a0000-0000-0000-0000-' || lpad(n::text,12,'0'))::uuid,
- 'b10a0000-0000-0000-0000-000000000002','draft' from generate_series(101,105) n;
+ 'b10a0000-0000-0000-0000-000000000002','draft' from generate_series(101,109) n;
 insert into public.venue_bookings (id,event_id,venue_id,requested_by,status)
 select ('b10a0000-0000-0000-0000-' || lpad(n::text,12,'0'))::uuid,
  ('b10a0000-0000-0000-0000-' || lpad((n-100)::text,12,'0'))::uuid,
  'b10a0000-0000-0000-0000-000000000003',
  'b10a0000-0000-0000-0000-000000000002','pending_approval'
-from generate_series(201,205) n;
+from generate_series(201,209) n;
 
 -- AC10 fixtures: event/setup/turnaround cells plus an unrelated pending booking.
 insert into public.venue_slot_claims (venue_id,slot_date,slot,kind,booking_id) values
@@ -99,6 +99,72 @@ select 'AC-010.13.2: rejection records server time instead of a client-supplied 
      and b.status='rejected' and b.review_note='Venue unsuitable'
      and b.reviewed_by='b10a0000-0000-0000-0000-000000000001'
      and b.reviewed_at between w.started_at and clock_timestamp());
+
+-- AC9 schema contract: a suggested alternative must survive the booking row model.
+-- jsonb_populate_record ignores unknown keys, so this is an assertion failure on
+-- the old schema, not an undefined-column exception that stops the other tests.
+insert into us10_results
+select 'AC-010.9.1: booking decision model retains an optional suggested alternative',
+ coalesce(to_jsonb(jsonb_populate_record(null::public.venue_bookings,
+   '{"review_alternative":"Try the smaller hall on Friday"}'::jsonb))
+   ->>'review_alternative' = 'Try the smaller hall on Friday', false);
+
+-- Existing RLS already makes final decisions immutable to Venue Staff.
+update public.venue_bookings set status='confirmed', reviewed_by='b10a0000-0000-0000-0000-000000000001',
+ reviewed_at=now() where id='b10a0000-0000-0000-0000-000000000206';
+set role authenticated;
+do $$
+declare changed integer;
+begin
+ update public.venue_bookings set status='rejected', review_note='Second decision'
+ where id='b10a0000-0000-0000-0000-000000000206';
+ get diagnostics changed = row_count;
+ insert into us10_results values('AC-010.12.3: Venue Staff cannot reject a confirmed booking',changed=0);
+ update public.venue_bookings set status='confirmed'
+ where id='b10a0000-0000-0000-0000-000000000204';
+ get diagnostics changed = row_count;
+ insert into us10_results values('AC-010.12.4: Venue Staff cannot change a rejected booking',changed=0);
+end $$;
+update public.venue_bookings set status='rejected', review_note='Unavailable',
+ reviewed_by='b10a0000-0000-0000-0000-000000000002'
+ where id='b10a0000-0000-0000-0000-000000000207';
+reset role;
+insert into us10_results
+select 'AC-010.13.3: spoofed reviewer is replaced by the authenticated Venue Staff identity',
+ exists(select 1 from public.venue_bookings where id='b10a0000-0000-0000-0000-000000000207'
+   and status='rejected' and reviewed_by='b10a0000-0000-0000-0000-000000000001');
+
+-- Inject a cleanup failure; a partially saved rejection must never escape.
+insert into public.venue_slot_claims(venue_id,slot_date,slot,kind,booking_id) values
+ ('b10a0000-0000-0000-0000-000000000003','2030-10-14','AM','event','b10a0000-0000-0000-0000-000000000208');
+create function pg_temp.refuse_test_release() returns trigger language plpgsql as $$
+begin
+ if old.booking_id='b10a0000-0000-0000-0000-000000000208' then
+   raise exception 'Injected cleanup failure' using errcode='P1010';
+ end if;
+ return old;
+end $$;
+create trigger us10_test_cleanup_failure before delete on public.venue_slot_claims
+ for each row execute function pg_temp.refuse_test_release();
+set role authenticated;
+do $$
+declare refused boolean := false;
+begin
+ begin
+   update public.venue_bookings set status='rejected',review_note='Unavailable'
+   where id='b10a0000-0000-0000-0000-000000000208';
+ exception when sqlstate 'P1010' then refused := true;
+ end;
+ insert into us10_results
+ select 'AC-010.10.3: failed slot cleanup rolls back the decision and preserves its claim',
+ refused and exists(select 1 from public.venue_bookings
+   where id='b10a0000-0000-0000-0000-000000000208' and status='pending_approval'
+     and reviewed_by is null and reviewed_at is null and review_note is null)
+ and exists(select 1 from public.venue_slot_claims
+   where booking_id='b10a0000-0000-0000-0000-000000000208');
+end $$;
+reset role;
+drop trigger us10_test_cleanup_failure on public.venue_slot_claims;
 
 select label, case when passed then 'PASS' else 'FAIL' end as result from us10_results;
 select count(*) as total, count(*) filter(where passed) as passed,

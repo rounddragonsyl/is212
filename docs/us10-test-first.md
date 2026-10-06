@@ -405,3 +405,7 @@ since the AC10 GREEN commit; no additional migration number has been consumed.
 ### AC13 GREEN
 RED commit: 31c226c. The unchanged AC-010.13.2 now passes with a server-stamped actor and clock_timestamp(). Full database exit 0: US10 6/6 pass. Full frontend exit 0: 74 files, 762 pass, 1 TODO. Logs: us10-ac13-green-{database,frontend}.log in the Windows temporary directory. No shared deployment.
 
+
+### AC9 storage RED
+AC-010.9.1 asserts that the booking row model retains a suggested alternative. It fails on the existing schema because that field is absent (JSON record conversion drops unknown fields); no SQL syntax/import failure. Full database: 10 pass, 1 fail, exit 3. Frontend: 762 pass, 1 TODO, exit 0. Logs: us10-ac9-red-{database,frontend}.log. Finality, spoofed reviewer and rollback cases passed on first execution and are regression coverage, not claimed RED cycles.
+
