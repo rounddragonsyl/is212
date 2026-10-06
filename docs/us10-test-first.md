@@ -417,3 +417,7 @@ RED commit: 2647b6a. Added nullable review_alternative to the existing table in 
 ### AC8 form/service RED
 Added four executable assertions AC-010.8.13-16 with compilable no-op scaffolds (no missing imports). They fail because blank reasons have no validation, valid decisions are not saved, and the form has no controls yet. Full frontend: 4 failed, 762 passed, 1 TODO; 2 failed files/74 passed. Full database remains 11/11 US10 pass. Logs: us10-form-red-{frontend,database}.log.
 
+
+### AC8 form/service GREEN
+RED commit: 81c41b0. Same four tests pass after pure reason validation, a single guarded update, and the rejection form. Full frontend: 76 files, 766 passed, 1 TODO. Full database: 11/11 US10 pass. Both exit 0. Logs: us10-form-green-{frontend,database}.log.
+

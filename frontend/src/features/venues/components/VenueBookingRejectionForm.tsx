@@ -1,4 +1,9 @@
 import type { VenueBookingStatus } from '../bookingTypes'
+import { useId, useRef, useState } from 'react'
+import { Button } from '../../../components/ui/Button'
+import { Field, TextArea } from '../../../components/ui/FormControls'
+import { rejectVenueBooking } from '../venueBookingReviewService'
+import { rejectionReasonError } from '../venueBookingReviewValidation'
 
 export interface RejectionFormProps {
   bookingId: string
@@ -6,8 +11,38 @@ export interface RejectionFormProps {
   onRejected: () => void
 }
 
-// RED scaffold keeps tests executable without missing-module failures.
-export function VenueBookingRejectionForm(props: RejectionFormProps) {
-  void props
-  return <p>Rejection is not available yet.</p>
+export function VenueBookingRejectionForm({ bookingId, onRejected }: RejectionFormProps) {
+  const id = useId()
+  const submitting = useRef(false)
+  const [reason, setReason] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [done, setDone] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  if (done) return <p role="status">Booking rejected.</p>
+
+  return (
+    <form className="space-y-4" noValidate onSubmit={async (event) => {
+      event.preventDefault()
+      if (submitting.current) return
+      const invalid = rejectionReasonError(reason)
+      setError(invalid)
+      if (invalid) return
+      submitting.current = true
+      setBusy(true)
+      const result = await rejectVenueBooking(bookingId, reason)
+      submitting.current = false
+      setBusy(false)
+      if (!result.ok) { setError(result.reason); return }
+      setDone(true)
+      onRejected()
+    }}>
+      <Field id={id} label="Rejection reason">
+        <TextArea id={id} required value={reason} disabled={busy}
+          onChange={(event) => setReason(event.target.value)} />
+      </Field>
+      {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
+      <Button type="submit" disabled={busy}>{busy ? 'Rejecting…' : 'Reject booking'}</Button>
+    </form>
+  )
 }
