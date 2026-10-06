@@ -104,3 +104,64 @@ test('AC-017.2.9: Lead selects a coordinator with workload shown and retries a f
   })
   expect(saves).toBe(2)
 })
+
+test('AC-017.3.2: Lead reassigns an active event with retry feedback and no controls for closed events', async () => {
+  const user = userEvent.setup()
+  const eventId = '17100000-0000-0000-0000-000000000020'
+  const originalId = '17000000-0000-0000-0000-000000000003'
+  const replacementId = '17000000-0000-0000-0000-000000000005'
+  const request = {
+    id: eventId, reference: 'EVT-017-020', organiserId: 'organiser', coordinatorId: originalId,
+    name: 'Assigned workshop', purpose: 'Teach first aid', eventType: 'Workshop',
+    proposedStart: '2030-01-03T01:00:00Z', proposedEnd: '2030-01-03T03:00:00Z',
+    expectedAttendance: 40, status: 'approved', submittedAt: '2029-12-01T01:00:00Z', reviewNote: null,
+  }
+  const closed = [
+    { ...request, id: 'completed', name: 'Completed workshop', status: 'completed' },
+    { ...request, id: 'cancelled', name: 'Cancelled workshop', status: 'cancelled' },
+  ]
+  mocks.list.mockReset().mockResolvedValue({ ok: true, requests: [request, ...closed] })
+  mocks.rpc.mockReset()
+  let saves = 0
+  mocks.rpc.mockImplementation(async (operation: string) => {
+    if (operation === 'list_assignment_coordinators') return {
+      data: [
+        { coordinator_id: originalId, full_name: 'Alice', active_event_count: saves >= 2 ? 0 : 1 },
+        { coordinator_id: replacementId, full_name: 'Bob', active_event_count: saves >= 2 ? 1 : 0 },
+      ], error: null,
+    }
+    if (operation === 'assign_event_coordinator') {
+      saves += 1
+      if (saves === 1) return { data: null, error: { code: 'XX000', message: 'Database unavailable' } }
+      mocks.list.mockResolvedValue({ ok: true, requests: [{ ...request, coordinatorId: replacementId }, ...closed] })
+      return { data: null, error: null }
+    }
+    throw new Error(`Unexpected database operation: ${operation}`)
+  })
+
+  render(<MemoryRouter><ReviewRequestsPage /></MemoryRouter>)
+  const assigned = await screen.findByRole('region', { name: /^assigned events$/i })
+  expect(await within(assigned).findByText(/current coordinator: Alice/i)).toBeInTheDocument()
+  const dropdown = within(assigned).getByRole('combobox', { name: /coordinator for assigned workshop/i })
+  const reassign = within(assigned).getByRole('button', { name: /^reassign coordinator$/i })
+  expect(reassign).toBeDisabled()
+  expect(screen.queryByRole('combobox', { name: /coordinator for completed workshop/i })).not.toBeInTheDocument()
+  expect(screen.queryByRole('combobox', { name: /coordinator for cancelled workshop/i })).not.toBeInTheDocument()
+  expect(saves).toBe(0)
+
+  await user.selectOptions(dropdown, replacementId)
+  await user.click(reassign)
+  expect(await within(assigned).findByRole('alert')).toHaveTextContent(/assignment could not be saved/i)
+  expect(within(assigned).getByText(/current coordinator: Alice/i)).toBeInTheDocument()
+  expect(dropdown).toHaveValue(replacementId)
+  expect(mocks.rpc).toHaveBeenCalledWith('assign_event_coordinator', {
+    p_event_id: eventId, p_coordinator_id: replacementId,
+  })
+
+  await user.click(reassign)
+  expect(await screen.findByRole('status')).toHaveTextContent(/coordinator reassigned successfully/i)
+  expect(await within(assigned).findByText(/current coordinator: Bob/i)).toBeInTheDocument()
+  await waitFor(() => expect(within(assigned).getByRole('option', { name: /Bob.*1 active event/i })).toBeInTheDocument())
+  expect(within(assigned).getByRole('button', { name: /^reassign coordinator$/i })).toBeDisabled()
+  expect(saves).toBe(2)
+})
