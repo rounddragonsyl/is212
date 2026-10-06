@@ -316,4 +316,56 @@ do $$ begin
   raise notice 'PASS: AC-017.6.1: assignment history retains who, from/to and when, excluding failed and unchanged assignments';
 end $$;
 
+-- Slice 3: picker data must include idle coordinators and exclude closed events
+-- from workload. Use database identities, not a mocked list of profiles.
+reset role;
+select set_config('request.jwt.claim.sub', '', true);
+insert into auth.users (id, email) values
+  ('17000000-0000-0000-0000-000000000006', 'idle-us17@example.test');
+update public.profiles set role = 'coordinator', full_name = 'Idle Coordinator'
+  where id = '17000000-0000-0000-0000-000000000006';
+update public.profiles set full_name = 'Original Coordinator'
+  where id = '17000000-0000-0000-0000-000000000003';
+update public.profiles set full_name = 'Replacement Coordinator'
+  where id = '17000000-0000-0000-0000-000000000005';
+
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '17000000-0000-0000-0000-000000000001', true);
+do $$
+declare actual jsonb; actor text; refused boolean;
+begin
+  if to_regprocedure('public.list_assignment_coordinators()') is null then
+    raise exception 'FAIL: AC-017.2.8: Lead coordinator picker data is not available';
+  end if;
+  select jsonb_agg(jsonb_build_array(coordinator_id, full_name, active_event_count)
+      order by coordinator_id) into actual
+    from public.list_assignment_coordinators()
+    where coordinator_id::text like '17000000-%';
+  -- Event 003 is submitted under the original coordinator; event 001 is approved
+  -- under the replacement. Completed/cancelled fixtures must not inflate workload.
+  if actual is distinct from '[
+    ["17000000-0000-0000-0000-000000000003", "Original Coordinator", 1],
+    ["17000000-0000-0000-0000-000000000005", "Replacement Coordinator", 1],
+    ["17000000-0000-0000-0000-000000000006", "Idle Coordinator", 0]
+  ]'::jsonb then
+    raise exception 'FAIL: AC-017.2.8: expected only coordinators with names and active counts (including zero); received %', actual;
+  end if;
+  foreach actor in array array[
+    '17000000-0000-0000-0000-000000000002',
+    '17000000-0000-0000-0000-000000000003',
+    '17000000-0000-0000-0000-000000000004', ''
+  ] loop
+    perform set_config('request.jwt.claim.sub', actor, true);
+    refused := false;
+    begin
+      perform * from public.list_assignment_coordinators();
+    exception when insufficient_privilege then refused := true;
+    end;
+    if not refused then
+      raise exception 'FAIL: AC-017.2.8: picker data must be restricted to Coordinator Leads (actor %)', actor;
+    end if;
+  end loop;
+  raise notice 'PASS: AC-017.2.8: Lead-only coordinator list includes names and active assignment counts, including idle coordinators';
+end $$;
+
 rollback;
