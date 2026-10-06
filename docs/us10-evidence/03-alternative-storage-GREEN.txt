@@ -1,0 +1,37 @@
+US10 SLICE 1 - AC9: optional alternative storage - GREEN
+Recorded: 6 October 2026
+Observed local output excerpts; this is not a GitHub CI run.
+
+FULL FRONTEND SUITE: npm.cmd test (from frontend)
+ Test Files  74 passed (74)
+      Tests  762 passed | 1 todo (763)
+   Start at  21:35:07
+   Duration  19.59s (transform 19.12s, setup 28.48s, collect 49.76s, tests 42.45s, environment 148.72s, prepare 31.10s)
+
+
+FULL DATABASE SUITE: bash backend/supabase/tests/run_change_request_review.sh
+Table below is the US10 subset; preceding regression suites also ran.
+                                        label                                         | result
+--------------------------------------------------------------------------------------+--------
+ AC-010.8.9: missing rejection reason is refused and request remains pending          | PASS
+ AC-010.8.10: empty rejection reason is refused and request remains pending           | PASS
+ AC-010.8.11: whitespace-only rejection reason is refused and request remains pending | PASS
+ AC-010.8.12: Venue Staff can reject with a recorded nonblank reason                  | PASS
+ AC-010.10.2: rejection releases its event and buffer slots only                      | PASS
+ AC-010.13.2: rejection records server time instead of a client-supplied timestamp    | PASS
+ AC-010.9.1: booking decision model retains an optional suggested alternative         | PASS
+ AC-010.12.3: Venue Staff cannot reject a confirmed booking                           | PASS
+ AC-010.12.4: Venue Staff cannot change a rejected booking                            | PASS
+ AC-010.13.3: spoofed reviewer is replaced by the authenticated Venue Staff identity  | PASS
+ AC-010.10.3: failed slot cleanup rolls back the decision and preserves its claim     | PASS
+(11 rows)
+
+ total | passed | failed
+-------+--------+--------
+    11 |     11 |      0
+(1 row)
+
+DO
+
+Raw frontend log: C:\Users\ooiju\AppData\Local\Temp\us10-ac9-green-frontend.log
+Raw database log: C:\Users\ooiju\AppData\Local\Temp\us10-ac9-green-database.log

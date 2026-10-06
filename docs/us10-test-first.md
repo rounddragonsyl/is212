@@ -1,3 +1,7 @@
+> **Current Slice 1 result:** see [us10-slice1.md](us10-slice1.md) for scope,
+> commit pairs and screenshot commands. The chronological record below includes
+> superseded checkpoints; labelled observed outputs are in [us10-evidence](us10-evidence/).
+>
 > **Updated 2026-10-06 after syncing to main f854749.** The original record below
 > is historical: its eight mocked tests and results are not current RED evidence.
 
@@ -460,4 +464,3 @@ AC-010.12.17 exposes a late successful response invoking a callback after the fo
 
 ### Final Slice 1 GREEN
 RED commit: 3bf1756. The unchanged late-response test now passes after suppressing callbacks from an unmounted form. Full frontend: 77 files, 795 passed, 1 existing TODO. Full database: US10 20/20 passed, entire runner exit 0. Typecheck, lint and production build all exit 0 after the fix. Build retains a non-failing chunk-size warning. Logs: us10-reload-green-{frontend,database}.log and us10-final-{typecheck,lint,build}.log. Labelled evidence excerpts are retained under docs/us10-evidence. No push, PR, shared migration application or main merge has occurred for this branch.
-

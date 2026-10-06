@@ -1,0 +1,38 @@
+US10 SLICE 1 - AC9: alternative entry and coordinator display - GREEN
+Recorded: 6 October 2026
+Observed local output excerpts; this is not a GitHub CI run.
+
+FULL FRONTEND SUITE: npm.cmd test (from frontend)
+ Test Files  76 passed (76)
+      Tests  771 passed | 1 todo (772)
+   Start at  21:45:17
+   Duration  25.62s (transform 25.66s, setup 42.55s, collect 71.54s, tests 53.64s, environment 197.61s, prepare 39.11s)
+
+
+FULL DATABASE SUITE: bash backend/supabase/tests/run_change_request_review.sh
+Table below is the US10 subset; preceding regression suites also ran.
+                                        label                                         | result
+--------------------------------------------------------------------------------------+--------
+ AC-010.8.9: missing rejection reason is refused and request remains pending          | PASS
+ AC-010.8.10: empty rejection reason is refused and request remains pending           | PASS
+ AC-010.8.11: whitespace-only rejection reason is refused and request remains pending | PASS
+ AC-010.8.12: Venue Staff can reject with a recorded nonblank reason                  | PASS
+ AC-010.10.2: rejection releases its event and buffer slots only                      | PASS
+ AC-010.13.2: rejection records server time instead of a client-supplied timestamp    | PASS
+ AC-010.9.1: booking decision model retains an optional suggested alternative         | PASS
+ AC-010.12.3: Venue Staff cannot reject a confirmed booking                           | PASS
+ AC-010.12.4: Venue Staff cannot change a rejected booking                            | PASS
+ AC-010.13.3: spoofed reviewer is replaced by the authenticated Venue Staff identity  | PASS
+ AC-010.10.3: failed slot cleanup rolls back the decision and preserves its claim     | PASS
+ AC-010.9.2: alternative persists with rejection and may also be omitted              | PASS
+(12 rows)
+
+ total | passed | failed
+-------+--------+--------
+    12 |     12 |      0
+(1 row)
+
+DO
+
+Raw frontend log: C:\Users\ooiju\AppData\Local\Temp\us10-alternative-ui-green-frontend.log
+Raw database log: C:\Users\ooiju\AppData\Local\Temp\us10-alternative-ui-green-database.log
