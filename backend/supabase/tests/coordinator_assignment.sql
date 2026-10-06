@@ -177,4 +177,67 @@ select pg_temp.expect_error($q$
     '17000000-0000-0000-0000-000000000003')$q$, '22000',
   'AC-017.2.7: Lead cannot assign a nonexistent event');
 
+-- AC3: one lifecycle scenario, with both terminal-state boundaries.
+reset role;
+select set_config('request.jwt.claim.sub', '', true);
+insert into auth.users (id, email) values
+  ('17000000-0000-0000-0000-000000000005', 'replacement-us17@example.test');
+update public.profiles set role = 'coordinator'
+  where id = '17000000-0000-0000-0000-000000000005';
+insert into public.events (
+  id, organiser_id, coordinator_id, name, purpose, proposed_start, proposed_end,
+  expected_attendance, status
+) select
+  fixture.id::uuid, '17000000-0000-0000-0000-000000000002'::uuid,
+  '17000000-0000-0000-0000-000000000003'::uuid,
+  'US17 reassignment boundary', 'Reassignment test',
+  '2030-01-03 01:00+00'::timestamptz, '2030-01-03 02:00+00'::timestamptz,
+  10, 'submitted'
+from (values
+  ('17100000-0000-0000-0000-000000000004'),
+  ('17100000-0000-0000-0000-000000000005')
+) as fixture(id);
+-- Administrator setup bypasses user transition restrictions, not assignment guards.
+update public.events set status = 'completed'
+  where id = '17100000-0000-0000-0000-000000000004';
+update public.events set status = 'cancelled'
+  where id = '17100000-0000-0000-0000-000000000005';
+
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '17000000-0000-0000-0000-000000000001', true);
+select public.assign_event_coordinator('17100000-0000-0000-0000-000000000001',
+  '17000000-0000-0000-0000-000000000005');
+do $$
+declare fixture record; refused boolean;
+begin
+  if not exists (select 1 from public.events
+      where id = '17100000-0000-0000-0000-000000000001'
+        and coordinator_id = '17000000-0000-0000-0000-000000000005'
+        and status = 'submitted'
+        and organiser_id = '17000000-0000-0000-0000-000000000002') then
+    raise exception 'FAIL: AC-017.3.1: active-event reassignment must take effect immediately without changing status or organiser';
+  end if;
+  for fixture in select * from (values
+    ('17100000-0000-0000-0000-000000000004'::uuid, 'completed'),
+    ('17100000-0000-0000-0000-000000000005'::uuid, 'cancelled')
+  ) as cases(id, status) loop
+    refused := false;
+    begin
+      perform public.assign_event_coordinator(fixture.id,
+        '17000000-0000-0000-0000-000000000005');
+    exception when sqlstate '22000' then
+      refused := true;
+    end;
+    if not refused then
+      raise exception 'FAIL: AC-017.3.1: reassignment of a % event must be refused', fixture.status;
+    end if;
+    if not exists (select 1 from public.events where id = fixture.id
+        and coordinator_id = '17000000-0000-0000-0000-000000000003'
+        and status = fixture.status) then
+      raise exception 'FAIL: AC-017.3.1: refused reassignment changed the % event', fixture.status;
+    end if;
+  end loop;
+  raise notice 'PASS: AC-017.3.1: immediate active-event reassignment; completed/cancelled events remain unchanged';
+end $$;
+
 rollback;
