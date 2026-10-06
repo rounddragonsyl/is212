@@ -160,6 +160,11 @@ Draft saves in eventDraftService must never change an existing request's status.
   reassignment rules. Those are future increments; do not mark the whole story complete.
 
 ## House style
+- US17 slice 2: 0039 blocks completed/cancelled reassignment and guards coordinator
+  event updates using the current assignee. US4 review fixtures must have an assignment.
+  Assignment history is trigger-written, Lead-readable, with no browser writes/backfill.
+  Reapply 0039 after the runner's historical 0008/0038 replay. Three SQL TDD cases:
+  AC-017.3.1, .4.1, .6.1. See docs/us17-assignment.md for deployment and open scope.
 - Shared event date/time displays use Asia/Singapore explicitly in formatters.ts;
   do not depend on the browser or CI machine timezone.
 - No `any`. Prefer explicit types.

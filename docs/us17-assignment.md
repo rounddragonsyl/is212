@@ -65,7 +65,35 @@ Once deployed, treat 0038 as immutable: future changes need a newly claimed migr
 Coordinate retirement or conversion of legacy Manager accounts with owners of other
 features; no bulk conversion is included here.
 
-Remaining: AC3/4/6 reassignment lifecycle restrictions, access changes and history;
-AC1/2/3 queue and picker UI; AC5 notification triggers and integration verification.
-The existing RPC's non-draft check does not yet implement terminal-state reassignment
-restrictions. Queue UI access and live end-to-end acceptance are not claimed complete.
+## Slice 2 — reassignment rules, event access and history
+
+Branch: `us17slice2`. Claimed migration: `0039_coordinator_reassignment.sql`.
+Three grouped SQL tests were added through separate red/green cycles:
+
+- AC-017.3.1: immediate active-event reassignment; completed/cancelled events refuse
+  reassignment without changing their existing coordinator. Red: completed event allowed it.
+- AC-017.4.1: old coordinator cannot approve after reassignment, denied approval leaves
+  the event unchanged, and new coordinator can approve. Red: old coordinator could approve.
+- AC-017.6.1: Lead reads actor, previous/new coordinator and time for assignment and
+  reassignment, with no extra entries for failed attempts or unchanged selections.
+  Red: history was not stored.
+
+All three unchanged tests pass locally. Full database runner passes; frontend has 762
+passed and one TODO. No additional non-TDD tests were added in this slice.
+CI links belong in the shared TDD record and PR. Total US17: one frontend and 18 SQL cases.
+
+0039 guards coordinator updates on the events table, covering original-request review
+through the RPC and direct updates. Existing US4/US7 review fixtures now assign their
+reviewer; their assertions are unchanged. This does not claim a full audit of all venue
+and equipment actions in other stories. Existing US7 assigned-review checks remain.
+
+History is trigger-written in the assignment transaction. Only Leads can read it through
+authenticated access; browser writes are revoked. No backfill or invented administrator
+identity is recorded. Referenced events/profiles cannot be deleted while history references
+them. History UI is not included. The runner reapplies 0039 after historical 0008/0038 replay.
+
+0039 has not been applied to shared Supabase by this work. Apply after 0038 once reviewed;
+do not edit it after deployment. The AC's withdrawn-event wording needs confirming against
+the team's withdrawal workflow: there is no separate withdrawn event status in the schema.
+Remaining: queue/picker UI, notification triggers, cross-feature integration and live
+acceptance checks. Do not mark the whole story complete.

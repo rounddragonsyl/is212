@@ -28,6 +28,7 @@ if [ "$ready" != true ]; then echo 'Temporary database did not become ready.' >&
   cat "$repo_root/supabase/migrations/0008_change_request_review.sql"
   # Restore the current assignment rules after the historical migration replay.
   cat "$repo_root/supabase/migrations/0038_coordinator_lead_assignment.sql"
+  cat "$repo_root/supabase/migrations/0039_coordinator_reassignment.sql"
   # Replay later replacements too: replaying 0008 alone would restore an old RPC.
   cat "$repo_root/supabase/migrations/0010_change_request_field_clarification.sql"
   cat <<'SQL'

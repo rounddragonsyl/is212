@@ -177,4 +177,143 @@ select pg_temp.expect_error($q$
     '17000000-0000-0000-0000-000000000003')$q$, '22000',
   'AC-017.2.7: Lead cannot assign a nonexistent event');
 
+-- AC3: one lifecycle scenario, with both terminal-state boundaries.
+reset role;
+select set_config('request.jwt.claim.sub', '', true);
+insert into auth.users (id, email) values
+  ('17000000-0000-0000-0000-000000000005', 'replacement-us17@example.test');
+update public.profiles set role = 'coordinator'
+  where id = '17000000-0000-0000-0000-000000000005';
+insert into public.events (
+  id, organiser_id, coordinator_id, name, purpose, proposed_start, proposed_end,
+  expected_attendance, status
+) select
+  fixture.id::uuid, '17000000-0000-0000-0000-000000000002'::uuid,
+  '17000000-0000-0000-0000-000000000003'::uuid,
+  'US17 reassignment boundary', 'Reassignment test',
+  '2030-01-03 01:00+00'::timestamptz, '2030-01-03 02:00+00'::timestamptz,
+  10, 'submitted'
+from (values
+  ('17100000-0000-0000-0000-000000000004'),
+  ('17100000-0000-0000-0000-000000000005')
+) as fixture(id);
+-- Administrator setup bypasses user transition restrictions, not assignment guards.
+update public.events set status = 'completed'
+  where id = '17100000-0000-0000-0000-000000000004';
+update public.events set status = 'cancelled'
+  where id = '17100000-0000-0000-0000-000000000005';
+
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '17000000-0000-0000-0000-000000000001', true);
+select public.assign_event_coordinator('17100000-0000-0000-0000-000000000001',
+  '17000000-0000-0000-0000-000000000005');
+do $$
+declare fixture record; refused boolean;
+begin
+  if not exists (select 1 from public.events
+      where id = '17100000-0000-0000-0000-000000000001'
+        and coordinator_id = '17000000-0000-0000-0000-000000000005'
+        and status = 'submitted'
+        and organiser_id = '17000000-0000-0000-0000-000000000002') then
+    raise exception 'FAIL: AC-017.3.1: active-event reassignment must take effect immediately without changing status or organiser';
+  end if;
+  for fixture in select * from (values
+    ('17100000-0000-0000-0000-000000000004'::uuid, 'completed'),
+    ('17100000-0000-0000-0000-000000000005'::uuid, 'cancelled')
+  ) as cases(id, status) loop
+    refused := false;
+    begin
+      perform public.assign_event_coordinator(fixture.id,
+        '17000000-0000-0000-0000-000000000005');
+    exception when sqlstate '22000' then
+      refused := true;
+    end;
+    if not refused then
+      raise exception 'FAIL: AC-017.3.1: reassignment of a % event must be refused', fixture.status;
+    end if;
+    if not exists (select 1 from public.events where id = fixture.id
+        and coordinator_id = '17000000-0000-0000-0000-000000000003'
+        and status = fixture.status) then
+      raise exception 'FAIL: AC-017.3.1: refused reassignment changed the % event', fixture.status;
+    end if;
+  end loop;
+  raise notice 'PASS: AC-017.3.1: immediate active-event reassignment; completed/cancelled events remain unchanged';
+end $$;
+
+-- AC4: reuse the event just reassigned from coordinator 003 to coordinator 005.
+-- Exercise the same review operation as the UI, under each user's database identity.
+select set_config('request.jwt.claim.sub', '17000000-0000-0000-0000-000000000003', true);
+do $$
+declare refused boolean := false;
+begin
+  begin
+    perform public.review_submitted_event(
+      '17100000-0000-0000-0000-000000000001', 'approved', null);
+  exception when insufficient_privilege then
+    refused := true;
+  end;
+  if not refused then
+    raise exception 'FAIL: AC-017.4.1: previous coordinator must not approve a reassigned event';
+  end if;
+end $$;
+
+reset role;
+select set_config('request.jwt.claim.sub', '', true);
+do $$ begin
+  if not exists (select 1 from public.events
+      where id = '17100000-0000-0000-0000-000000000001'
+        and status = 'submitted' and reviewed_by is null
+        and coordinator_id = '17000000-0000-0000-0000-000000000005') then
+    raise exception 'FAIL: AC-017.4.1: denied review must leave the reassigned event unchanged';
+  end if;
+end $$;
+
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '17000000-0000-0000-0000-000000000005', true);
+select public.review_submitted_event(
+  '17100000-0000-0000-0000-000000000001', 'approved', null);
+reset role;
+select set_config('request.jwt.claim.sub', '', true);
+select pg_temp.assert_true(
+  (select status = 'approved'
+      and coordinator_id = '17000000-0000-0000-0000-000000000005'
+      and reviewed_by = '17000000-0000-0000-0000-000000000005'
+    from public.events where id = '17100000-0000-0000-0000-000000000001'),
+  'AC-017.4.1: reassignment denies the previous coordinator and permits the new coordinator to approve');
+
+-- AC6: the earlier scenario assigned event 001, rejected invalid attempts, then
+-- reassigned it. Its retained history must describe exactly those two changes.
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '17000000-0000-0000-0000-000000000001', true);
+-- Selecting the existing coordinator is not another assignment change.
+select public.assign_event_coordinator('17100000-0000-0000-0000-000000000001',
+  '17000000-0000-0000-0000-000000000005');
+do $$ begin
+  if to_regclass('public.event_coordinator_assignment_history') is null then
+    raise exception 'FAIL: AC-017.6.1: assignment history is not stored';
+  end if;
+  if (select count(*) from public.event_coordinator_assignment_history
+      where event_id = '17100000-0000-0000-0000-000000000001') <> 2 then
+    raise exception 'FAIL: AC-017.6.1: retain exactly the assignment and reassignment, not failed attempts or unchanged selections';
+  end if;
+  if not exists (
+    select 1 from public.event_coordinator_assignment_history
+    where event_id = '17100000-0000-0000-0000-000000000001'
+      and previous_coordinator_id is null
+      and new_coordinator_id = '17000000-0000-0000-0000-000000000003'
+      and assigned_by = '17000000-0000-0000-0000-000000000001'
+      and assigned_at between transaction_timestamp() and clock_timestamp()
+  ) or not exists (
+    select 1 from public.event_coordinator_assignment_history
+    where event_id = '17100000-0000-0000-0000-000000000001'
+      and previous_coordinator_id = '17000000-0000-0000-0000-000000000003'
+      and new_coordinator_id = '17000000-0000-0000-0000-000000000005'
+      and assigned_by = '17000000-0000-0000-0000-000000000001'
+      and assigned_at between transaction_timestamp() and clock_timestamp()
+  ) then
+    raise exception 'FAIL: AC-017.6.1: Lead must be able to read the actor, previous/new coordinator and time for each change';
+  end if;
+  raise notice 'PASS: AC-017.6.1: assignment history retains who, from/to and when, excluding failed and unchanged assignments';
+end $$;
+
 rollback;
