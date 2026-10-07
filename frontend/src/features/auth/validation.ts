@@ -66,3 +66,25 @@ export function validateCredentials(input: {
 
   return { ok: false, issues }
 }
+
+// US29 sign-up. Stub until the implementation step: the tests are written first.
+export const SIGN_UP_MESSAGES = {
+  nameRequired: 'Enter your name.',
+} as const
+
+export interface SignUpIssue {
+  field: 'fullName' | 'email' | 'password'
+  message: string
+}
+
+export type SignUpValidation =
+  | { ok: true; fullName: string; email: string; password: string }
+  | { ok: false; issues: SignUpIssue[] }
+
+export function validateSignUp(_input: {
+  fullName?: string
+  email?: string
+  password?: string
+}): SignUpValidation {
+  throw new Error('Not implemented: US29 sign-up validation')
+}

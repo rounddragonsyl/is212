@@ -191,4 +191,17 @@ select pg_temp.assert_true(
 SQL
   cat "$repo_root/supabase/tests/venue_booking_review.sql"
   cat "$repo_root/supabase/tests/coordinator_assignment.sql"
+  # US29 last: it commits its accounts so that replaying 0042 can be compared with them.
+  cat "$repo_root/supabase/tests/attendee_signup.sql"
+  cat "$repo_root/supabase/migrations/0042_attendee_self_signup.sql"
+  cat <<'SQL'
+select pg_temp.assert_true(
+  not exists ((select * from public.profiles except select * from profiles_before_us29_replay)
+    union all (select * from profiles_before_us29_replay except select * from public.profiles))
+  and not exists ((select * from public.organiser_requests
+                   except select * from organiser_requests_before_us29_replay)
+    union all (select * from organiser_requests_before_us29_replay
+               except select * from public.organiser_requests)),
+  'AC-029.3.13: replaying 0042 changes no existing profile or organiser request');
+SQL
 } | docker exec -i "$container" psql -X -U postgres -v ON_ERROR_STOP=1

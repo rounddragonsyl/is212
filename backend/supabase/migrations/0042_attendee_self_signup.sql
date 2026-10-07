@@ -1,0 +1,2 @@
+-- 0042_attendee_self_signup.sql — US29 (SCRUM-227). Stub until the implementation step:
+-- the failing tests are written first.
