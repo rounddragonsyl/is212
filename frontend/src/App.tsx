@@ -1,6 +1,8 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import { AppLayout } from './components/layout/AppLayout'
 import { SignInPage } from './features/auth/pages/SignInPage'
+import { SignUpPage } from './features/auth/pages/SignUpPage'
+import { OpenEventsPage } from './features/events/pages/OpenEventsPage'
 import { SessionProvider } from './features/auth/SessionProvider'
 import { ReviewRequestDetailPage } from './features/events/pages/ReviewRequestDetailPage'
 import { ReviewRequestsPage } from './features/events/pages/ReviewRequestsPage'
@@ -38,6 +40,8 @@ export default function App() {
             {/* The landing page at a fixed URL, so it can be reviewed without signing out. */}
             <Route path="/welcome" element={<LandingPage />} />
             <Route path="/signin" element={<SignInPage />} />
+            <Route path="/signup" element={<SignUpPage />} />
+            <Route path="/events/open" element={<OpenEventsPage />} />
             <Route path="/events/new" element={<SubmitEventRequestPage />} />
             <Route path="/drafts" element={<MyDraftsPage />} />
             <Route path="/drafts/:id" element={<ResumeDraftPage />} />

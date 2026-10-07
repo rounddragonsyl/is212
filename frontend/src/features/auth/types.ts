@@ -39,3 +39,18 @@ export interface UserProfile {
 }
 
 export type AuthResult = { ok: true } | { ok: false; reason: string }
+
+/** Where a new Attendee lands after sign-up: the events open for registration (AC-029.4). */
+export const SIGN_UP_LANDING_PATH = '/events/open'
+
+export interface SignUpInput {
+  fullName: string
+  email: string
+  password: string
+  /** Records a request for organiser access; the account is still created as an Attendee. */
+  requestOrganiser?: boolean
+}
+
+export type SignUpResult =
+  | { ok: true; signedIn: boolean }
+  | { ok: false; reason: string; duplicate?: boolean }
