@@ -1,0 +1,2 @@
+-- 0043_event_registrations.sql — US15 (SCRUM-22). Stub until the implementation step:
+-- the failing tests are written first.

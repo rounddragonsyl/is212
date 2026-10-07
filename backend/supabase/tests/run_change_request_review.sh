@@ -191,6 +191,8 @@ select pg_temp.assert_true(
 SQL
   cat "$repo_root/supabase/tests/venue_booking_review.sql"
   cat "$repo_root/supabase/tests/coordinator_assignment.sql"
+  # US15 after US14: AC-015.5.4 reuses equipment_reservations.sql's pg_temp.us14_race.
+  cat "$repo_root/supabase/tests/event_registrations.sql"
   # US29 last: it commits its accounts so that replaying 0042 can be compared with them.
   cat "$repo_root/supabase/tests/attendee_signup.sql"
   cat "$repo_root/supabase/migrations/0042_attendee_self_signup.sql"

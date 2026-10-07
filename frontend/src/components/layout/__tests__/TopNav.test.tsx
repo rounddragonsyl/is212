@@ -69,3 +69,16 @@ describe('AC-029.4: after signing up, the Attendee is signed in and sees open ev
     expect(screen.queryAllByRole('link', { name: 'Open events' })).toHaveLength(0)
   })
 })
+
+describe('AC-015.7: the Attendee sees their registrations', () => {
+  test('AC-015.7.9: Attendees are offered My registrations; organisers are not', () => {
+    renderNavFor('attendee')
+    const links = screen.getAllByRole('link', { name: 'My registrations' })
+    expect(links.length).toBeGreaterThan(0)
+    expect(links[0]).toHaveAttribute('href', '/registrations')
+    cleanup()
+
+    renderNavFor('organiser')
+    expect(screen.queryAllByRole('link', { name: 'My registrations' })).toHaveLength(0)
+  })
+})
