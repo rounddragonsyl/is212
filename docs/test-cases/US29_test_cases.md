@@ -119,7 +119,7 @@ Supabase Auth itself. Vitest tests mock Supabase, as the existing tests do.
 | AC-029.3.12 | 029.3 | SQL | Conflict: a decided request cannot be decided again | after .3.10 | Call `decide_organiser_request(U-ORG, false)` | false | Refused; still `approved`; role still `organiser` | **Pass** |
 | AC-029.3.13 | 029.3 | SQL | Replaying 0042 changes no existing profile or request | runner, after the tests above | Re-run 0042; compare `profiles` and `organiser_requests` with a snapshot | none | No differences | **Pass** |
 | AC-029.3.14 | 029.3 | Vitest | The service sends an organiser request only when asked | mocked `signUp` | `signUp` with and without `requestOrganiser: true` | true, false | With: `options.data.requested_role = "organiser"`; without: no `requested_role` key | **Pass** |
-| AC-029.3.15 | 029.3 | Vitest | The form offers an organiser request, never a role choice | page rendered | Inspect the form; tick "I want to organise events"; submit | valid input | No role selector; service called with `requestOrganiser: true`; text says organiser access needs approval and the account starts as an Attendee | **Pass** |
+| AC-029.3.15 | 029.3 | Vitest | The form offers Attendee or an Organiser request side by side, never a role choice | page rendered | Inspect the switch; choose Organiser; submit | valid input | Exactly two options, Attendee chosen by default; Organiser is marked "Needs approval"; choosing it says you start as an Attendee; service called with `requestOrganiser: true`; no role selector | **Pass** |
 | AC-029.3.16 | 029.3 | Vitest | The sign-in page no longer promises an organiser account | sign-in page rendered | Inspect the page | none | No "set up as an event organiser" text and no in-page sign-up; a "Create an account" link goes to `/signup` | **Pass** |
 
 ## AC-029.4: After signing up, the Attendee is signed in and can see events open for registration
@@ -139,7 +139,14 @@ Supabase Auth itself. Vitest tests mock Supabase, as the existing tests do.
 
 ---
 
-## Regression and changes to existing tests (needs your approval)
+## Changes after approval
+
+- **AC-029.3.15 (7 October, requested by the team):** the organiser checkbox became an
+  Attendee/Organiser switch side by side. The test was rewritten and shown failing first
+  (commit `a59e6ab`); its intent is unchanged: Organiser is only a request that needs approval,
+  and no other role can be chosen.
+
+## Regression and changes to existing tests
 
 - **All existing app tests and database checks must still pass,** including the sign-in tests.
 - **Existing SQL fixtures depended on the old default role (approved 7 October).** Five test

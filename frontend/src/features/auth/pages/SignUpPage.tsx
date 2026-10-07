@@ -3,7 +3,8 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { Button } from '../../../components/ui/Button'
-import { Checkbox, Field, TextInput } from '../../../components/ui/FormControls'
+import { Field, TextInput } from '../../../components/ui/FormControls'
+import { AccountTypeChoice } from '../components/AccountTypeChoice'
 import { AuthAlert, AuthPageShell } from '../components/AuthPageShell'
 import { signUp } from '../authService'
 import { SIGN_UP_LANDING_PATH } from '../types'
@@ -22,10 +23,11 @@ export function SignUpPage() {
   // Set once a sign-up is under way, so a session that arrives because of it is not mistaken
   // for someone who was already signed in when they opened the page.
   const [signingUp, setSigningUp] = useState(false)
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<SignUpFormValues>({
+  const { register, handleSubmit, watch, setValue, formState: { errors, isSubmitting } } = useForm<SignUpFormValues>({
     resolver: zodResolver(signUpFormSchema),
     defaultValues: { fullName: '', email: '', password: '', requestOrganiser: false },
   })
+  const requestOrganiser = watch('requestOrganiser')
 
   if (!loading && session) return <Navigate to={signingUp ? SIGN_UP_LANDING_PATH : '/'} replace />
 
@@ -59,7 +61,7 @@ export function SignUpPage() {
   }
 
   return (
-    <AuthPageShell title="Create your account" subtitle="Register for events and keep track of your registrations.">
+    <AuthPageShell title="Create your account" subtitle="Register for events, or ask to organise your own.">
       <form
         onSubmit={handleSubmit(submit)}
         noValidate
@@ -73,6 +75,12 @@ export function SignUpPage() {
             )}
           </AuthAlert>
         )}
+
+        {/* A request, not a role choice: the database still creates an Attendee (0042). */}
+        <AccountTypeChoice
+          requestOrganiser={requestOrganiser}
+          onChange={(value) => setValue('requestOrganiser', value)}
+        />
 
         <Field id="fullName" label="Full name" error={errors.fullName?.message}>
           <TextInput id="fullName" autoComplete="name" autoFocus
@@ -89,18 +97,11 @@ export function SignUpPage() {
             aria-invalid={Boolean(errors.password)} {...register('password')} />
         </Field>
 
-        {/* A request, not a role choice: the database still creates an Attendee (0042). */}
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <Checkbox id="requestOrganiser" {...register('requestOrganiser')} />
-            <label htmlFor="requestOrganiser" className="text-sm text-slate-700">
-              I want to organise events
-            </label>
-          </div>
-          <p className="text-xs text-slate-500">
-            Organiser access needs approval by our team. You start as an Attendee until then.
+        {requestOrganiser && (
+          <p className="rounded-lg bg-indigo-50 px-3 py-2 text-xs text-indigo-900">
+            Your organiser request goes to our team. You start as an Attendee until it is approved.
           </p>
-        </div>
+        )}
 
         <Button type="submit" disabled={isSubmitting} className="w-full">
           {isSubmitting ? 'Please wait…' : 'Create account'}

@@ -309,7 +309,8 @@ Reporting, analytics, recurring events, multi-session events, dashboards.
   applied to shared Supabase.
 - SQL fixtures: inserting into auth.users now creates an attendee. Set organiser (and every
   other role) explicitly as administrator after the insert, as five existing files now do.
-- Organisers: requested_role 'organiser' at sign-up records a pending organiser_requests row.
+- Organisers: the sign-up page has an Attendee/Organiser switch; Organiser sends
+  requested_role 'organiser', which records a pending organiser_requests row.
   Owner may SELECT only; no browser writes. decide_organiser_request is administrator-only
   (no JWT, EXECUTE revoked) and a decision is final (22000 on a second decision).
 - Supabase "Confirm email" stays on: no session until the link is clicked. Sign-up sets
