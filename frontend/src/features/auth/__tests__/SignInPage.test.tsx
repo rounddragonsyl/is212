@@ -72,14 +72,16 @@ describe('SignInPage', () => {
     expect(screen.queryByText('Home page')).not.toBeInTheDocument()
   })
 
-  test('asks a new user to confirm their email when sign-up returns no session yet', async () => {
-    mocks.getCurrentSession.mockResolvedValue(null)
+})
+
+// The in-page "Create account" mode this page used to have is replaced by /signup (US29);
+// its confirm-your-email behaviour is now AC-029.4.3.
+describe('AC-029.3: self sign-up never grants an internal or organiser role', () => {
+  test('AC-029.3.16: the sign-in page no longer promises an organiser account', () => {
     renderSignIn()
-    fireEvent.click(screen.getByRole('button', { name: /create one/i }))
 
-    submitCredentials(/create account/i)
-
-    expect(await screen.findByRole('status')).toHaveTextContent(/check your email/i)
-    expect(screen.queryByText('Home page')).not.toBeInTheDocument()
+    expect(screen.queryByText(/set up as an event organiser/i)).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /create one/i })).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /create an account/i })).toHaveAttribute('href', '/signup')
   })
 })

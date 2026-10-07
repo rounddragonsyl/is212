@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { cleanup, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 import type { UserProfile } from '../../../features/auth/types'
@@ -54,5 +54,18 @@ describe('AC-012.8 — coordinators are told which bookings need review', () => 
     flags.venueBlocks = false
     renderNavFor('coordinator')
     expect(screen.queryAllByRole('link', { name: 'Venue alerts' })).toHaveLength(0)
+  })
+})
+
+describe('AC-029.4: after signing up, the Attendee is signed in and sees open events', () => {
+  test('AC-029.4.9: Attendees are offered the open events page; organisers are not', () => {
+    renderNavFor('attendee')
+    const links = screen.getAllByRole('link', { name: 'Open events' })
+    expect(links.length).toBeGreaterThan(0)
+    expect(links[0]).toHaveAttribute('href', '/events/open')
+    cleanup()
+
+    renderNavFor('organiser')
+    expect(screen.queryAllByRole('link', { name: 'Open events' })).toHaveLength(0)
   })
 })

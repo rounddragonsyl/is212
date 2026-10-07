@@ -399,17 +399,18 @@ coordinator reviews) are tested as two different people, the way RLS will see th
 1. Supabase dashboard → **Authentication → Users → Add user → Create new user**.
 2. Enter an email and password, and tick **Auto Confirm User**. Without it Supabase
    waits for a confirmation email that a test address can never receive.
-3. Assign the role from the SQL editor (every new account starts as `organiser`, through
-   the `on_auth_user_created` trigger in `0005`):
+3. Assign the role from the SQL editor. Every new account starts as `attendee`, through the
+   `on_auth_user_created` trigger (`0042` replaced `0005`'s `organiser` default for US29), so
+   every other role, organiser included, is set here:
 
 ```sql
 update public.profiles p
 set role = v.role
 from auth.users u,
-     (values ('coordinator@test.com', 'coordinator'),
+     (values ('organiser@test.com',   'organiser'),
+             ('coordinator@test.com', 'coordinator'),
              ('venue@test.com',       'venue_staff'),
-             ('tech@test.com',        'tech_support'),
-             ('attendee@test.com',    'attendee')) as v(email, role)
+             ('tech@test.com',        'tech_support')) as v(email, role)
 where u.email = v.email and p.id = u.id;
 ```
 
