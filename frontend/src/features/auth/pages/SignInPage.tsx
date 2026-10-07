@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { Button } from '../../../components/ui/Button'
 import { Field, TextInput } from '../../../components/ui/FormControls'
-import { AuthPageShell } from '../components/AuthPageShell'
+import { AuthAlert, AuthPageShell } from '../components/AuthPageShell'
 import { signIn } from '../authService'
 import { useCurrentUser } from '../sessionContext'
 import { validateCredentials } from '../validation'
@@ -65,14 +65,7 @@ export function SignInPage() {
         noValidate
         className="mt-8 space-y-5 rounded-2xl border border-slate-200 bg-white p-7 shadow-sm"
       >
-        {formError && (
-          <p
-            role="alert"
-            className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-900"
-          >
-            {formError}
-          </p>
-        )}
+        {formError && <AuthAlert>{formError}</AuthAlert>}
 
         <Field id="email" label="Email" error={messageFor('email')}>
           <TextInput

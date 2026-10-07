@@ -3,11 +3,9 @@ import { SIGN_UP_LANDING_PATH, isUserRole } from './types'
 import type { AppSession, AuthResult, SignUpInput, SignUpResult, UserProfile } from './types'
 
 /**
- * The only module that talks to Supabase about sessions and profiles.
- *
- * US-002 owns the real authentication story. This exists so US-005 can be exercised
- * end to end before then, and so the session plumbing the later story needs is already
- * in the right place rather than bolted onto a component.
+ * The only module that talks to Supabase about sessions and profiles: sign-in, sign-up (US29),
+ * sign-out and the caller's own profile. Pages call these functions and never import the
+ * Supabase client, so every auth request goes through one place.
  */
 
 export const AUTH_MESSAGES = {

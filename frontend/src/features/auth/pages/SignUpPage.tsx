@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { Button } from '../../../components/ui/Button'
 import { Checkbox, Field, TextInput } from '../../../components/ui/FormControls'
-import { AuthPageShell } from '../components/AuthPageShell'
+import { AuthAlert, AuthPageShell } from '../components/AuthPageShell'
 import { signUp } from '../authService'
 import { SIGN_UP_LANDING_PATH } from '../types'
 import { useCurrentUser } from '../sessionContext'
@@ -66,12 +66,12 @@ export function SignUpPage() {
         className="mt-8 space-y-5 rounded-2xl border border-slate-200 bg-white p-7 shadow-sm"
       >
         {submitError && (
-          <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-900">
+          <AuthAlert>
             {submitError.reason}{' '}
             {submitError.duplicate && (
               <Link to="/signin" className="font-medium underline">Sign in</Link>
             )}
-          </p>
+          </AuthAlert>
         )}
 
         <Field id="fullName" label="Full name" error={errors.fullName?.message}>

@@ -302,3 +302,22 @@ Reporting, analytics, recurring events, multi-session events, dashboards.
 - Tests AC-014.1–13: 22 app tests, 82 SQL checks in equipment_reservations.sql. In SQL tests,
   run actions as separate statements before asserting (a statement can't see its own function
   calls' writes). Totals: 468 app tests; 285 database checks. See docs/us14-equipment-reservations.md.
+
+## US29 attendee sign-up (SCRUM-227)
+- 0042_attendee_self_signup.sql replaces handle_new_user: every new account is an Attendee,
+  whatever the sign-up metadata says. Never read a role from raw_user_meta_data. Not yet
+  applied to shared Supabase.
+- SQL fixtures: inserting into auth.users now creates an attendee. Set organiser (and every
+  other role) explicitly as administrator after the insert, as five existing files now do.
+- Organisers: requested_role 'organiser' at sign-up records a pending organiser_requests row.
+  Owner may SELECT only; no browser writes. decide_organiser_request is administrator-only
+  (no JWT, EXECUTE revoked) and a decision is final (22000 on a second decision).
+- Supabase "Confirm email" stays on: no session until the link is clicked. Sign-up sets
+  emailRedirectTo to /events/open, which must be listed in the dashboard's Redirect URLs.
+  A duplicate shows as a user with no identities; signUp reports it (team accepted the
+  account-enumeration trade-off).
+- /signup (React Hook Form + Zod) replaced the sign-in page's in-page sign-up mode.
+  /events/open is a placeholder: the real list needs Attendee read access from US15/US52.
+- Tests AC-029.1–4: 30 app tests, 16 SQL cases (19 checks) in attendee_signup.sql, plus a 0042
+  replay in the runner; 3 manual. Totals: 794 app tests; 428 database checks.
+  See docs/test-cases/US29_test_cases.md.

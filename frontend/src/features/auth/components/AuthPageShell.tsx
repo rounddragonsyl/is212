@@ -8,6 +8,15 @@ interface AuthPageShellProps {
   children: ReactNode
 }
 
+/** A form-level error on the sign-in and sign-up pages, announced to screen readers. */
+export function AuthAlert({ children }: { children: ReactNode }) {
+  return (
+    <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-900">
+      {children}
+    </p>
+  )
+}
+
 /** The centred frame shared by sign-in and sign-up, so the two pages cannot drift apart. */
 export function AuthPageShell({ title, subtitle, children }: AuthPageShellProps) {
   return (
