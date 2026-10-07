@@ -2,12 +2,13 @@
 
 Status: **implemented; automated cases pass, manual cases not yet run.** The table was approved
 on 7 October and the tests were committed failing (commit `9b546b5`) before any
-implementation: 43 of the 46 automated cases failed for the expected reasons. On the final run
-all 46 pass: 30 app tests and 16 database cases (19 checks, because .3.8, .3.9 and .3.12 each
-check twice). The full suites total 794 app tests and 428 database checks. Implementation is
-in migration `0042_attendee_self_signup.sql` and `frontend/src/features/auth/`. The 3 manual
-cases (.1.18, .2.5, .4.10) need the shared Supabase project, with 0042 applied and the
-redirect URL added (A2).
+implementation: 43 of the 46 automated cases failed for the expected reasons. Organiser
+sign-up was then dropped (see "Changes after approval"), withdrawing 9 cases and adding one.
+On the final run all 38 automated cases pass: 29 app tests and 9 database checks. The full
+suites total 793 app tests and 418 database checks. Implementation is in migration
+`0042_attendee_self_signup.sql` and `frontend/src/features/auth/`. The 3 manual cases (.1.18,
+.2.5, .4.10) need the shared Supabase project with 0042 applied. The redirect URL (A2) was
+added for `http://localhost:5173/events/open` on 7 October.
 
 Three cases already passed before implementation. They guard behaviour that exists today and
 that US29 must not break:
@@ -25,8 +26,8 @@ within each test file.
 |---|---|---|
 | D1 | "Confirm email" stays **on** in Supabase Auth. A new user has no session until they click the confirmation link. | Team decision, option 1(b) |
 | D2 | The role is decided only by the database. Migration `0042_attendee_self_signup.sql` replaces `handle_new_user()` so every new account gets `role = 'attendee'`, whatever the browser sends. 0005 is not edited. | Brief, key security rules |
-| D3 | Organisers use **request, then approval**. A sign-up option "I want to organise events" sends `requested_role: 'organiser'` in the sign-up metadata. The trigger still creates an Attendee, and also a `pending` row in a new `organiser_requests` table. Any other `requested_role` value is ignored. | Team decision |
-| D4 | Only an administrator (SQL editor or service role, where `auth.uid()` is null) decides requests, through `decide_organiser_request(user_id, approve)`. Approval sets the role to `organiser`; rejection leaves `attendee`. The browser cannot call it, and cannot write `organiser_requests`. | Team decision; CLAUDE.md "roles are assigned by an administrator" |
+| D3 | **No organiser sign-up** (team decision, 7 October). Self sign-up creates Attendees only. Organiser and staff accounts are seed data created by the team, as the Jira card assumes; an administrator sets their role in the SQL editor. | Team decision; Jira card |
+| D4 | Withdrawn on 7 October with organiser sign-up: there are no organiser requests to decide. | n/a |
 | D5 | Duplicate emails are detected and reported. With confirmation on, Supabase returns a user with an empty `identities` list instead of an error. That case, and a `user_already_exists` error, both show "An account with this email already exists. Sign in instead." | Team decision |
 | D6 | After sign-up the user is sent to `/events/open`, a placeholder for "events open for registration". It shows no event data; the real list belongs to US15/US52. Sign-up passes `emailRedirectTo = <origin>/events/open`, so the confirmation link lands there signed in. | Team decision, option 3(a) |
 | D7 | Sign-up moves to its own page, `/signup` (React Hook Form + Zod), linked from `/signin`. The sign-in page's in-page "Create account" mode, which promised an organiser account, is removed. | Brief, Step 4 |
@@ -42,7 +43,7 @@ within each test file.
 | A4 | There is no Safety Officer role. AC-029.3 is tested against every role that exists: coordinator, coordinator_lead, operations_manager, venue_staff, tech_support, organiser. | .3.1 |
 | A5 | Names have no maximum length or character rules, because the schema sets none. | .1.4–.1.6 |
 | A6 | Supabase's project password minimum is still the default of 6. The public settings endpoint does not show it. | .1.10–.1.11 |
-| A7 | Organiser requests have no in-app approval screen. An administrator decides them in the SQL editor, as roles are assigned today. A requester is told that approval is needed but sees no status page yet. | .3.9–.3.12, .3.15 |
+| A7 | Withdrawn on 7 October with organiser sign-up. | n/a |
 
 ## Fixtures
 
@@ -55,7 +56,7 @@ Supabase Auth itself. Vitest tests mock Supabase, as the existing tests do.
 | `U-NEW` | A new `auth.users` row with `raw_user_meta_data = {"full_name": "Ada Tan"}` |
 | `U-BARE` | A new `auth.users` row with no metadata |
 | `U-ROLE` | New rows whose metadata also claims a role: `{"role": X}` for each existing internal role and organiser |
-| `U-ORG` | A new row with `{"full_name": "Org Lim", "requested_role": "organiser"}` |
+| `U-ORG` | A new row with `{"full_name": "Org Lim", "requested_role": "organiser"}`, a forged request for organiser access |
 | `U-OTHER` | A row whose request is for another user, to check isolation |
 
 ## Planned test files
@@ -106,21 +107,22 @@ Supabase Auth itself. Vitest tests mock Supabase, as the existing tests do.
 | Test ID | AC | Layer | Scenario | Preconditions | Steps | Test data | Expected result | Result |
 |---|---|---|---|---|---|---|---|---|
 | AC-029.3.1 | 029.3 | SQL | A role claimed in the sign-up metadata is ignored | 0042 applied | Insert one `U-ROLE` user per claimed role | `role`: coordinator, coordinator_lead, operations_manager, venue_staff, tech_support, organiser | Every profile has role `attendee` | **Pass** |
-| AC-029.3.2 | 029.3 | SQL | Requesting any role other than organiser records nothing | 0042 applied | Insert a user with `requested_role: "coordinator"` | coordinator | Profile `attendee`; no `organiser_requests` row | **Pass** |
-| AC-029.3.3 | 029.3 | SQL | An organiser request is recorded but grants nothing | 0042 applied | Insert `U-ORG` | requested_role organiser | Profile `attendee`; one `organiser_requests` row, status `pending` | **Pass** |
+| AC-029.3.2 | 029.3 | SQL | Requesting any role other than organiser records nothing | 0042 applied | Insert a user with `requested_role: "coordinator"` | coordinator | Profile `attendee`; no `organiser_requests` row | **Withdrawn** (7 Oct: no organiser sign-up) |
+| AC-029.3.3 | 029.3 | SQL | An organiser request is recorded but grants nothing | 0042 applied | Insert `U-ORG` | requested_role organiser | Profile `attendee`; one `organiser_requests` row, status `pending` | **Withdrawn** (7 Oct: no organiser sign-up) |
 | AC-029.3.4 | 029.3 | SQL | Permission denied: an Attendee cannot change their own role | signed in as `U-NEW` | Update own `profiles.role` to `organiser`, then to `coordinator` | organiser, coordinator | Both refused (42501); role still `attendee` | **Pass** |
 | AC-029.3.5 | 029.3 | SQL | An Attendee can still edit their own name | signed in as `U-NEW` | Update own full_name | "Ada T." | Updated; role unchanged | **Pass** |
 | AC-029.3.6 | 029.3 | SQL | Permission denied: an Attendee cannot insert a profile | signed in as `U-NEW` | Insert a profile row with role `coordinator` | a new id | Refused; no row | **Pass** |
-| AC-029.3.7 | 029.3 | SQL | A requester reads only their own organiser request | `U-ORG` and `U-OTHER` both have requests | Select `organiser_requests` as `U-ORG` | none | Sees exactly their own row | **Pass** |
-| AC-029.3.8 | 029.3 | SQL | Permission denied: requests cannot be created, approved or deleted from the browser | signed in as `U-ORG` | Insert a request; update own status to `approved`; delete own request | approved | Insert refused; update and delete affect 0 rows; still `pending` | **Pass** |
-| AC-029.3.9 | 029.3 | SQL | Permission denied: the browser cannot call the decision function | signed in as `U-ORG` | Call `decide_organiser_request(own id, true)` | true | Refused (42501); role still `attendee` | **Pass** |
-| AC-029.3.10 | 029.3 | SQL | An administrator's approval grants the Organiser role | no JWT (administrator) | Call `decide_organiser_request(U-ORG, true)` | true | Request `approved` with `decided_at` set; role `organiser` | **Pass** |
-| AC-029.3.11 | 029.3 | SQL | An administrator's rejection leaves the Attendee role | no JWT; a second pending request | Call `decide_organiser_request(user, false)` | false | Request `rejected`; role `attendee` | **Pass** |
-| AC-029.3.12 | 029.3 | SQL | Conflict: a decided request cannot be decided again | after .3.10 | Call `decide_organiser_request(U-ORG, false)` | false | Refused; still `approved`; role still `organiser` | **Pass** |
-| AC-029.3.13 | 029.3 | SQL | Replaying 0042 changes no existing profile or request | runner, after the tests above | Re-run 0042; compare `profiles` and `organiser_requests` with a snapshot | none | No differences | **Pass** |
-| AC-029.3.14 | 029.3 | Vitest | The service sends an organiser request only when asked | mocked `signUp` | `signUp` with and without `requestOrganiser: true` | true, false | With: `options.data.requested_role = "organiser"`; without: no `requested_role` key | **Pass** |
-| AC-029.3.15 | 029.3 | Vitest | The form offers Attendee or an Organiser request side by side, never a role choice | page rendered | Inspect the switch; choose Organiser; submit | valid input | Exactly two options, Attendee chosen by default; Organiser is marked "Needs approval"; choosing it says you start as an Attendee; service called with `requestOrganiser: true`; no role selector | **Pass** |
+| AC-029.3.7 | 029.3 | SQL | A requester reads only their own organiser request | `U-ORG` and `U-OTHER` both have requests | Select `organiser_requests` as `U-ORG` | none | Sees exactly their own row | **Withdrawn** (7 Oct: no organiser sign-up) |
+| AC-029.3.8 | 029.3 | SQL | Permission denied: requests cannot be created, approved or deleted from the browser | signed in as `U-ORG` | Insert a request; update own status to `approved`; delete own request | approved | Insert refused; update and delete affect 0 rows; still `pending` | **Withdrawn** (7 Oct: no organiser sign-up) |
+| AC-029.3.9 | 029.3 | SQL | Permission denied: the browser cannot call the decision function | signed in as `U-ORG` | Call `decide_organiser_request(own id, true)` | true | Refused (42501); role still `attendee` | **Withdrawn** (7 Oct: no organiser sign-up) |
+| AC-029.3.10 | 029.3 | SQL | An administrator's approval grants the Organiser role | no JWT (administrator) | Call `decide_organiser_request(U-ORG, true)` | true | Request `approved` with `decided_at` set; role `organiser` | **Withdrawn** (7 Oct: no organiser sign-up) |
+| AC-029.3.11 | 029.3 | SQL | An administrator's rejection leaves the Attendee role | no JWT; a second pending request | Call `decide_organiser_request(user, false)` | false | Request `rejected`; role `attendee` | **Withdrawn** (7 Oct: no organiser sign-up) |
+| AC-029.3.12 | 029.3 | SQL | Conflict: a decided request cannot be decided again | after .3.10 | Call `decide_organiser_request(U-ORG, false)` | false | Refused; still `approved`; role still `organiser` | **Withdrawn** (7 Oct: no organiser sign-up) |
+| AC-029.3.13 | 029.3 | SQL | Replaying 0042 changes no existing profile | runner, after the tests above | Re-run 0042; compare `profiles` with a snapshot | none | No differences | **Pass** |
+| AC-029.3.14 | 029.3 | Vitest | The service sends an organiser request only when asked | mocked `signUp` | `signUp` with and without `requestOrganiser: true` | true, false | With: `options.data.requested_role = "organiser"`; without: no `requested_role` key | **Withdrawn** (7 Oct: no organiser sign-up) |
+| AC-029.3.15 | 029.3 | Vitest | The form offers no role choice of any kind | page rendered | Inspect the form; submit valid input | valid input | No role selector, options or checkbox; no mention of organisers; the service gets no organiser request | **Pass** |
 | AC-029.3.16 | 029.3 | Vitest | The sign-in page no longer promises an organiser account | sign-in page rendered | Inspect the page | none | No "set up as an event organiser" text and no in-page sign-up; a "Create an account" link goes to `/signup` | **Pass** |
+| AC-029.3.17 | 029.3 | SQL | Asking for organiser access in the metadata still gives an Attendee | 0042 applied | Insert `U-ORG` | requested_role organiser | Profile role `attendee` | **Pass** |
 
 ## AC-029.4: After signing up, the Attendee is signed in and can see events open for registration
 
@@ -145,6 +147,13 @@ Supabase Auth itself. Vitest tests mock Supabase, as the existing tests do.
   Attendee/Organiser switch side by side. The test was rewritten and shown failing first
   (commit `a59e6ab`); its intent is unchanged: Organiser is only a request that needs approval,
   and no other role can be chosen.
+- **No organiser sign-up (7 October, team decision):** sign-up is Attendee-only and organisers
+  are seed data (D3). The organiser-request cases AC-029.3.2, .3.3, .3.7–.3.12 and .3.14 are
+  withdrawn, not renumbered, so their IDs are never reused. AC-029.3.15 now checks that the form
+  offers no role choice at all, and AC-029.3.13 compares profiles only. New AC-029.3.17: a forged
+  organiser request in the metadata still gives an Attendee. Tests changed first (commit
+  `5951ef1`); 0042 lost its `organiser_requests` table and `decide_organiser_request` before it
+  was ever applied to shared Supabase.
 
 ## Regression and changes to existing tests
 
@@ -168,9 +177,9 @@ Supabase Auth itself. Vitest tests mock Supabase, as the existing tests do.
 |---|---|---|---|---|
 | AC-029.1 | .1.1–.1.3 | .1.4–.1.17 | .1.18 | 18 |
 | AC-029.2 | none (Supabase Auth owns email uniqueness) | .2.1–.2.4 | .2.5 | 5 |
-| AC-029.3 | .3.1–.3.13 | .3.14–.3.16 | none | 16 |
+| AC-029.3 | .3.1, .3.4–.3.6, .3.13, .3.17 | .3.15–.3.16 | none | 8 (9 withdrawn) |
 | AC-029.4 | none | .4.1–.4.9 | .4.10 | 10 |
-| **Total** | **16** | **30** | **3** | **49** |
+| **Total** | **9** | **29** | **3** | **41** (9 withdrawn) |
 
 Required categories, by test ID:
 
@@ -179,7 +188,7 @@ Required categories, by test ID:
 - **Duplicate email:** .2.1–.2.5
 - **Role sent in metadata still gives Attendee (SQL):** .3.1, .3.2, .3.3
 - **Attendee cannot update own role (SQL, RLS and trigger):** .3.4, .3.6
-- **Organiser request without self-approval:** .3.7–.3.12, .3.14, .3.15
+- **No organiser sign-up:** .3.15, .3.17 (organiser requests .3.2, .3.3, .3.7–.3.12, .3.14 withdrawn)
 - **Signed in and on the events page:** .4.3, .4.4, .4.6, .4.10
 - **Boundary:** .1.2, .1.3, .1.6, .1.10, .1.11, .2.3, .4.7, .4.8
 - **Failure or conflict:** .1.14, .1.17, .3.12

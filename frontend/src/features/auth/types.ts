@@ -47,8 +47,6 @@ export interface SignUpInput {
   fullName: string
   email: string
   password: string
-  /** Records a request for organiser access; the account is still created as an Attendee. */
-  requestOrganiser?: boolean
 }
 
 export type SignUpResult =

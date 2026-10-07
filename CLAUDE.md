@@ -309,16 +309,15 @@ Reporting, analytics, recurring events, multi-session events, dashboards.
   applied to shared Supabase.
 - SQL fixtures: inserting into auth.users now creates an attendee. Set organiser (and every
   other role) explicitly as administrator after the insert, as five existing files now do.
-- Organisers: the sign-up page has an Attendee/Organiser switch; Organiser sends
-  requested_role 'organiser', which records a pending organiser_requests row.
-  Owner may SELECT only; no browser writes. decide_organiser_request is administrator-only
-  (no JWT, EXECUTE revoked) and a decision is final (22000 on a second decision).
+- No organiser sign-up (team decision, 7 October): organisers and staff are seed data, with
+  the role set by an administrator. Do not reintroduce a role or organiser choice on /signup.
 - Supabase "Confirm email" stays on: no session until the link is clicked. Sign-up sets
   emailRedirectTo to /events/open, which must be listed in the dashboard's Redirect URLs.
   A duplicate shows as a user with no identities; signUp reports it (team accepted the
   account-enumeration trade-off).
 - /signup (React Hook Form + Zod) replaced the sign-in page's in-page sign-up mode.
   /events/open is a placeholder: the real list needs Attendee read access from US15/US52.
-- Tests AC-029.1–4: 30 app tests, 16 SQL cases (19 checks) in attendee_signup.sql, plus a 0042
-  replay in the runner; 3 manual. Totals: 794 app tests; 428 database checks.
+- Tests AC-029.1–4: 29 app tests, 8 SQL checks in attendee_signup.sql plus a 0042 replay in
+  the runner; 3 manual. Organiser-request IDs (.3.2, .3.3, .3.7–.3.12, .3.14) are withdrawn,
+  never reuse them; next AC-029.3 ID is .3.18. Totals: 793 app tests; 418 database checks.
   See docs/test-cases/US29_test_cases.md.

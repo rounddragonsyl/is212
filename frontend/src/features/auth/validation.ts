@@ -40,15 +40,13 @@ const credentialSchema = z.object({ email: emailField, password: passwordField }
 
 // profiles.full_name is NOT NULL and has no other rule, so a name only has to be non-blank
 // once trimmed. No length or character rules are invented here (US29 assumption A5).
-const signUpDetailsSchema = z.object({
+// Exported for the sign-up form's resolver, so the form and validateSignUp share one schema.
+export const signUpSchema = z.object({
   fullName: z.string().trim().min(1, SIGN_UP_MESSAGES.nameRequired),
   email: emailField,
   password: passwordField,
 })
-
-/** What the sign-up form submits: the details plus an optional request for organiser access. */
-export const signUpFormSchema = signUpDetailsSchema.extend({ requestOrganiser: z.boolean() })
-export type SignUpFormValues = z.infer<typeof signUpFormSchema>
+export type SignUpFormValues = z.infer<typeof signUpSchema>
 
 interface FieldIssue<Field extends string> {
   field: Field
@@ -100,7 +98,7 @@ export function validateSignUp(input: {
   email?: string
   password?: string
 }): SignUpValidation {
-  const result = signUpDetailsSchema.safeParse({
+  const result = signUpSchema.safeParse({
     fullName: input.fullName ?? '',
     email: input.email ?? '',
     password: input.password ?? '',

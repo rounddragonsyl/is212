@@ -44,18 +44,15 @@ const DUPLICATE_EMAIL: SignUpResult = {
 }
 
 /**
- * US29: creates an Attendee account. The browser sends a display name and, if asked, a request
- * for organiser access — never a role. The database decides the role (0042), so a request
- * edited in dev tools still produces an Attendee.
+ * US29: creates an Attendee account. The browser sends a display name, never a role. The
+ * database decides the role (0042), so a request edited in dev tools still produces an Attendee.
  */
 export async function signUp(input: SignUpInput): Promise<SignUpResult> {
   const { data, error } = await supabase.auth.signUp({
     email: input.email,
     password: input.password,
     options: {
-      data: input.requestOrganiser
-        ? { full_name: input.fullName, requested_role: 'organiser' }
-        : { full_name: input.fullName },
+      data: { full_name: input.fullName },
       // Supabase only follows this if it is listed under Authentication → URL Configuration →
       // Redirect URLs; otherwise the confirmation link goes to the Site URL.
       emailRedirectTo: `${window.location.origin}${SIGN_UP_LANDING_PATH}`,
