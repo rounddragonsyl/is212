@@ -99,26 +99,21 @@ describe('AC-029.2: an email that already has an account cannot sign up again', 
 })
 
 describe('AC-029.3: self sign-up never grants an internal or organiser role', () => {
-  test('AC-029.3.15: offers Attendee or an Organiser request that needs approval, never a role choice', async () => {
+  test('AC-029.3.15: the form offers no role choice of any kind', async () => {
     renderSignUp()
 
-    // Exactly two options side by side, Attendee first and chosen. Organiser is a request that
-    // someone else must approve, and no internal role is offered at all.
+    // Attendee is the only account anyone can create here; organisers and staff are set up by
+    // the team, so there is nothing to choose and no way to ask.
     expect(screen.queryByRole('combobox')).not.toBeInTheDocument()
-    const options = screen.getAllByRole('radio')
-    expect(options).toHaveLength(2)
-    expect(screen.getByRole('radio', { name: /attendee/i })).toBeChecked()
-    expect(screen.getByRole('radio', { name: /organiser/i })).not.toBeChecked()
-    expect(screen.getByText(/needs approval/i)).toBeInTheDocument()
+    expect(screen.queryAllByRole('radio')).toHaveLength(0)
+    expect(screen.queryAllByRole('checkbox')).toHaveLength(0)
+    expect(screen.queryByText(/organiser/i)).not.toBeInTheDocument()
 
     fillIn(valid)
-    fireEvent.click(screen.getByRole('radio', { name: /organiser/i }))
-    expect(screen.getByText(/start as an attendee/i)).toBeInTheDocument()
     submit()
 
-    await waitFor(() =>
-      expect(mocks.signUp).toHaveBeenCalledWith(expect.objectContaining({ requestOrganiser: true })),
-    )
+    await waitFor(() => expect(mocks.signUp).toHaveBeenCalledTimes(1))
+    expect(mocks.signUp.mock.calls[0][0]).not.toHaveProperty('requestOrganiser')
   })
 })
 

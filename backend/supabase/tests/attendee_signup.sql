@@ -54,26 +54,6 @@ select pg_temp.assert_true(
     where u.email like 'claims-%-us29@example.test'),
   'AC-029.3.1: a role claimed in the sign-up metadata is ignored for every existing role');
 
-insert into auth.users (id, email, raw_user_meta_data) values
-  ('29000000-0000-0000-0000-000000000004', 'cara-us29@example.test',
-   '{"full_name":"Cara Ng","requested_role":"coordinator"}'),
-  ('29000000-0000-0000-0000-000000000005', 'org-us29@example.test',
-   '{"full_name":"Org Lim","requested_role":"organiser"}'),
-  ('29000000-0000-0000-0000-000000000006', 'other-org-us29@example.test',
-   '{"full_name":"Other Org","requested_role":"organiser"}');
-
-select pg_temp.assert_true(
-  (select role = 'attendee' from public.profiles where id = '29000000-0000-0000-0000-000000000004')
-  and not exists (select 1 from public.organiser_requests
-                   where user_id = '29000000-0000-0000-0000-000000000004'),
-  'AC-029.3.2: requesting any role other than organiser records nothing');
-
-select pg_temp.assert_true(
-  (select role = 'attendee' from public.profiles where id = '29000000-0000-0000-0000-000000000005')
-  and (select count(*) = 1 and bool_and(status = 'pending') from public.organiser_requests
-        where user_id = '29000000-0000-0000-0000-000000000005'),
-  'AC-029.3.3: an organiser request is recorded as pending and grants nothing');
-
 -- Signed in as the new Attendee from AC-029.1.1, the way PostgREST runs a browser request.
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '29000000-0000-0000-0000-000000000001', true);
@@ -116,98 +96,20 @@ select pg_temp.expect_error(
   '42501',
   'AC-029.3.6: an Attendee cannot insert a profile');
 
--- Signed in as the organiser requester.
-set local role authenticated;
-select set_config('request.jwt.claim.sub', '29000000-0000-0000-0000-000000000005', true);
-
-select pg_temp.assert_true(
-  (select count(*) = 1 and bool_and(user_id = '29000000-0000-0000-0000-000000000005')
-     from public.organiser_requests),
-  'AC-029.3.7: a requester reads only their own organiser request');
-
-select pg_temp.expect_error(
-  $q$insert into public.organiser_requests (user_id, status)
-     values ('29000000-0000-0000-0000-000000000003', 'pending')$q$,
-  '42501',
-  'AC-029.3.8: the browser cannot create an organiser request');
-
--- Self-approval and withdrawal: either refused outright or matching no rows is acceptable,
--- as long as nothing changes.
-do $$
-declare
-  changed integer;
-begin
-  begin
-    update public.organiser_requests set status = 'approved'
-     where user_id = '29000000-0000-0000-0000-000000000005';
-    get diagnostics changed = row_count;
-    if changed > 0 then raise exception 'FAIL: AC-029.3.8: a requester approved their own request'; end if;
-  exception when insufficient_privilege then null;
-  end;
-  begin
-    delete from public.organiser_requests where user_id = '29000000-0000-0000-0000-000000000005';
-    get diagnostics changed = row_count;
-    if changed > 0 then raise exception 'FAIL: AC-029.3.8: a requester deleted their own request'; end if;
-  exception when insufficient_privilege then null;
-  end;
-end $$;
-
 reset role;
 select set_config('request.jwt.claim.sub', '', true);
 
-select pg_temp.assert_true(
-  (select status = 'pending' from public.organiser_requests
-    where user_id = '29000000-0000-0000-0000-000000000005'),
-  'AC-029.3.8: requests cannot be created, approved or deleted from the browser');
-
-set local role authenticated;
-select set_config('request.jwt.claim.sub', '29000000-0000-0000-0000-000000000005', true);
-
-select pg_temp.expect_error(
-  $q$select public.decide_organiser_request('29000000-0000-0000-0000-000000000005', true)$q$,
-  '42501',
-  'AC-029.3.9: the browser cannot call the decision function');
-
-reset role;
-select set_config('request.jwt.claim.sub', '', true);
+-- Organisers are provisioned by the team, so asking for organiser access in the metadata, as
+-- the withdrawn organiser option did, is just another value the trigger ignores.
+insert into auth.users (id, email, raw_user_meta_data) values
+  ('29000000-0000-0000-0000-000000000005', 'org-us29@example.test',
+   '{"full_name":"Org Lim","requested_role":"organiser"}');
 
 select pg_temp.assert_true(
   (select role = 'attendee' from public.profiles where id = '29000000-0000-0000-0000-000000000005'),
-  'AC-029.3.9: the role is unchanged after the refused decision call');
-
--- An administrator (no JWT: SQL editor or service role) decides requests.
-select public.decide_organiser_request('29000000-0000-0000-0000-000000000005', true);
-
-select pg_temp.assert_true(
-  (select status = 'approved' and decided_at is not null from public.organiser_requests
-    where user_id = '29000000-0000-0000-0000-000000000005')
-  and (select role = 'organiser' from public.profiles
-        where id = '29000000-0000-0000-0000-000000000005'),
-  'AC-029.3.10: an administrator''s approval grants the Organiser role');
-
-select public.decide_organiser_request('29000000-0000-0000-0000-000000000006', false);
-
-select pg_temp.assert_true(
-  (select status = 'rejected' and decided_at is not null from public.organiser_requests
-    where user_id = '29000000-0000-0000-0000-000000000006')
-  and (select role = 'attendee' from public.profiles
-        where id = '29000000-0000-0000-0000-000000000006'),
-  'AC-029.3.11: an administrator''s rejection leaves the Attendee role');
-
-select pg_temp.expect_error(
-  $q$select public.decide_organiser_request('29000000-0000-0000-0000-000000000005', false)$q$,
-  '22000',
-  'AC-029.3.12: a decided request cannot be decided again');
-
-select pg_temp.assert_true(
-  (select status = 'approved' from public.organiser_requests
-    where user_id = '29000000-0000-0000-0000-000000000005')
-  and (select role = 'organiser' from public.profiles
-        where id = '29000000-0000-0000-0000-000000000005'),
-  'AC-029.3.12: the earlier decision and role are unchanged');
+  'AC-029.3.17: asking for organiser access in the sign-up metadata still gives an Attendee');
 
 commit;
 
 -- Snapshot for AC-029.3.13, which the runner checks after replaying 0042.
 create temp table profiles_before_us29_replay as select * from public.profiles;
-create temp table organiser_requests_before_us29_replay as select * from public.organiser_requests;

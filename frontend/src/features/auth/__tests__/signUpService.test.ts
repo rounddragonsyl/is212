@@ -73,17 +73,6 @@ describe('AC-029.2: an email that already has an account cannot sign up again', 
   })
 })
 
-describe('AC-029.3: self sign-up never grants an internal or organiser role', () => {
-  test('AC-029.3.14: asks for organiser access only when requested, and still sends no role', async () => {
-    await signUp({ ...input, requestOrganiser: true })
-    expect(sentPayload().options?.data).toEqual({ full_name: 'Ada Tan', requested_role: 'organiser' })
-
-    mocks.signUp.mockClear()
-    await signUp({ ...input, requestOrganiser: false })
-    expect(sentPayload().options?.data).not.toHaveProperty('requested_role')
-  })
-})
-
 describe('AC-029.4: after signing up, the Attendee is signed in and sees open events', () => {
   test('AC-029.4.1: the confirmation link opens the events-open-for-registration page', async () => {
     await signUp(input)

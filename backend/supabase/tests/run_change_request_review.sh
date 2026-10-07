@@ -197,11 +197,7 @@ SQL
   cat <<'SQL'
 select pg_temp.assert_true(
   not exists ((select * from public.profiles except select * from profiles_before_us29_replay)
-    union all (select * from profiles_before_us29_replay except select * from public.profiles))
-  and not exists ((select * from public.organiser_requests
-                   except select * from organiser_requests_before_us29_replay)
-    union all (select * from organiser_requests_before_us29_replay
-               except select * from public.organiser_requests)),
-  'AC-029.3.13: replaying 0042 changes no existing profile or organiser request');
+    union all (select * from profiles_before_us29_replay except select * from public.profiles)),
+  'AC-029.3.13: replaying 0042 changes no existing profile');
 SQL
 } | docker exec -i "$container" psql -X -U postgres -v ON_ERROR_STOP=1
