@@ -12,7 +12,9 @@ set role authenticated;
 select set_config('request.jwt.claim.sub','b10a0000-0000-0000-0000-000000000001',false);
 select pg_temp.assert_true(
  public.get_venue_booking_review('b10a0000-0000-0000-0000-000000000202')->'details'
- @> '{"eventName":"Review conference","attendance":120,"requirementsRecorded":true,"facilities":["projector"],"accessibility":["wheelchair_access"]}',
+ @> '{"eventName":"Review conference","attendance":120,"layoutPreference":"Theatre","accessibilityNotes":"Step-free access","requirementsRecorded":true,"facilities":["projector"],"accessibility":["wheelchair_access"]}'
+ and (public.get_venue_booking_review('b10a0000-0000-0000-0000-000000000202')#>>'{details,startsAt}')::timestamptz='2032-10-12T13:00:00+08:00'::timestamptz
+ and (public.get_venue_booking_review('b10a0000-0000-0000-0000-000000000202')#>>'{details,endsAt}')::timestamptz='2032-10-12T16:00:00+08:00'::timestamptz,
  'AC-010.2.1: Venue Staff read the booked event timing and requirements');
 do $$ begin
  begin

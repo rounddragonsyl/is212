@@ -1,7 +1,8 @@
 import type { VenueBookingActionResult, VenueBookingStatus } from './bookingTypes'
 import { supabase } from '../../lib/supabase'
 import { rejectionReasonError } from './venueBookingReviewValidation'
-import type { VenueBookingRequestDetails } from './venueBookingReviewTypes'
+import type { VenueBookingRequestDetails, VenueReviewConflict } from './venueBookingReviewTypes'
+import type { ClaimCell } from './slots'
 
 export interface VenueBookingReview {
   id: string
@@ -12,6 +13,9 @@ export interface VenueBookingReview {
   reviewedBy: string | null
   reviewedAt: string | null
   details?: VenueBookingRequestDetails
+  conflictCheckAvailable?: boolean
+  requestedCells?: ClaimCell[]
+  conflicts?: VenueReviewConflict[]
 }
 export type VenueBookingReviewResult = { ok: true; booking: VenueBookingReview } | { ok: false; reason: string }
 

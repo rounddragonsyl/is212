@@ -1,3 +1,10 @@
+import type { ClaimCell } from './slots'
+
+export interface VenueReviewConflict extends ClaimCell {
+  source: 'confirmed_booking' | 'blocked_period'
+  description: string
+}
+
 export interface VenueBookingRequestDetails {
   eventName: string | null
   reference: string | null
