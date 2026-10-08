@@ -44,3 +44,11 @@ describe('AC-029.4: after signing up, the Attendee is signed in and sees open ev
     expect(screen.queryByRole('link', { name: 'Browse events' })).not.toBeInTheDocument()
   })
 })
+
+describe('AC-015.7: the Attendee sees their registrations', () => {
+  // Follow-up to the US29 Home defect: the registrations page exists once US15 is in.
+  test('AC-015.7.11: an Attendee\'s Home also links to My registrations', () => {
+    renderHomeFor('attendee')
+    expect(screen.getByRole('link', { name: 'My registrations' })).toHaveAttribute('href', '/registrations')
+  })
+})
