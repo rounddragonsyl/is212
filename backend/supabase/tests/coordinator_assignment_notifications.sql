@@ -178,4 +178,69 @@ do $$ begin
   exception when insufficient_privilege then null;
   end;
 end $$;
-rollback;
+reset role;
+select set_config('request.jwt.claim.sub', '', true);
+
+-- Settings affect future assignments only. Alternate coordinators so every
+-- scenario is a real assignment, including when both channels are disabled.
+create temp table notices_before_channel_changes as
+  select * from public.coordinator_assignment_notifications;
+do $$
+declare app_channel boolean; email_channel boolean; target uuid;
+  history_id uuid; before_emails bigint; expected_notices integer;
+begin
+  for app_channel, email_channel, target in select * from (values
+    (true, false, '17400000-0000-0000-0000-000000000003'::uuid),
+    (false, true, '17400000-0000-0000-0000-000000000004'::uuid),
+    (false, false, '17400000-0000-0000-0000-000000000003'::uuid)
+  ) as cases(app_enabled, email_enabled, coordinator) loop
+    update public.coordinator_assignment_notification_settings
+      set in_app_enabled = app_channel, email_enabled = email_channel;
+    select count(*) into before_emails from public.notification_outbox;
+    execute 'set local role authenticated';
+    perform set_config('request.jwt.claim.sub', '17400000-0000-0000-0000-000000000001', true);
+    perform public.assign_event_coordinator('17410000-0000-0000-0000-000000000001', target);
+    execute 'reset role';
+    perform set_config('request.jwt.claim.sub', '', true);
+    select id into strict history_id from public.event_coordinator_assignment_history
+      where event_id = '17410000-0000-0000-0000-000000000001'
+      order by assigned_at desc limit 1;
+    expected_notices := case when app_channel or email_channel then 2 else 0 end;
+    if (select count(*) from public.coordinator_assignment_notifications
+        where assignment_history_id = history_id) <> expected_notices
+      or exists (select 1 from public.coordinator_assignment_notifications
+        where assignment_history_id = history_id and
+          (in_app_enabled <> app_channel or (email_outbox_id is not null) <> email_channel))
+      or (select count(*) from public.notification_outbox) - before_emails <>
+        (case when email_channel then 2 else 0 end) then
+      raise exception 'FAIL: AC-017.5.4: incorrect channel output for in-app %, email %', app_channel, email_channel;
+    end if;
+    execute 'set local role authenticated';
+    perform set_config('request.jwt.claim.sub', target::text, true);
+    if (select count(*) from public.coordinator_assignment_notifications
+        where assignment_history_id = history_id) <> (case when app_channel then 1 else 0 end) then
+      raise exception 'FAIL: AC-017.5.4: coordinator must see only enabled in-app notices';
+    end if;
+    execute 'reset role';
+    perform set_config('request.jwt.claim.sub', '', true);
+  end loop;
+  if exists (select * from notices_before_channel_changes
+      except select * from public.coordinator_assignment_notifications) then
+    raise exception 'FAIL: AC-017.5.4: channel changes must preserve earlier notices';
+  end if;
+  raise notice 'PASS: AC-017.5.4: channel settings control future notices without changing previous records';
+end $$;
+
+-- Keep a non-default setting and populated records across the runner's replay.
+-- This fixture is committed only inside its disposable Docker database.
+update public.coordinator_assignment_notification_settings
+  set in_app_enabled = true, email_enabled = false;
+create temp table assignment_settings_before_replay as
+  select * from public.coordinator_assignment_notification_settings;
+create temp table assignment_notices_before_replay as
+  select * from public.coordinator_assignment_notifications;
+create temp table assignment_history_before_replay as
+  select * from public.event_coordinator_assignment_history;
+create temp table assignment_emails_before_replay as
+  select * from public.notification_outbox;
+commit;

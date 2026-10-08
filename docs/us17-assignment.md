@@ -225,7 +225,30 @@ are regression coverage, not manufactured red/green cycles. Record them in the
 automated test-case tracker and PR; a short cross-reference in the TDD record is
 optional. Frontend files are unchanged; run normal CI on this checkpoint.
 
-Current US17 total: 26 cases (four frontend, 22 SQL), including three notification
-cases in slice 4. Channel combinations, migration replay and actual delivery remain
-unverified. Whole-story completion also requires the outstanding cross-feature
-assignment-access and withdrawn-status checks described above.
+### Additional regression coverage — AC-017.5.4–5
+
+Jaydon confirmed CI passed for AC-017.5.2–3. Two further grouped cases verify:
+
+- **AC-017.5.4:** in-app-only, email-only and both-disabled settings control future
+  assignment notices and email queue entries. Email-only notices are hidden from
+  the coordinator's in-app reads, and earlier records remain unchanged. The
+  both-enabled path is already covered by AC-017.5.1.
+- **AC-017.5.5:** replaying 0046 preserves the complete settings, notifications,
+  assignment history and email outbox. A subsequent reassignment creates exactly
+  two notices and no emails, respecting the saved in-app-only setting.
+
+The channel case is in `coordinator_assignment_notifications.sql`; the replay
+case is in `coordinator_assignment_notifications_replay.sql`. The runner commits
+the notification fixtures within the disposable Docker database, reapplies 0046,
+then checks the snapshots and trigger. It never connects to shared Supabase.
+
+Validation on 9 October 2026: the initial run caught a syntax error in the new
+test's CASE expression. After correcting the test syntax, the full SQL suite
+passed (exit 0). No implementation or migration changes were needed. This is
+regression coverage, not a feature red–green cycle; record these cases in the
+automated test-case tracker and PR. CI for this new checkpoint is still pending.
+
+Current US17 total: 28 cases (four frontend, 24 SQL), including five notification
+cases in slice 4. Actual delivery remains unverified. Whole-story completion also
+requires the outstanding cross-feature assignment-access and withdrawn-status
+checks described above.

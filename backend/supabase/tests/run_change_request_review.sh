@@ -202,6 +202,8 @@ select pg_temp.assert_true(
   'AC-029.3.13: replaying 0042 changes no existing profile');
 SQL
   cat "$repo_root/supabase/tests/venue_booking_review.sql"
-  # Keep the US17 RED checkpoint last so earlier regression suites still run.
+  # US17 notifications, then replay 0046 against populated records/settings.
   cat "$repo_root/supabase/tests/coordinator_assignment_notifications.sql"
+  cat "$repo_root/supabase/migrations/0046_coordinator_assignment_notifications.sql"
+  cat "$repo_root/supabase/tests/coordinator_assignment_notifications_replay.sql"
 } | docker exec -i "$container" psql -X -U postgres -v ON_ERROR_STOP=1

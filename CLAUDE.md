@@ -154,8 +154,10 @@ Draft saves in eventDraftService must never change an existing request's status.
   on; admin-only per-type settings, recipient/current-event RLS, no browser writes.
   AC-017.5.1 passes unchanged after its red/green cycle. AC-017.5.2–3 are additional
   regression tests: reassignment/no-op/refused changes and recipient/current-assignment
-  RLS/write restrictions. Both passed immediately, not TDD cycles. Settings/replay/live
-  delivery remain unverified. Do not claim a shared inbox. Next AC5 test ID: .4.
+  RLS/write restrictions. Both passed immediately, not TDD cycles. AC-017.5.4–5 cover
+  channel settings and 0046 replay; full SQL suite passed after correcting test syntax,
+  with no feature changes. These are regression coverage too. Live delivery remains
+  unverified. Do not claim a shared inbox. Next AC5 test ID: .6.
   Continue TDD for US17 at Jaydon's explicit request and flag any additional regression tests.
 
 - `0038_coordinator_lead_assignment.sql` accepts coordinator_lead and grants SELECT on
