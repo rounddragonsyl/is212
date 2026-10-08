@@ -162,3 +162,32 @@ Use separate browser sessions for Lead/Coordinator accounts.
 
 These live checks are not yet reported complete. Dropdown errors/failed-save retries are
 covered by automated tests; do not disrupt shared Supabase to manufacture failures.
+
+## Slice 4 — assignment notifications (TDD)
+
+Branch: `us17slice4`. Jaydon claimed migration **0046** for this work.
+US17 continues with TDD by explicit agreement; the team's code-first approach does
+not replace the red/green process for this remaining slice.
+
+### AC-017.5.1 — notify the new coordinator and organiser on assignment
+
+- File: `backend/supabase/tests/coordinator_assignment_notifications.sql`.
+- Runs a real assignment as an authenticated Lead in disposable PostgreSQL.
+- Checks exactly one pending email with nonblank content for each recipient, and
+  an in-app notification record for each. This verifies queued notifications, not
+  live email delivery or inbox UI.
+- Red (9 October 2026): the existing full SQL suite passed before this test was
+  added. With this test appended last, the suite fails because assignment queues
+  no emails: `received <NULL>`. The runner exits with code 3 at AC-017.5.1.
+- The expected in-app storage contract is `coordinator_assignment_notifications`,
+  with event and recipient IDs; migration 0046 has not been implemented yet.
+- Frontend verification is incomplete: both attempted full Vitest runs stalled at
+  startup and were stopped. No frontend files changed in this checkpoint.
+- Green: pending. Commit/CI evidence goes in the shared TDD record and PR.
+
+This checkpoint adds one SQL test case (24 US17 cases in total: four frontend,
+20 SQL). No feature code, deployment or new non-TDD tests are included.
+
+Historical correction: Jaydon reported the slice 3 UI checks passed before its
+merge. The earlier pending-check wording above describes that slice's original
+checkpoint; repeat relevant live checks after slice 4 and record actual results.
