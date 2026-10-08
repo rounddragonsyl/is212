@@ -18,6 +18,8 @@ const primaryButton =
  */
 export function SignedInHome({ profile }: { profile: UserProfile }) {
   const read = useCallback(async () => {
+    // Attendees cannot read event requests (RLS returns none), so do not ask.
+    if (profile.role === 'attendee') return { ok: true as const, value: [] }
     const result = await listEventRequests(profile.role === 'organiser')
     return result.ok ? { ok: true as const, value: result.requests } : result
   }, [profile.role])
@@ -29,6 +31,7 @@ export function SignedInHome({ profile }: { profile: UserProfile }) {
   const isOrganiser = profile.role === 'organiser'
   const isManager = profile.role === 'operations_manager'
   const isLead = profile.role === 'coordinator_lead'
+  const isAttendee = profile.role === 'attendee'
   const canViewRequests = isOrganiser || isCoordinator || isManager
   const awaiting = requests?.filter((request) => request.status === 'submitted') ?? []
   const recent = requests?.slice(0, 3) ?? []
@@ -46,6 +49,14 @@ export function SignedInHome({ profile }: { profile: UserProfile }) {
         <div className="mt-6 flex flex-wrap items-center gap-4">
           {isLead && (
             <Link to="/requests" className={primaryButton}>View coordinator assignments</Link>
+          )}
+          {isAttendee && (
+            <Link to="/events/open" className={primaryButton}>Browse events</Link>
+          )}
+          {isAttendee && (
+            <Link to="/registrations" className="text-sm font-medium text-indigo-700 hover:underline">
+              My registrations
+            </Link>
           )}
           {isOrganiser && (
             <Link to="/events/new" className={primaryButton}>
@@ -74,7 +85,15 @@ export function SignedInHome({ profile }: { profile: UserProfile }) {
           )}
         </div>
 
-        {!canViewRequests && !isLead && (
+        {/* Attendees act on events, not on requests: this message predates them (US29 defect,
+            8 October 2026), so they get their own guidance. */}
+        {isAttendee && (
+          <p className="mt-6 max-w-xl text-sm leading-relaxed text-slate-600">
+            Find events that are open for registration and sign up for the ones you want to attend.
+          </p>
+        )}
+
+        {!canViewRequests && !isLead && !isAttendee && (
           <p className="mt-6 max-w-xl text-sm leading-relaxed text-slate-600">
             There is nothing for you to action here right now. Your coordinator will be in
             touch when an event needs you.

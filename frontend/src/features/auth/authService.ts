@@ -1,18 +1,18 @@
 import { supabase } from '../../lib/supabase'
-import { isUserRole } from './types'
-import type { AppSession, AuthResult, UserProfile } from './types'
+import { SIGN_UP_LANDING_PATH, isUserRole } from './types'
+import type { AppSession, AuthResult, SignUpInput, SignUpResult, UserProfile } from './types'
 
 /**
- * The only module that talks to Supabase about sessions and profiles.
- *
- * US-002 owns the real authentication story. This exists so US-005 can be exercised
- * end to end before then, and so the session plumbing the later story needs is already
- * in the right place rather than bolted onto a component.
+ * The only module that talks to Supabase about sessions and profiles: sign-in, sign-up (US29),
+ * sign-out and the caller's own profile. Pages call these functions and never import the
+ * Supabase client, so every auth request goes through one place.
  */
 
 export const AUTH_MESSAGES = {
   signInFailed: 'That email and password combination was not recognised.',
   unknownRole: 'Your profile has a role this version of the app does not recognise.',
+  duplicateEmail: 'An account with this email already exists. Sign in instead.',
+  signUpFailed: 'Your account could not be created. Please try again.',
 } as const
 
 export async function getCurrentSession(): Promise<AppSession | null> {
@@ -37,9 +37,41 @@ export async function signIn(email: string, password: string): Promise<AuthResul
   return error ? { ok: false, reason: error.message || AUTH_MESSAGES.signInFailed } : { ok: true }
 }
 
-export async function signUp(email: string, password: string): Promise<AuthResult> {
-  const { error } = await supabase.auth.signUp({ email, password })
-  return error ? { ok: false, reason: error.message } : { ok: true }
+const DUPLICATE_EMAIL: SignUpResult = {
+  ok: false,
+  reason: AUTH_MESSAGES.duplicateEmail,
+  duplicate: true,
+}
+
+/**
+ * US29: creates an Attendee account. The browser sends a display name, never a role. The
+ * database decides the role (0042), so a request edited in dev tools still produces an Attendee.
+ */
+export async function signUp(input: SignUpInput): Promise<SignUpResult> {
+  const { data, error } = await supabase.auth.signUp({
+    email: input.email,
+    password: input.password,
+    options: {
+      data: { full_name: input.fullName },
+      // Supabase only follows this if it is listed under Authentication → URL Configuration →
+      // Redirect URLs; otherwise the confirmation link goes to the Site URL.
+      emailRedirectTo: `${window.location.origin}${SIGN_UP_LANDING_PATH}`,
+    },
+  })
+
+  if (error) {
+    return error.code === 'user_already_exists'
+      ? DUPLICATE_EMAIL
+      : { ok: false, reason: error.message || AUTH_MESSAGES.signUpFailed }
+  }
+
+  // With "Confirm email" on, Supabase does not say an email is taken: it returns a stand-in
+  // user with no identities, so strangers cannot use the form to find out who has an account.
+  // The team chose to tell the person instead (US29 assumption A3); no account is created.
+  if (data.user && data.user.identities?.length === 0) return DUPLICATE_EMAIL
+
+  // No session means the account waits for its confirmation link.
+  return { ok: true, signedIn: Boolean(data.session) }
 }
 
 export async function signOut(): Promise<void> {

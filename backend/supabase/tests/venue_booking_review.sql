@@ -6,6 +6,9 @@ select set_config('request.jwt.claim.sub', '', false);
 insert into auth.users (id, email, raw_user_meta_data) values
  ('b10a0000-0000-0000-0000-000000000001', 'review10@example.test', '{"full_name":"US10 Venue Staff"}'),
  ('b10a0000-0000-0000-0000-000000000002', 'owner10@example.test', '{"full_name":"US10 Organiser"}');
+-- Self sign-up creates Attendees since US29 (0042), so organisers are assigned like other roles.
+update public.profiles set role='organiser'
+ where id='b10a0000-0000-0000-0000-000000000002';
 update public.profiles set role='venue_staff'
  where id='b10a0000-0000-0000-0000-000000000001';
 insert into public.venues (id,name,location,capacity,layout,status) values

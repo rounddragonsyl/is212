@@ -302,3 +302,45 @@ Reporting, analytics, recurring events, multi-session events, dashboards.
 - Tests AC-014.1–13: 22 app tests, 82 SQL checks in equipment_reservations.sql. In SQL tests,
   run actions as separate statements before asserting (a statement can't see its own function
   calls' writes). Totals: 468 app tests; 285 database checks. See docs/us14-equipment-reservations.md.
+
+## US29 attendee sign-up (SCRUM-227)
+- 0042_attendee_self_signup.sql replaces handle_new_user: every new account is an Attendee,
+  whatever the sign-up metadata says. Never read a role from raw_user_meta_data. Not yet
+  applied to shared Supabase.
+- SQL fixtures: inserting into auth.users now creates an attendee. Set organiser (and every
+  other role) explicitly as administrator after the insert, as five existing files now do.
+- No organiser sign-up (team decision, 7 October): organisers and staff are seed data, with
+  the role set by an administrator. Do not reintroduce a role or organiser choice on /signup.
+- Supabase "Confirm email" stays on: no session until the link is clicked. Sign-up sets
+  emailRedirectTo to /events/open, which must be listed in the dashboard's Redirect URLs.
+  A duplicate shows as a user with no identities; signUp reports it (team accepted the
+  account-enumeration trade-off).
+- /signup (React Hook Form + Zod) replaced the sign-in page's in-page sign-up mode.
+  /events/open became the US15 open-events list (see the US15 section).
+- Tests AC-029.1–4: 29 app tests, 8 SQL checks in attendee_signup.sql plus a 0042 replay in
+  the runner; 3 manual. Organiser-request IDs (.3.2, .3.3, .3.7–.3.12, .3.14) are withdrawn,
+  never reuse them; next AC-029.3 ID is .3.18. Totals: 793 app tests; 418 database checks.
+  See docs/test-cases/US29_test_cases.md.
+
+## US15 register for a confirmed event (SCRUM-22)
+- 0043_event_registrations.sql follows 0042. Not yet applied to shared Supabase.
+- "Registration enabled" is the existing events.registration_required (US52 adds the
+  coordinator toggle later). Open = confirmed + registration_required + proposed_start in the
+  future, defined once in event_is_open_for_registration and enforced in register_for_event.
+- Register only through register_for_event (rpc): caller must be an Attendee (42501); event
+  must be open (22000); answers checked (22023, same phone rule as the form: 8-15 digits).
+  Browsers have no insert/update/delete on event_registrations; owners SELECT their rows only.
+- One active registration per attendee and event: partial unique index where status =
+  'registered' (23505). 'withdrawn' is allowed for US23, which must withdraw through its own
+  function and may let the person register again.
+- Attendees never read events, venues or venue_bookings directly: list_open_events,
+  get_open_event and list_my_registrations return public fields only. Venue = confirmed
+  bookings only. Do not add an Attendee policy on events (RLS cannot hide columns).
+- Confirmation email: AFTER INSERT trigger queues notification_outbox in the same transaction
+  (existing US4 sender, unchanged). Queue failure rolls the registration back.
+- events.registration_prerequisites is shown to Attendees; no edit screen yet (US52).
+- Tests AC-015.1-7: 36 app tests, 34 SQL cases (44 checks) in event_registrations.sql, which
+  must stay after equipment_reservations.sql (reuses pg_temp.us14_race). Totals: 831 app
+  tests; 462 database checks. Next IDs: AC-015.6.13, AC-015.7.12.
+- US29 Home defect (8 October): Attendees get their own Home (Browse events, My registrations).
+  Tests AC-029.4.11-12 and AC-015.7.11 in pages/__tests__/SignedInHome.test.tsx. See docs/test-cases/US15_test_cases.md.
