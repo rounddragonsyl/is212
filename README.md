@@ -893,14 +893,17 @@ administrator-only `coordinator_assignment_notification_settings` table. Setting
 to future notices; replaying the migration preserves configuration. Recipient-only
 reads also require current event access. No browser writes, sender changes, historical
 backfill or inbox UI are included. Accounts without email retain their in-app record.
-The unchanged AC-017.5.1 passes in the full disposable SQL suite. Reassignment,
-duplicate-prevention and permission coverage remain for the next checkpoint.
+The unchanged AC-017.5.1 passes in the full disposable SQL suite. Additional regression
+cases AC-017.5.2–3 verify reassignment recipients, no-op/failed-write exclusion, recipient
+and current-assignment reads, and denied browser writes/outbox access. They passed on
+first execution and are not red/green cycles. Settings, replay and live delivery still
+need verification before closing the notification work.
 0046 is not deployed: review and merge before applying it through the team's migration
 process. Record actual email/in-app delivery separately from these queue assertions.
 Jaydon previously reported slice 3's manual UI checks passed; repeat affected flows
 after this slice rather than treating the earlier pending-live wording as current.
 
-Tests: four frontend tests (profile, Lead queue, assignment and reassignment) and 20 SQL cases, with IDs, TDD cycles, additional
+Tests: four frontend tests (profile, Lead queue, assignment and reassignment) and 22 SQL cases, with IDs, TDD cycles, additional
 coverage and deployment details in [US17 assignment](docs/us17-assignment.md).
 
 ## Shared Supabase state (5 October 2026)

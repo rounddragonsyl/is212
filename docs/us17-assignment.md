@@ -204,3 +204,28 @@ checkpoint; supporting code is not itself evidence that those cases were verifie
 Historical correction: Jaydon reported the slice 3 UI checks passed before its
 merge. The earlier pending-check wording above describes that slice's original
 checkpoint; repeat relevant live checks after slice 4 and record actual results.
+
+### Additional regression coverage — AC-017.5.2–3
+
+Jaydon reported green CI for AC-017.5.1 and recorded its TDD result. Two grouped
+cases were then added to the same SQL file to verify the existing implementation:
+
+- **AC-017.5.2:** a real reassignment records linked in-app/email notices for the
+  replacement coordinator and organiser. Re-selecting the current coordinator,
+  selecting an invalid organiser target, and a coordinator attempting self-assignment
+  produce no additional notices/history or unintended assignment changes.
+- **AC-017.5.3:** authenticated queries verify the owning organiser and current
+  coordinator can read their own notices; the previous coordinator, unrelated
+  organiser and Lead cannot read them. Browser inserts/updates/deletes, outbox reads
+  and channel-setting changes are denied. Anonymous reads are denied too.
+
+Both passed on their first run; the complete disposable SQL suite exited 0.
+No implementation changes were needed, and AC-017.5.1 remains unchanged. These
+are regression coverage, not manufactured red/green cycles. Record them in the
+automated test-case tracker and PR; a short cross-reference in the TDD record is
+optional. Frontend files are unchanged; run normal CI on this checkpoint.
+
+Current US17 total: 26 cases (four frontend, 22 SQL), including three notification
+cases in slice 4. Channel combinations, migration replay and actual delivery remain
+unverified. Whole-story completion also requires the outstanding cross-feature
+assignment-access and withdrawn-status checks described above.
