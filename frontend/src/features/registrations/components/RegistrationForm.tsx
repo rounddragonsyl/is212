@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Link } from 'react-router-dom'
 import { Button } from '../../../components/ui/Button'
+import { ErrorAlert } from '../../../components/ui/ErrorAlert'
 import { Checkbox, Field, TextInput } from '../../../components/ui/FormControls'
 import { registerForEvent } from '../registrationService'
 import type { RegistrationAnswers } from '../types'
@@ -55,11 +56,7 @@ export function RegistrationForm({ eventId, hasPrerequisites }: RegistrationForm
 
   return (
     <form onSubmit={handleSubmit(submit)} noValidate className="space-y-5">
-      {saveError && (
-        <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-900">
-          {saveError}
-        </p>
-      )}
+      {saveError && <ErrorAlert>{saveError}</ErrorAlert>}
 
       <Field id="phone" label="Phone number" error={errors.phone?.message}>
         <TextInput id="phone" type="tel" autoComplete="tel"

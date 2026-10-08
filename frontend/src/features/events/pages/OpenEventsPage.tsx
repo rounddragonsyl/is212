@@ -2,10 +2,11 @@ import { useCallback } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import { PageContainer } from '../../../components/layout/PageContainer'
 import { Card } from '../../../components/ui/Card'
+import { ErrorAlert } from '../../../components/ui/ErrorAlert'
 import { useCurrentUser } from '../../auth/sessionContext'
+import { EventWhenWhere } from '../../registrations/components/EventWhenWhere'
 import { loadOpenEvents } from '../../registrations/registrationService'
 import type { OpenEvent } from '../../registrations/types'
-import { formatDateTime } from '../formatters'
 import { useRequestResource } from '../status/useRequestResource'
 
 /**
@@ -15,8 +16,13 @@ import { useRequestResource } from '../status/useRequestResource'
  */
 export function OpenEventsPage() {
   const { session, loading } = useCurrentUser()
-  const read = useCallback(() => loadOpenEvents(), [])
-  const { value: events, error } = useRequestResource(`open-events:${session?.userId ?? ''}`, read)
+  // Nothing to ask for until someone is signed in; the functions refuse anonymous callers anyway.
+  const signedInAs = session?.userId ?? ''
+  const read = useCallback(
+    () => (signedInAs ? loadOpenEvents() : Promise.resolve({ ok: true as const, value: [] })),
+    [signedInAs],
+  )
+  const { value: events, error } = useRequestResource(`open-events:${signedInAs}`, read)
 
   if (loading) {
     return (
@@ -36,9 +42,7 @@ export function OpenEventsPage() {
       </h1>
       <div className="mt-6">
         {error ? (
-          <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-900">
-            {error}
-          </p>
+          <ErrorAlert>{error}</ErrorAlert>
         ) : !events ? (
           <p className="text-sm text-slate-500">Loading events…</p>
         ) : events.length === 0 ? (
@@ -68,8 +72,7 @@ function OpenEventItem({ event }: { event: OpenEvent }) {
           </span>
         )}
       </div>
-      <p className="mt-1 text-sm text-slate-600">{formatDateTime(event.start)}</p>
-      <p className="text-sm text-slate-600">{event.venue ?? 'Venue to be confirmed'}</p>
+      <EventWhenWhere start={event.start} venue={event.venue} />
     </li>
   )
 }

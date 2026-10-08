@@ -2,9 +2,10 @@ import { useCallback } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import { PageContainer } from '../../../components/layout/PageContainer'
 import { Card } from '../../../components/ui/Card'
+import { ErrorAlert } from '../../../components/ui/ErrorAlert'
 import { useCurrentUser } from '../../auth/sessionContext'
-import { formatDateTime } from '../../events/formatters'
 import { useRequestResource } from '../../events/status/useRequestResource'
+import { EventWhenWhere } from '../components/EventWhenWhere'
 import { loadMyRegistrations } from '../registrationService'
 import type { MyRegistration } from '../types'
 
@@ -14,8 +15,13 @@ import type { MyRegistration } from '../types'
  */
 export function MyRegistrationsPage() {
   const { session, loading } = useCurrentUser()
-  const read = useCallback(() => loadMyRegistrations(), [])
-  const { value: registrations, error } = useRequestResource(`my-registrations:${session?.userId ?? ''}`, read)
+  // Nothing to ask for until someone is signed in; the functions refuse anonymous callers anyway.
+  const signedInAs = session?.userId ?? ''
+  const read = useCallback(
+    () => (signedInAs ? loadMyRegistrations() : Promise.resolve({ ok: true as const, value: [] })),
+    [signedInAs],
+  )
+  const { value: registrations, error } = useRequestResource(`my-registrations:${signedInAs}`, read)
 
   if (loading) return <PageContainer><p className="text-sm text-slate-500">Loading…</p></PageContainer>
   if (!session) return <Navigate to="/signin" replace state={{ from: '/registrations' }} />
@@ -25,9 +31,7 @@ export function MyRegistrationsPage() {
       <h1 className="text-3xl font-bold tracking-tight text-slate-900">My registrations</h1>
       <div className="mt-6">
         {error ? (
-          <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-900">
-            {error}
-          </p>
+          <ErrorAlert>{error}</ErrorAlert>
         ) : !registrations ? (
           <p className="text-sm text-slate-500">Loading registrations…</p>
         ) : registrations.length === 0 ? (
@@ -55,8 +59,7 @@ function RegistrationItem({ registration }: { registration: MyRegistration }) {
   return (
     <li className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
       <p className="font-semibold text-slate-900">{registration.eventName}</p>
-      <p className="mt-1 text-sm text-slate-600">{formatDateTime(registration.start)}</p>
-      <p className="text-sm text-slate-600">{registration.venue ?? 'Venue to be confirmed'}</p>
+      <EventWhenWhere start={registration.start} venue={registration.venue} />
       <div className="mt-3 flex flex-wrap gap-2 text-xs font-medium">
         <span className="rounded-full bg-slate-100 px-2.5 py-1 text-slate-700">
           Event: {registration.eventStatusLabel}
