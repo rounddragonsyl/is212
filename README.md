@@ -911,6 +911,13 @@ coverage and deployment details in [US17 assignment](docs/us17-assignment.md).
 
 ## Shared Supabase state (5 October 2026)
 
+US17 update (9 October): slice 4 merged in PR #72, CI passed, and Jaydon confirmed
+0046 applied to shared Supabase. Earlier pending notes describe its development
+checkpoints. Live delivery remains unverified. A local-only US17 venue handover
+follow-up adds red test AC-017.4.2 for the old coordinator retaining booking rights;
+0047 is claimed but not implemented. Coordinate US11/US17 wording with Nicole
+before merging that follow-up. See [US17 assignment](docs/us17-assignment.md).
+
 All migrations `0001`–`0025`, plus the `0019a` repair, were replayed in order on shared
 Supabase on 5 October 2026, one transaction per file. No file failed. Before the replay,
 every `public` table's data was copied to the private schema `backup_20261005`; drop it

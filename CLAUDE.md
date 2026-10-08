@@ -148,6 +148,13 @@ Draft saves in eventDraftService must never change an existing request's status.
 
 ## US17 slice 1 (current assignment rules)
 
+- Latest: slice 4 merged in PR #72; Jaydon confirmed CI green and 0046 deployed.
+  Treat 0046 as immutable. Follow-up venue handover is local-only pending Nicole's
+  agreement: US11 AC8 original-placer wording conflicts with US17 AC4/SCRUM-160.
+  Jaydon claimed 0047, not yet created/applied. AC-017.4.2 is the new SQL red case:
+  previous coordinator can submit the existing hold after reassignment. Stop at
+  the red checkpoint before implementing. Next unused AC4 ID is .3.
+
 - Slice 4 green checkpoint: 0046 (claimed by Jaydon, not deployed) adds recipient
   assignment notifications and queues mail through the unchanged US4 sender. Trigger
   runs from assignment-history insertion in the same transaction. Both channels default

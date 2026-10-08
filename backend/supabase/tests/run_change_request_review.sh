@@ -206,4 +206,6 @@ SQL
   cat "$repo_root/supabase/tests/coordinator_assignment_notifications.sql"
   cat "$repo_root/supabase/migrations/0046_coordinator_assignment_notifications.sql"
   cat "$repo_root/supabase/tests/coordinator_assignment_notifications_replay.sql"
+  # Pending US17/US11 agreement: keep the new red checkpoint after regressions.
+  cat "$repo_root/supabase/tests/coordinator_assignment_venue_access.sql"
 } | docker exec -i "$container" psql -X -U postgres -v ON_ERROR_STOP=1

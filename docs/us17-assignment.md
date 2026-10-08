@@ -252,3 +252,33 @@ Current US17 total: 28 cases (four frontend, 24 SQL), including five notificatio
 cases in slice 4. Actual delivery remains unverified. Whole-story completion also
 requires the outstanding cross-feature assignment-access and withdrawn-status
 checks described above.
+
+## Follow-up — venue booking access after reassignment
+
+Slice 4 merged in PR #72; Jaydon confirmed its final CI passed and migration 0046
+was applied to shared Supabase. This supersedes the earlier deployment/CI-pending
+notes. Live notification delivery has not yet been reported verified.
+
+Jaydon authorised local work on the venue handover adjustment, with Nicole's
+agreement required before it reaches main. US17 AC4 / SCRUM-160 requires access
+to follow the current assignment; US11 AC8 currently names the person who placed
+the hold, so the two stories need consistent wording. Migration **0047** is claimed
+for the fix but has not been created or applied.
+
+### AC-017.4.2 — venue booking management follows reassignment
+
+- File: `backend/supabase/tests/coordinator_assignment_venue_access.sql`.
+- One grouped SQL case creates a hold as Coordinator A and reassigns the event
+  to B through the real Lead function. A and an unrelated coordinator must not
+  submit/cancel the booking or delete its slots. B must be able to submit and
+  release it, preserving the original requester, event and venue.
+- Red, local (9 October 2026): the full database runner reaches this test after
+  the earlier suites, then exits 3: the previous coordinator can still perform
+  `pending_approval` on the reassigned booking.
+- No production code or migration changes yet. This is one new TDD case; the
+  frontend list/action adjustment will need its own focused coverage.
+- Existing full frontend suite: 88 files passed, 864 tests passed and one TODO.
+  No frontend tests were added or changed at this checkpoint.
+
+The red checkpoint is deliberately last in the runner. Do not merge a red
+checkpoint into main. Existing regression tests are unchanged.
