@@ -203,4 +203,5 @@ select pg_temp.assert_true(
 SQL
   # Keep the current RED checkpoint last so earlier regression suites still run.
   cat "$repo_root/supabase/tests/venue_booking_review.sql"
+  cat "$repo_root/supabase/tests/venue_booking_review_details.sql"
 } | docker exec -i "$container" psql -X -U postgres -v ON_ERROR_STOP=1

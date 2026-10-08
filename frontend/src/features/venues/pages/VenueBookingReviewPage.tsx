@@ -7,6 +7,7 @@ import { useCurrentUser } from '../../auth/sessionContext'
 import { formatDateTime } from '../../events/formatters'
 import { BookingStatusBadge } from '../components/BookingStatusBadge'
 import { VenueBookingRejectionForm } from '../components/VenueBookingRejectionForm'
+import { VenueBookingRequestDetails } from '../components/VenueBookingRequestDetails'
 import { getVenueBookingReview } from '../venueBookingReviewService'
 import type { VenueBookingReview } from '../venueBookingReviewService'
 
@@ -50,6 +51,7 @@ export function VenueBookingReviewPage() {
         {booking && <>
           <h2 className="text-lg font-semibold">{booking.venueName}</h2>
           <BookingStatusBadge status={booking.status} />
+          {booking.details && <VenueBookingRequestDetails details={booking.details} />}
           {booking.reviewNote && <p>{booking.reviewNote}</p>}
           {booking.reviewAlternative && <div><p className="text-sm text-slate-500">Suggested alternative</p><p>{booking.reviewAlternative}</p></div>}
           {booking.reviewedAt && <p className="text-sm text-slate-500">Reviewed at {formatDateTime(booking.reviewedAt)}</p>}
