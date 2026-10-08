@@ -147,6 +147,19 @@ Draft saves in eventDraftService must never change an existing request's status.
 - Database checks: `backend/supabase/tests/review_decisions_test.sql`, disposable databases only.
 
 ## US17 slice 1 (current assignment rules)
+
+- Slice 4 green checkpoint: 0046 (claimed by Jaydon, not deployed) adds recipient
+  assignment notifications and queues mail through the unchanged US4 sender. Trigger
+  runs from assignment-history insertion in the same transaction. Both channels default
+  on; admin-only per-type settings, recipient/current-event RLS, no browser writes.
+  AC-017.5.1 passes unchanged after its red/green cycle. AC-017.5.2–3 are additional
+  regression tests: reassignment/no-op/refused changes and recipient/current-assignment
+  RLS/write restrictions. Both passed immediately, not TDD cycles. AC-017.5.4–5 cover
+  channel settings and 0046 replay; full SQL suite passed after correcting test syntax,
+  with no feature changes. These are regression coverage too. Live delivery remains
+  unverified. Do not claim a shared inbox. Next AC5 test ID: .6.
+  Continue TDD for US17 at Jaydon's explicit request and flag any additional regression tests.
+
 - `0038_coordinator_lead_assignment.sql` accepts coordinator_lead and grants SELECT on
   non-draft events. The existing assignment RPC and guard now require that role.
 - Do not convert existing Manager accounts automatically or grant Leads unrelated

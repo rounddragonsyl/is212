@@ -886,7 +886,27 @@ Jaydon confirmed applying 0039 to shared Supabase on 6 October 2026. Treat it as
 and immutable; further database changes require a new claimed migration. Coordinators now
 need assignment before original-request review, including US4's existing update path.
 
-Tests: four frontend tests (profile, Lead queue, assignment and reassignment) and 19 SQL cases, with IDs, TDD cycles, additional
+Slice 4: `0046_coordinator_assignment_notifications.sql` records notifications for the
+new coordinator and organiser from each Lead assignment-history entry, and queues
+emails in the existing `notification_outbox`. Both channels default on in the
+administrator-only `coordinator_assignment_notification_settings` table. Settings apply
+to future notices; replaying the migration preserves configuration. Recipient-only
+reads also require current event access. No browser writes, sender changes, historical
+backfill or inbox UI are included. Accounts without email retain their in-app record.
+The unchanged AC-017.5.1 passes in the full disposable SQL suite. Additional regression
+cases AC-017.5.2–3 verify reassignment recipients, no-op/failed-write exclusion, recipient
+and current-assignment reads, and denied browser writes/outbox access. They passed on
+first execution and are not red/green cycles. AC-017.5.4–5 additionally verify channel
+combinations, preservation of earlier notices, and replay of 0046 with populated data
+and non-default settings. The full SQL suite passed after correcting syntax in the
+new test, without feature changes; these are also regression coverage. Actual live
+delivery remains unverified.
+0046 is not deployed: review and merge before applying it through the team's migration
+process. Record actual email/in-app delivery separately from these queue assertions.
+Jaydon previously reported slice 3's manual UI checks passed; repeat affected flows
+after this slice rather than treating the earlier pending-live wording as current.
+
+Tests: four frontend tests (profile, Lead queue, assignment and reassignment) and 24 SQL cases, with IDs, TDD cycles, additional
 coverage and deployment details in [US17 assignment](docs/us17-assignment.md).
 
 ## Shared Supabase state (5 October 2026)

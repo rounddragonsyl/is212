@@ -162,3 +162,93 @@ Use separate browser sessions for Lead/Coordinator accounts.
 
 These live checks are not yet reported complete. Dropdown errors/failed-save retries are
 covered by automated tests; do not disrupt shared Supabase to manufacture failures.
+
+## Slice 4 — assignment notifications (TDD)
+
+Branch: `us17slice4`. Jaydon claimed migration **0046** for this work.
+US17 continues with TDD by explicit agreement; the team's code-first approach does
+not replace the red/green process for this remaining slice.
+
+### AC-017.5.1 — notify the new coordinator and organiser on assignment
+
+- File: `backend/supabase/tests/coordinator_assignment_notifications.sql`.
+- Runs a real assignment as an authenticated Lead in disposable PostgreSQL.
+- Checks exactly one pending email with nonblank content for each recipient, and
+  an in-app notification record for each. This verifies queued notifications, not
+  live email delivery or inbox UI.
+- Red (9 October 2026): the existing full SQL suite passed before this test was
+  added. With this test appended last, the suite fails because assignment queues
+  no emails: `received <NULL>`. The runner exits with code 3 at AC-017.5.1.
+- Green (local): 0046 adds `coordinator_assignment_notifications` and its history
+  trigger, storing recipient notices and queuing email through the existing outbox.
+  The unchanged test and full SQL suite pass. No live email is sent by these tests.
+- At the red checkpoint, two frontend runs stalled at startup and were stopped.
+  Jaydon subsequently reported frontend CI green and database CI red. No frontend
+  files changed. The green checkpoint run with two workers completed five files, but
+  progressed very slowly and was stopped without a full result. Verify frontend CI
+  on the green commit; the earlier passing CI is not a result for this new commit.
+- Green CI evidence goes in the shared TDD record and PR once pushed and verified.
+
+This checkpoint adds one SQL test case (24 US17 cases in total: four frontend,
+20 SQL). The green checkpoint adds no tests and does not modify the red test.
+0046 remains undeployed. Shared delivery and inbox integration are still unverified.
+
+Implementation: notifications are keyed by history entry and recipient, with a linked
+email outbox ID. Both channels default on; administrator-only settings affect future
+entries. Browser reads require recipient identity and current event access; writes are
+revoked. Generic mail bodies avoid exposing event details after reassignment. No-email
+accounts retain the in-app record. Failed notification writes roll back assignment too.
+Reassignment/no-op behaviour and permission checks need explicit coverage in the next
+checkpoint; supporting code is not itself evidence that those cases were verified.
+
+Historical correction: Jaydon reported the slice 3 UI checks passed before its
+merge. The earlier pending-check wording above describes that slice's original
+checkpoint; repeat relevant live checks after slice 4 and record actual results.
+
+### Additional regression coverage — AC-017.5.2–3
+
+Jaydon reported green CI for AC-017.5.1 and recorded its TDD result. Two grouped
+cases were then added to the same SQL file to verify the existing implementation:
+
+- **AC-017.5.2:** a real reassignment records linked in-app/email notices for the
+  replacement coordinator and organiser. Re-selecting the current coordinator,
+  selecting an invalid organiser target, and a coordinator attempting self-assignment
+  produce no additional notices/history or unintended assignment changes.
+- **AC-017.5.3:** authenticated queries verify the owning organiser and current
+  coordinator can read their own notices; the previous coordinator, unrelated
+  organiser and Lead cannot read them. Browser inserts/updates/deletes, outbox reads
+  and channel-setting changes are denied. Anonymous reads are denied too.
+
+Both passed on their first run; the complete disposable SQL suite exited 0.
+No implementation changes were needed, and AC-017.5.1 remains unchanged. These
+are regression coverage, not manufactured red/green cycles. Record them in the
+automated test-case tracker and PR; a short cross-reference in the TDD record is
+optional. Frontend files are unchanged; run normal CI on this checkpoint.
+
+### Additional regression coverage — AC-017.5.4–5
+
+Jaydon confirmed CI passed for AC-017.5.2–3. Two further grouped cases verify:
+
+- **AC-017.5.4:** in-app-only, email-only and both-disabled settings control future
+  assignment notices and email queue entries. Email-only notices are hidden from
+  the coordinator's in-app reads, and earlier records remain unchanged. The
+  both-enabled path is already covered by AC-017.5.1.
+- **AC-017.5.5:** replaying 0046 preserves the complete settings, notifications,
+  assignment history and email outbox. A subsequent reassignment creates exactly
+  two notices and no emails, respecting the saved in-app-only setting.
+
+The channel case is in `coordinator_assignment_notifications.sql`; the replay
+case is in `coordinator_assignment_notifications_replay.sql`. The runner commits
+the notification fixtures within the disposable Docker database, reapplies 0046,
+then checks the snapshots and trigger. It never connects to shared Supabase.
+
+Validation on 9 October 2026: the initial run caught a syntax error in the new
+test's CASE expression. After correcting the test syntax, the full SQL suite
+passed (exit 0). No implementation or migration changes were needed. This is
+regression coverage, not a feature red–green cycle; record these cases in the
+automated test-case tracker and PR. CI for this new checkpoint is still pending.
+
+Current US17 total: 28 cases (four frontend, 24 SQL), including five notification
+cases in slice 4. Actual delivery remains unverified. Whole-story completion also
+requires the outstanding cross-feature assignment-access and withdrawn-status
+checks described above.
