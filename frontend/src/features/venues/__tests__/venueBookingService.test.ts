@@ -415,6 +415,11 @@ describe('AC-009.9 — view your requests and their status', () => {
       ok: true, bookings: [{ status: 'rejected', reviewNote: 'Clashes with maintenance.' }],
     })
   })
+  test('AC-010.9.5: the coordinator query includes the saved alternative', async () => {
+    fake.plan('venue_bookings', { data: [{ ...ROW, status: 'rejected', review_alternative: 'Try Friday' }] })
+    expect(await listMyVenueBookings()).toMatchObject({ ok: true, bookings: [{ reviewAlternative: 'Try Friday' }] })
+    expect(String(fake.callsTo('venue_bookings', 'select')[0][0])).toContain('review_alternative')
+  })
   test('AC-009.9.4: a failed load is reported, never shown as an empty list, and is logged', async () => {
     fake.plan('venue_bookings', { error: { message: 'down' } })
     expect(await listMyVenueBookings()).toEqual({ ok: false, reason: messages.loadFailed })

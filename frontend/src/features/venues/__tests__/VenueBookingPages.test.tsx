@@ -36,6 +36,16 @@ vi.mock('../venueBookingService', async (importOriginal) => {
   }
 })
 
+test('AC-010.9.6: the coordinator sees the suggested alternative on a rejected booking', async () => {
+  mocks.listMyVenueBookings.mockResolvedValue({ ok: true, bookings: [{
+    id: BOOKING_ID, venueId: VENUE_ID, venueName: 'Alpha Hall', eventId: EVENT_ID,
+    eventReference: 'EVT-1', status: 'rejected', reviewNote: 'Unavailable',
+    reviewAlternative: 'Try Friday', cells: [],
+  }] })
+  renderAt('/venues/bookings', '/venues/bookings', <MyVenueBookingsPage />)
+  expect(await screen.findByText(/Try Friday/)).toBeInTheDocument()
+})
+
 const VENUE = {
   id: VENUE_ID, name: 'Alpha Hall', capacity: 200, layout: 'theatre',
   accessibility: ['wheelchair_access'], facility: { projector: true, microphone: 4 },

@@ -189,11 +189,10 @@ select pg_temp.assert_true(
     union all (select * from claims_before_replay except select * from public.venue_slot_claims)),
   'AC-012.10.4: replaying the US12 migrations preserves blocks, flags and blocked cells');
 SQL
-  cat "$repo_root/supabase/tests/venue_booking_review.sql"
   cat "$repo_root/supabase/tests/coordinator_assignment.sql"
   # US15 after US14: AC-015.5.4 reuses equipment_reservations.sql's pg_temp.us14_race.
   cat "$repo_root/supabase/tests/event_registrations.sql"
-  # US29 last: it commits its accounts so that replaying 0042 can be compared with them.
+  # US29 near the end: it commits its accounts so that replaying 0042 can be compared with them.
   cat "$repo_root/supabase/tests/attendee_signup.sql"
   cat "$repo_root/supabase/migrations/0042_attendee_self_signup.sql"
   cat <<'SQL'
@@ -202,4 +201,6 @@ select pg_temp.assert_true(
     union all (select * from profiles_before_us29_replay except select * from public.profiles)),
   'AC-029.3.13: replaying 0042 changes no existing profile');
 SQL
+  # Keep the current RED checkpoint last so earlier regression suites still run.
+  cat "$repo_root/supabase/tests/venue_booking_review.sql"
 } | docker exec -i "$container" psql -X -U postgres -v ON_ERROR_STOP=1

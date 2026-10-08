@@ -1,0 +1,45 @@
+US10 SLICE 1 - AC8/AC13: review page integration - GREEN
+Recorded: 6 October 2026
+Observed local output excerpts; this is not a GitHub CI run.
+
+FULL FRONTEND SUITE: npm.cmd test (from frontend)
+ Test Files  77 passed (77)
+      Tests  793 passed | 1 todo (794)
+   Start at  21:59:08
+   Duration  12.46s (transform 12.94s, setup 16.20s, collect 33.37s, tests 32.38s, environment 98.66s, prepare 18.62s)
+
+
+FULL DATABASE SUITE: bash backend/supabase/tests/run_change_request_review.sh
+Table below is the US10 subset; preceding regression suites also ran.
+                                        label                                         | result
+--------------------------------------------------------------------------------------+--------
+ AC-010.8.9: missing rejection reason is refused and request remains pending          | PASS
+ AC-010.8.10: empty rejection reason is refused and request remains pending           | PASS
+ AC-010.8.11: whitespace-only rejection reason is refused and request remains pending | PASS
+ AC-010.8.12: Venue Staff can reject with a recorded nonblank reason                  | PASS
+ AC-010.10.2: rejection releases its event and buffer slots only                      | PASS
+ AC-010.13.2: rejection records server time instead of a client-supplied timestamp    | PASS
+ AC-010.9.1: booking decision model retains an optional suggested alternative         | PASS
+ AC-010.12.3: Venue Staff cannot reject a confirmed booking                           | PASS
+ AC-010.12.4: Venue Staff cannot change a rejected booking                            | PASS
+ AC-010.13.3: spoofed reviewer is replaced by the authenticated Venue Staff identity  | PASS
+ AC-010.10.3: failed slot cleanup rolls back the decision and preserves its claim     | PASS
+ AC-010.9.2: alternative persists with rejection and may also be omitted              | PASS
+ AC-010.4.3: organiser cannot reject a pending booking                                | PASS
+ AC-010.4.4: coordinator cannot reject a pending booking                              | PASS
+ AC-010.4.5: coordinator_lead cannot reject a pending booking                         | PASS
+ AC-010.4.6: operations_manager cannot reject a pending booking                       | PASS
+ AC-010.4.7: tech_support cannot reject a pending booking                             | PASS
+ AC-010.4.8: attendee cannot reject a pending booking                                 | PASS
+ AC-010.4.9: signed-out caller cannot reject a pending booking                        | PASS
+(19 rows)
+
+ total | passed | failed
+-------+--------+--------
+    19 |     19 |      0
+(1 row)
+
+DO
+
+Raw frontend log: C:\Users\ooiju\AppData\Local\Temp\us10-integration-green-frontend.log
+Raw database log: C:\Users\ooiju\AppData\Local\Temp\us10-integration-green-database.log

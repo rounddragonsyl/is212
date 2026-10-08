@@ -240,6 +240,7 @@ interface BookingListRow {
   status: VenueBookingStatus
   hold_expires_at: string | null
   review_note: string | null
+  review_alternative: string | null
   created_at: string
   venues: { name: string } | null
   events: { reference: string | null; name: string | null } | null
@@ -257,6 +258,7 @@ function toSummary(row: BookingListRow): VenueBookingSummary {
     status: row.status,
     holdExpiresAt: row.hold_expires_at,
     reviewNote: row.review_note,
+    ...(row.review_alternative ? { reviewAlternative: row.review_alternative } : {}),
     createdAt: row.created_at,
     cells: (row.venue_slot_claims ?? [])
       .filter((claim): claim is { slot_date: string; slot: SlotCode; kind: 'event' | 'buffer' } =>
@@ -275,7 +277,7 @@ export async function listMyVenueBookings(): Promise<VenueBookingListResult> {
   const { data, error } = await supabase
     .from('venue_bookings')
     .select(`
-      id, venue_id, event_id, status, hold_expires_at, review_note, created_at,
+      id, venue_id, event_id, status, hold_expires_at, review_note, review_alternative, created_at,
       venues(name), events(reference, name), venue_slot_claims(slot_date, slot, kind)
     `)
     .eq('requested_by', userId)

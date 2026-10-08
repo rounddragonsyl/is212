@@ -1,0 +1,41 @@
+US10 SLICE 1 - AC8: rejection reason form and service - RED
+Recorded: 6 October 2026
+Observed local output excerpts; this is not a GitHub CI run.
+
+FULL FRONTEND SUITE: npm.cmd test (from frontend)
+ FAIL  src/features/venues/__tests__/VenueBookingRejectionForm.test.tsx > AC-010.8.15: the form requires a nonblank
+ FAIL  src/features/venues/__tests__/VenueBookingRejectionForm.test.tsx > AC-010.8.16: a valid rejection reports
+ FAIL  src/features/venues/__tests__/venueBookingReviewService.test.ts > AC-010.8.13: blank rejection reason is
+ FAIL  src/features/venues/__tests__/venueBookingReviewService.test.ts > AC-010.8.14: rejection saves a trimmed reason
+ Test Files  2 failed | 74 passed (76)
+      Tests  4 failed | 762 passed | 1 todo (767)
+   Start at  21:37:32
+   Duration  12.87s (transform 16.11s, setup 18.21s, collect 35.55s, tests 30.21s, environment 100.98s, prepare 17.66s)
+
+
+FULL DATABASE SUITE: bash backend/supabase/tests/run_change_request_review.sh
+Table below is the US10 subset; preceding regression suites also ran.
+                                        label                                         | result
+--------------------------------------------------------------------------------------+--------
+ AC-010.8.9: missing rejection reason is refused and request remains pending          | PASS
+ AC-010.8.10: empty rejection reason is refused and request remains pending           | PASS
+ AC-010.8.11: whitespace-only rejection reason is refused and request remains pending | PASS
+ AC-010.8.12: Venue Staff can reject with a recorded nonblank reason                  | PASS
+ AC-010.10.2: rejection releases its event and buffer slots only                      | PASS
+ AC-010.13.2: rejection records server time instead of a client-supplied timestamp    | PASS
+ AC-010.9.1: booking decision model retains an optional suggested alternative         | PASS
+ AC-010.12.3: Venue Staff cannot reject a confirmed booking                           | PASS
+ AC-010.12.4: Venue Staff cannot change a rejected booking                            | PASS
+ AC-010.13.3: spoofed reviewer is replaced by the authenticated Venue Staff identity  | PASS
+ AC-010.10.3: failed slot cleanup rolls back the decision and preserves its claim     | PASS
+(11 rows)
+
+ total | passed | failed
+-------+--------+--------
+    11 |     11 |      0
+(1 row)
+
+DO
+
+Raw frontend log: C:\Users\ooiju\AppData\Local\Temp\us10-form-red-frontend.log
+Raw database log: C:\Users\ooiju\AppData\Local\Temp\us10-form-red-database.log

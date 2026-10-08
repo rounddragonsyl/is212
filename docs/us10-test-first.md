@@ -1,3 +1,7 @@
+> **Current Slice 1 result:** see [us10-slice1.md](us10-slice1.md) for scope,
+> commit pairs and screenshot commands. The chronological record below includes
+> superseded checkpoints; labelled observed outputs are in [us10-evidence](us10-evidence/).
+>
 > **Updated 2026-10-06 after syncing to main f854749.** The original record below
 > is historical: its eight mocked tests and results are not current RED evidence.
 
@@ -323,3 +327,140 @@ npm.cmd test -- --exclude src/features/venues/__tests__/venueBookingReview.test.
 The exclusion was only for comparison with existing tests, not added to config or
 CI. A normal full test run includes the 8 red tests and must not pass yet.
 GREEN, REFACTOR, PR, CI, merge and branch deletion are not yet performed.
+
+## Current checkpoint: remaining Slice 1, AC10 RED (6 October 2026)
+
+This checkpoint supersedes the obsolete eight-test baseline above. AC8 and
+migration 0037 have already merged. The remaining Slice 1 work uses branch
+`us10/rejection-completion`, based on main `60830eb`. Migration 0040 is reserved;
+no new migration or implementation exists at this RED checkpoint.
+
+Added `AC-010.10.2` to `backend/supabase/tests/venue_booking_review.sql`:
+reject a pending booking through the existing authenticated Venue Staff UPDATE
+path, then verify its event and both buffer cells are released while another
+booking's cell remains. Fixtures insert all four cells before the action.
+The rejection succeeds, but its claims remain: this is the missing behaviour,
+not a missing export, SQL function, fixture or permission error.
+
+Full runs (no test exclusions):
+
+- Frontend: `npm.cmd test` from `frontend`, exit 0; 74 files passed,
+  762 tests passed and 1 TODO (763 total).
+- Database: `bash backend/supabase/tests/run_change_request_review.sh` from the
+  repository root, disposable PostgreSQL 17 in Docker, exit 3. All preceding
+  regression suites ran before the US10 checkpoint. US10: 5 checks, 4 passed,
+  1 failed. AC-010.8.9 through AC-010.8.12 passed; AC-010.10.2 failed.
+- The runner now places US10 after coordinator assignment so this expected
+  failure does not prevent that regression suite from running.
+
+Screenshot the US10 result table with its AC IDs and `5 | 4 | 1` summary, plus
+the frontend `74 passed` / `762 passed | 1 todo` summary. Raw local logs are
+`$env:TEMP/us10-ac10-red-database.log` and
+`$env:TEMP/us10-ac10-red-frontend.log`; these logs are not committed artifacts.
+This document records the observed results for Git review. No GREEN result,
+RED commit, push or PR is claimed for this new branch yet.
+
+### AC10 GREEN checkpoint (6 October 2026)
+
+The RED checkpoint above is committed as `4b982cd`
+(`test(us10): record RED slot-release check AC-010.10.2`).
+Migration `0040_venue_booking_rejection.sql` adds an AFTER UPDATE trigger for
+pending-to-rejected bookings. It deletes only that booking's claims within the
+decision transaction and lets the existing claim-delete trigger retain covering
+maintenance blocks. No existing policies or reason constraints are replaced.
+
+The same test ran unchanged after implementation:
+
+- Full database runner: exit 0; US10 summary **5 passed, 0 failed**.
+  AC-010.10.2 changed from FAIL to PASS; all four AC8 checks still pass.
+- Full frontend suite: exit 0; **74 files passed, 762 tests passed, 1 TODO**.
+- Local raw logs: `$env:TEMP/us10-ac10-green-database.log` and
+  `$env:TEMP/us10-ac10-green-frontend.log`. Screenshot the final case table and
+  both totals alongside the RED screenshots.
+
+This is the minimum implementation for AC-010.10.2, not completion of Slice 1.
+Dedicated rollback/block interaction coverage, optional alternatives, finality,
+server-recorded decision identity/time and the review UI remain subsequent work.
+No migration was applied to shared Supabase. GREEN commit and push await approval.
+
+### Next checkpoint: AC13 RED (6 October 2026)
+
+AC10 GREEN was committed with approval as `b8b4399`
+(`fix(us10): release rejected booking slots atomically`). Nothing has been pushed.
+
+Added AC-010.13.2 to the existing SQL test file. Authenticated Venue Staff reject
+a fresh pending booking while supplying `reviewed_at = 2000-01-01T00:00:00Z`.
+The test requires the saved reviewer to match the session and the saved time to
+fall within the server-observed action window. The UPDATE affects exactly one
+row, but retains the supplied old timestamp: a behavioural RED, not a fixture error.
+This case covers rejection timestamp integrity; it does not prove spoofed actor
+handling or approval audit behaviour.
+
+- Full database runner: exit 3; US10 **6 checks, 5 passed, 1 failed**.
+  Only AC-010.13.2 fails; AC8 and AC10 remain green. Earlier regression suites run.
+- Full frontend suite: exit 0; **74 files passed, 762 tests passed, 1 TODO**.
+- Screenshot the AC13 FAIL row and `6 | 5 | 1` summary, plus frontend totals.
+  Raw local logs: `$env:TEMP/us10-ac13-red-database.log` and
+  `$env:TEMP/us10-ac13-red-frontend.log`.
+
+AC13 RED commit and implementation await approval. Migration 0040 is unchanged
+since the AC10 GREEN commit; no additional migration number has been consumed.
+
+### AC13 GREEN
+RED commit: 31c226c. The unchanged AC-010.13.2 now passes with a server-stamped actor and clock_timestamp(). Full database exit 0: US10 6/6 pass. Full frontend exit 0: 74 files, 762 pass, 1 TODO. Logs: us10-ac13-green-{database,frontend}.log in the Windows temporary directory. No shared deployment.
+
+
+### AC9 storage RED
+AC-010.9.1 asserts that the booking row model retains a suggested alternative. It fails on the existing schema because that field is absent (JSON record conversion drops unknown fields); no SQL syntax/import failure. Full database: 10 pass, 1 fail, exit 3. Frontend: 762 pass, 1 TODO, exit 0. Logs: us10-ac9-red-{database,frontend}.log. Finality, spoofed reviewer and rollback cases passed on first execution and are regression coverage, not claimed RED cycles.
+
+
+### AC9 storage GREEN
+RED commit: 2647b6a. Added nullable review_alternative to the existing table in reserved migration 0040. Unchanged schema contract passes. Full database: 11/11 US10 pass, exit 0. Full frontend: 762 pass, 1 TODO, exit 0. Logs: us10-ac9-green-{database,frontend}.log. No second migration file or shared deployment.
+
+
+### AC8 form/service RED
+Added four executable assertions AC-010.8.13-16 with compilable no-op scaffolds (no missing imports). They fail because blank reasons have no validation, valid decisions are not saved, and the form has no controls yet. Full frontend: 4 failed, 762 passed, 1 TODO; 2 failed files/74 passed. Full database remains 11/11 US10 pass. Logs: us10-form-red-{frontend,database}.log.
+
+
+### AC8 form/service GREEN
+RED commit: 81c41b0. Same four tests pass after pure reason validation, a single guarded update, and the rejection form. Full frontend: 76 files, 766 passed, 1 TODO. Full database: 11/11 US10 pass. Both exit 0. Logs: us10-form-green-{frontend,database}.log.
+
+
+### AC9 form/readback RED
+Five new alternative tests fail on absent form controls, omitted update payload, missing query mapping and missing coordinator display (AC-010.9.3-7). Full frontend: 5 failed, 766 pass, 1 TODO. Database persistence/omission regression .9.2 passes: full US10 12/12, exit 0. Logs: us10-alternative-ui-red-{frontend,database}.log. Existing reason assertion now allows the added alternative field while preserving status/reason expectations.
+
+
+### AC9 form/readback GREEN
+RED commit: 865c11e. All five new assertions pass unchanged. Full frontend 76 files, 771 pass, 1 TODO; full database 12/12 US10 pass; both exit 0. Optional alternatives are saved with the reason and displayed on the coordinator booking page. Logs: us10-alternative-ui-green-{frontend,database}.log.
+
+
+### AC4 access RED
+Real database tests exposed permissive-policy composition: a coordinator passed their own-booking USING policy and the staff-review WITH CHECK, which lacked a role check. AC-010.4.4 failed. Database US10 18 pass/1 fail; frontend seven role-visibility cases failed, 771 passed/1 TODO. Logs: us10-access-red-{frontend,database}.log. This is an actual authorization regression, not a mock-only failure.
+
+
+### AC4 access GREEN
+RED commit: cb14144. Added role to the review policy WITH CHECK and gated the form with the current session role. Unchanged tests pass: database US10 19/19; frontend 76 files, 778 pass, 1 TODO; both exit 0. Logs: us10-access-green-{frontend,database}.log. No coordinator cancellation or unrelated venue/equipment permissions changed.
+
+
+### AC12 form finality RED
+Six UI assertions fail: five non-pending statuses still show rejection and a refused decision allows retry. Double-click and service stale/error/network cases already pass and are regression coverage. Full frontend 6 failed, 782 pass, 1 TODO; full database US10 19/19 pass. Logs: us10-finality-red-{frontend,database}.log.
+
+
+### AC12 form finality GREEN
+RED commit: 986e278. Only pending bookings show rejection. Failed decisions retain input and lock retries until a manual reload; double-submit is guarded. Full frontend: 76 files, 788 pass, 1 TODO. Full database: US10 19/19 pass. Both exit 0. Logs: us10-finality-green-{frontend,database}.log. Refreshed origin/main is still 60830eb with no upstream changes.
+
+
+### Review-page integration RED
+Four integration assertions fail on the readback/page scaffolds: saved decision mapping, routed rejection, read failure/reload, and saved decision display. Existing tested form behaviour is unchanged. Full frontend: 4 failed, 789 passed, 1 TODO (77 files). Full database US10 19/19 pass. Logs: us10-integration-red-{frontend,database}.log. This is an integration checkpoint for previously tested AC8/AC13 behaviour, not a new slice.
+
+
+### Review-page integration GREEN
+RED commit: 06a4866. Readback and routed-page assertions pass unchanged. Full frontend 77 files, 793 pass, 1 TODO; full database US10 19/19 pass. Both exit 0. Logs: us10-integration-green-{frontend,database}.log. Route: /venues/bookings/:bookingId/review behind the existing venueBooking flag. Pending-queue navigation and full request/conflict details remain Slice 2.
+
+
+### Late-response RED and final regressions
+AC-010.12.17 exposes a late successful response invoking a callback after the form is unmounted (for example after navigation). Full frontend: 1 failed, 794 passed, 1 TODO. Manual reload/final-status regression .12.16 passes. Full database US10 20/20 passes, including maintenance-block preservation .10.4. Logs: us10-reload-red-{frontend,database}.log.
+
+
+### Final Slice 1 GREEN
+RED commit: 3bf1756. The unchanged late-response test now passes after suppressing callbacks from an unmounted form. Full frontend: 77 files, 795 passed, 1 existing TODO. Full database: US10 20/20 passed, entire runner exit 0. Typecheck, lint and production build all exit 0 after the fix. Build retains a non-failing chunk-size warning. Logs: us10-reload-green-{frontend,database}.log and us10-final-{typecheck,lint,build}.log. Labelled evidence excerpts are retained under docs/us10-evidence. No push, PR, shared migration application or main merge has occurred for this branch.
