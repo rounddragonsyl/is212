@@ -19,6 +19,7 @@ export interface VenueBookingSummary {
   status: VenueBookingStatus
   holdExpiresAt: string | null
   reviewNote: string | null
+  reviewAlternative?: string | null
   createdAt: string
   /** The cells this booking occupies, so a list row can show what was taken. */
   cells: ClaimCell[]

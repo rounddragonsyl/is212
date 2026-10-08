@@ -1,0 +1,31 @@
+US10 SLICE 1 - AC10: atomic slot release - GREEN
+Recorded: 6 October 2026
+Observed local output excerpts; this is not a GitHub CI run.
+
+FULL FRONTEND SUITE: npm.cmd test (from frontend)
+ Test Files  74 passed (74)
+      Tests  762 passed | 1 todo (763)
+   Start at  21:17:38
+   Duration  21.76s (transform 22.23s, setup 33.56s, collect 58.17s, tests 45.14s, environment 165.06s, prepare 28.36s)
+
+
+FULL DATABASE SUITE: bash backend/supabase/tests/run_change_request_review.sh
+Table below is the US10 subset; preceding regression suites also ran.
+                                        label                                         | result
+--------------------------------------------------------------------------------------+--------
+ AC-010.8.9: missing rejection reason is refused and request remains pending          | PASS
+ AC-010.8.10: empty rejection reason is refused and request remains pending           | PASS
+ AC-010.8.11: whitespace-only rejection reason is refused and request remains pending | PASS
+ AC-010.8.12: Venue Staff can reject with a recorded nonblank reason                  | PASS
+ AC-010.10.2: rejection releases its event and buffer slots only                      | PASS
+(5 rows)
+
+ total | passed | failed
+-------+--------+--------
+     5 |      5 |      0
+(1 row)
+
+DO
+
+Raw frontend log: C:\Users\ooiju\AppData\Local\Temp\us10-ac10-green-frontend.log
+Raw database log: C:\Users\ooiju\AppData\Local\Temp\us10-ac10-green-database.log

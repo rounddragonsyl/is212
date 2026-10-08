@@ -1,0 +1,53 @@
+US10 SLICE 1 - AC4: Venue Staff-only rejection - RED
+Recorded: 6 October 2026
+Observed local output excerpts; this is not a GitHub CI run.
+
+FULL FRONTEND SUITE: npm.cmd test (from frontend)
+ FAIL  src/features/venues/__tests__/VenueBookingRejectionForm.test.tsx > AC-010.4.10: organiser cannot access the
+ FAIL  src/features/venues/__tests__/VenueBookingRejectionForm.test.tsx > AC-010.4.11: coordinator cannot access the
+ FAIL  src/features/venues/__tests__/VenueBookingRejectionForm.test.tsx > AC-010.4.12: coordinator_lead cannot access
+ FAIL  src/features/venues/__tests__/VenueBookingRejectionForm.test.tsx > AC-010.4.13: operations_manager cannot
+ FAIL  src/features/venues/__tests__/VenueBookingRejectionForm.test.tsx > AC-010.4.14: tech_support cannot access the
+ FAIL  src/features/venues/__tests__/VenueBookingRejectionForm.test.tsx > AC-010.4.15: attendee cannot access the
+ FAIL  src/features/venues/__tests__/VenueBookingRejectionForm.test.tsx > AC-010.4.16:  cannot access the rejection
+ Test Files  1 failed | 75 passed (76)
+      Tests  7 failed | 771 passed | 1 todo (779)
+   Start at  21:48:11
+   Duration  14.70s (transform 15.35s, setup 19.74s, collect 38.64s, tests 31.52s, environment 103.95s, prepare 21.59s)
+
+
+FULL DATABASE SUITE: bash backend/supabase/tests/run_change_request_review.sh
+Table below is the US10 subset; preceding regression suites also ran.
+                                        label                                         | result
+--------------------------------------------------------------------------------------+--------
+ AC-010.8.9: missing rejection reason is refused and request remains pending          | PASS
+ AC-010.8.10: empty rejection reason is refused and request remains pending           | PASS
+ AC-010.8.11: whitespace-only rejection reason is refused and request remains pending | PASS
+ AC-010.8.12: Venue Staff can reject with a recorded nonblank reason                  | PASS
+ AC-010.10.2: rejection releases its event and buffer slots only                      | PASS
+ AC-010.13.2: rejection records server time instead of a client-supplied timestamp    | PASS
+ AC-010.9.1: booking decision model retains an optional suggested alternative         | PASS
+ AC-010.12.3: Venue Staff cannot reject a confirmed booking                           | PASS
+ AC-010.12.4: Venue Staff cannot change a rejected booking                            | PASS
+ AC-010.13.3: spoofed reviewer is replaced by the authenticated Venue Staff identity  | PASS
+ AC-010.10.3: failed slot cleanup rolls back the decision and preserves its claim     | PASS
+ AC-010.9.2: alternative persists with rejection and may also be omitted              | PASS
+ AC-010.4.3: organiser cannot reject a pending booking                                | PASS
+ AC-010.4.4: coordinator cannot reject a pending booking                              | FAIL
+ AC-010.4.5: coordinator_lead cannot reject a pending booking                         | PASS
+ AC-010.4.6: operations_manager cannot reject a pending booking                       | PASS
+ AC-010.4.7: tech_support cannot reject a pending booking                             | PASS
+ AC-010.4.8: attendee cannot reject a pending booking                                 | PASS
+ AC-010.4.9: signed-out caller cannot reject a pending booking                        | PASS
+(19 rows)
+
+ total | passed | failed
+-------+--------+--------
+    19 |     18 |      1
+(1 row)
+
+ERROR:  US10 review assertions failed: inspect the case results above
+CONTEXT:  PL/pgSQL function inline_code_block line 3 at RAISE
+
+Raw frontend log: C:\Users\ooiju\AppData\Local\Temp\us10-access-red-frontend.log
+Raw database log: C:\Users\ooiju\AppData\Local\Temp\us10-access-red-database.log

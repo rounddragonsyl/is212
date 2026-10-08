@@ -1,0 +1,32 @@
+US10 SLICE 1 - AC10: atomic slot release - RED
+Recorded: 6 October 2026
+Observed local output excerpts; this is not a GitHub CI run.
+
+FULL FRONTEND SUITE: npm.cmd test (from frontend)
+ Test Files  74 passed (74)
+      Tests  762 passed | 1 todo (763)
+   Start at  21:08:35
+   Duration  13.56s (transform 14.68s, setup 21.59s, collect 33.51s, tests 33.31s, environment 117.18s, prepare 18.74s)
+
+
+FULL DATABASE SUITE: bash backend/supabase/tests/run_change_request_review.sh
+Table below is the US10 subset; preceding regression suites also ran.
+                                        label                                         | result
+--------------------------------------------------------------------------------------+--------
+ AC-010.8.9: missing rejection reason is refused and request remains pending          | PASS
+ AC-010.8.10: empty rejection reason is refused and request remains pending           | PASS
+ AC-010.8.11: whitespace-only rejection reason is refused and request remains pending | PASS
+ AC-010.8.12: Venue Staff can reject with a recorded nonblank reason                  | PASS
+ AC-010.10.2: rejection releases its event and buffer slots only                      | FAIL
+(5 rows)
+
+ total | passed | failed
+-------+--------+--------
+     5 |      4 |      1
+(1 row)
+
+ERROR:  US10 review assertions failed: inspect the case results above
+CONTEXT:  PL/pgSQL function inline_code_block line 3 at RAISE
+
+Raw frontend log: C:\Users\ooiju\AppData\Local\Temp\us10-ac10-red-frontend.log
+Raw database log: C:\Users\ooiju\AppData\Local\Temp\us10-ac10-red-database.log

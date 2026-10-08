@@ -189,6 +189,7 @@ select pg_temp.assert_true(
     union all (select * from claims_before_replay except select * from public.venue_slot_claims)),
   'AC-012.10.4: replaying the US12 migrations preserves blocks, flags and blocked cells');
 SQL
-  cat "$repo_root/supabase/tests/venue_booking_review.sql"
   cat "$repo_root/supabase/tests/coordinator_assignment.sql"
+  # Keep the current RED checkpoint last so earlier regression suites still run.
+  cat "$repo_root/supabase/tests/venue_booking_review.sql"
 } | docker exec -i "$container" psql -X -U postgres -v ON_ERROR_STOP=1
