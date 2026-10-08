@@ -151,6 +151,7 @@ App tests (Vitest) mock Supabase, as the existing tests do.
 | AC-015.6.9 | 015.6 | Vitest | Boundary: nothing open | mocked empty list | Render | none | "No events are open for registration right now." | **Pass** |
 | AC-015.6.10 | 015.6 | Vitest | Failure: a load error is shown | mocked error | Render | none | Alert with the error; no list | **Pass** |
 | AC-015.6.11 | 015.6 | Vitest | Opening an event goes to its details page | mocked list and details | Click an event | none | Its details page is shown | **Pass** |
+| AC-015.6.12 | 015.6 | Vitest | After a load error, Try again loads the list | mocked error, then success | Render; click Try again | none | The list appears and the error goes | **Pass** (failed first, commit `3ade5a0`) |
 
 ## AC-015.7: Attendee can see a list of their registrations
 
@@ -165,6 +166,7 @@ App tests (Vitest) mock Supabase, as the existing tests do.
 | AC-015.7.7 | 015.7 | Vitest | Boundary: no registrations yet | mocked empty list | Render | none | "You have not registered for any events yet." with a link to open events | **Pass** |
 | AC-015.7.8 | 015.7 | Vitest | Failure: a load error is shown | mocked error | Render | none | Alert with the error; no list | **Pass** |
 | AC-015.7.9 | 015.7 | Vitest | Attendees are offered My registrations in the navigation; organisers are not | attendee, organiser profiles | Render the top navigation | none | Attendee sees "My registrations" → `/registrations`; organiser does not | **Pass** |
+| AC-015.7.10 | 015.7 | Vitest | After a load error, Try again loads the registrations | mocked error, then success | Render `/registrations`; click Try again | none | The registrations appear and the error goes | **Pass** (failed first, commit `3ade5a0`) |
 
 ---
 
@@ -175,6 +177,12 @@ App tests (Vitest) mock Supabase, as the existing tests do.
   so the count always read 0 and the test failed even though the race behaved correctly (second
   session blocked, then refused as a duplicate; one row). The race now runs as its own statement
   and the count follows it, the same lesson recorded for US14. What the test checks is unchanged.
+
+- **AC-015.6.12 and .7.10 added (8 October, in-sprint UX finish):** both list pages said "Please
+  try again" on a load error but offered no way to. A Try again button now reloads the list. The
+  tests were written and shown failing first (commit `3ade5a0`). Larger UX improvements (card
+  redesign, details layout, form reassurance, Upcoming/Past split) were left for the product
+  backlog to protect the sprint goal.
 
 ## Regression and changes to existing tests (approved 7 October)
 
@@ -195,9 +203,9 @@ App tests (Vitest) mock Supabase, as the existing tests do.
 | AC-015.3 | .3.1–.3.5 | .3.6 | 6 |
 | AC-015.4 | .4.1–.4.4 | .4.5–.4.6 | 6 |
 | AC-015.5 | .5.1–.5.4 | .5.5–.5.7 | 7 |
-| AC-015.6 | .6.1–.6.5 | .6.6–.6.11 | 11 |
-| AC-015.7 | .7.1–.7.4 | .7.5–.7.9 | 9 |
-| **Total** | **34** | **33** | **67** |
+| AC-015.6 | .6.1–.6.5 | .6.6–.6.12 | 12 |
+| AC-015.7 | .7.1–.7.4 | .7.5–.7.10 | 10 |
+| **Total** | **34** | **35** | **69** |
 
 Required categories, by test ID:
 

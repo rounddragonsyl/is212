@@ -21,7 +21,7 @@ export function MyRegistrationsPage() {
     () => (signedInAs ? loadMyRegistrations() : Promise.resolve({ ok: true as const, value: [] })),
     [signedInAs],
   )
-  const { value: registrations, error } = useRequestResource(`my-registrations:${signedInAs}`, read)
+  const { value: registrations, error, refresh } = useRequestResource(`my-registrations:${signedInAs}`, read)
 
   if (loading) return <PageContainer><p className="text-sm text-slate-500">Loading…</p></PageContainer>
   if (!session) return <Navigate to="/signin" replace state={{ from: '/registrations' }} />
@@ -31,7 +31,7 @@ export function MyRegistrationsPage() {
       <h1 className="text-3xl font-bold tracking-tight text-slate-900">My registrations</h1>
       <div className="mt-6">
         {error ? (
-          <ErrorAlert>{error}</ErrorAlert>
+          <ErrorAlert onRetry={refresh}>{error}</ErrorAlert>
         ) : !registrations ? (
           <p className="text-sm text-slate-500">Loading registrations…</p>
         ) : registrations.length === 0 ? (

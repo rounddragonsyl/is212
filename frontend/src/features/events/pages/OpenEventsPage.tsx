@@ -22,7 +22,7 @@ export function OpenEventsPage() {
     () => (signedInAs ? loadOpenEvents() : Promise.resolve({ ok: true as const, value: [] })),
     [signedInAs],
   )
-  const { value: events, error } = useRequestResource(`open-events:${signedInAs}`, read)
+  const { value: events, error, refresh } = useRequestResource(`open-events:${signedInAs}`, read)
 
   if (loading) {
     return (
@@ -42,7 +42,7 @@ export function OpenEventsPage() {
       </h1>
       <div className="mt-6">
         {error ? (
-          <ErrorAlert>{error}</ErrorAlert>
+          <ErrorAlert onRetry={refresh}>{error}</ErrorAlert>
         ) : !events ? (
           <p className="text-sm text-slate-500">Loading events…</p>
         ) : events.length === 0 ? (
