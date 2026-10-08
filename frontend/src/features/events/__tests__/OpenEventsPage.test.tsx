@@ -116,4 +116,16 @@ describe('AC-015.6: the Attendee sees events open for registration', () => {
 
     expect(await screen.findByText('Details page')).toBeInTheDocument()
   })
+
+  test('AC-015.6.12: after a load error, Try again loads the list', async () => {
+    mocks.loadOpenEvents
+      .mockResolvedValueOnce({ ok: false, reason: 'Events could not be loaded. Please try again.' })
+      .mockResolvedValue({ ok: true, value: openEvents })
+    renderOpenEvents(signedIn)
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Try again' }))
+
+    expect(await screen.findByRole('link', { name: /Data Workshop/ })).toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
 })

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest'
-import { render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { MyRegistrationsPage } from '../pages/MyRegistrationsPage'
 import { SessionContext } from '../../auth/sessionContext'
@@ -80,5 +80,17 @@ describe('AC-015.7: the Attendee sees their registrations', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Events could not be loaded. Please try again.')
     expect(screen.queryByRole('listitem')).not.toBeInTheDocument()
+  })
+
+  test('AC-015.7.10: after a load error, Try again loads the registrations', async () => {
+    mocks.loadMyRegistrations
+      .mockResolvedValueOnce({ ok: false, reason: 'Events could not be loaded. Please try again.' })
+      .mockResolvedValue({ ok: true, value: registrations })
+    renderPage()
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Try again' }))
+
+    expect(await screen.findByText('Data Workshop')).toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 })
