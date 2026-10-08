@@ -398,14 +398,17 @@ select pg_temp.assert_true(
   'AC-015.5.3: a withdrawn registration does not block a new one');
 
 -- Two real sessions register A3 at once (pg_temp.us14_race is US14's helper, defined earlier
--- in this run by equipment_reservations.sql).
+-- in this run by equipment_reservations.sql). The race runs as its own statement: a statement
+-- cannot see writes made by functions it calls, so counting in the same statement reads 0.
+create temp table us15_race as
+select * from pg_temp.us14_race(
+  '15000000-0000-0000-0000-000000000003',
+  $q$select public.register_for_event('15100000-0000-0000-0000-000000000001', '71234567', null, null, true)::text$q$,
+  '15000000-0000-0000-0000-000000000003',
+  $q$select public.register_for_event('15100000-0000-0000-0000-000000000001', '71234567', null, null, true)::text$q$);
+
 select pg_temp.assert_true(
-  (select (first_error is null) <> (second_error is null)
-     from pg_temp.us14_race(
-       '15000000-0000-0000-0000-000000000003',
-       $q$select public.register_for_event('15100000-0000-0000-0000-000000000001', '71234567', null, null, true)::text$q$,
-       '15000000-0000-0000-0000-000000000003',
-       $q$select public.register_for_event('15100000-0000-0000-0000-000000000001', '71234567', null, null, true)::text$q$))
+  (select (first_error is null) <> (second_error is null) from us15_race)
   and (select count(*) = 1 from public.event_registrations
         where attendee_id = '15000000-0000-0000-0000-000000000003'),
   'AC-015.5.4: two simultaneous registrations create only one');

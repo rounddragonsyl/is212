@@ -166,7 +166,15 @@ App tests (Vitest) mock Supabase, as the existing tests do.
 
 ---
 
-## Regression and changes to existing tests (needs your approval)
+## Changes after approval
+
+- **AC-015.5.4 (8 October, approved):** the test ran the two-session race and counted the
+  registrations in one SQL statement. A statement cannot see writes made by functions it calls,
+  so the count always read 0 and the test failed even though the race behaved correctly (second
+  session blocked, then refused as a duplicate; one row). The race now runs as its own statement
+  and the count follows it, the same lesson recorded for US14. What the test checks is unchanged.
+
+## Regression and changes to existing tests (approved 7 October)
 
 - **All existing app tests and database checks must still pass** (793 app tests, 418 database
   checks before US15).
