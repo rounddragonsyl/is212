@@ -1,11 +1,59 @@
-// US15 registration answers. Stub until the implementation step: the tests are written first.
+import { z } from 'zod'
 import type { RegistrationAnswers } from './types'
+
+/**
+ * PURE MODULE — no React, no Supabase, no I/O.
+ *
+ * The same rules are enforced again by register_for_event (0043). These exist to give a
+ * specific message before a round trip, not to secure anything.
+ */
 
 export const REGISTRATION_MESSAGES = {
   phoneRequired: 'Enter a phone number.',
   phoneInvalid: 'Enter a phone number of 8 to 15 digits.',
   prerequisitesRequired: 'Confirm that you meet the prerequisites.',
 } as const
+
+// US15 A1, matching the database: 8 to 15 digits once spaces and hyphens are removed, with an
+// optional leading +. No country-specific rule, because Attendees are not only Singaporean.
+const PHONE_DIGITS = /^\+?\d{8,15}$/
+const isPhoneNumber = (value: string) => PHONE_DIGITS.test(value.replace(/[\s-]/g, ''))
+
+// Optional free text: trimmed, and a blank answer is stored as null rather than ''.
+const optionalText = z
+  .string()
+  .nullable()
+  .optional()
+  .transform((value) => {
+    const trimmed = (value ?? '').trim()
+    return trimmed === '' ? null : trimmed
+  })
+
+/** The answers schema for one event; the confirmation is only required when it has prerequisites. */
+export function registrationSchema(hasPrerequisites: boolean) {
+  return z.object({
+    phone: z
+      .string()
+      .trim()
+      .min(1, REGISTRATION_MESSAGES.phoneRequired)
+      .refine(isPhoneNumber, REGISTRATION_MESSAGES.phoneInvalid),
+    dietaryRequirements: optionalText,
+    accessibilityNeeds: optionalText,
+    prerequisitesConfirmed: z
+      .boolean()
+      .optional()
+      .transform((value) => value ?? false)
+      .refine((confirmed) => !hasPrerequisites || confirmed, REGISTRATION_MESSAGES.prerequisitesRequired),
+  })
+}
+
+/** What the form holds before cleaning: blanks are '' and nothing is required yet. */
+export interface RegistrationInput {
+  phone?: string
+  dietaryRequirements?: string | null
+  accessibilityNeeds?: string | null
+  prerequisitesConfirmed?: boolean
+}
 
 export interface RegistrationIssue {
   field: keyof RegistrationAnswers
@@ -16,16 +64,23 @@ export type RegistrationValidation =
   | { ok: true; answers: RegistrationAnswers }
   | { ok: false; issues: RegistrationIssue[] }
 
-export interface RegistrationInput {
-  phone?: string
-  dietaryRequirements?: string
-  accessibilityNeeds?: string
-  prerequisitesConfirmed?: boolean
-}
-
 export function validateRegistration(
-  _input: RegistrationInput,
-  _options: { hasPrerequisites: boolean },
+  input: RegistrationInput,
+  options: { hasPrerequisites: boolean },
 ): RegistrationValidation {
-  throw new Error('Not implemented: US15 registration validation')
+  const result = registrationSchema(options.hasPrerequisites).safeParse({
+    ...input,
+    phone: input.phone ?? '',
+  })
+  if (result.success) return { ok: true, answers: result.data }
+
+  // One message per field: an empty phone trips both "required" and "8 to 15 digits".
+  const issues: RegistrationIssue[] = []
+  for (const issue of result.error.issues) {
+    const field = issue.path[0] as RegistrationIssue['field']
+    if (!issues.some((existing) => existing.field === field)) {
+      issues.push({ field, message: issue.message })
+    }
+  }
+  return { ok: false, issues }
 }

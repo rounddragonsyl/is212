@@ -51,7 +51,11 @@ function navItemsFor(role: UserRole | null): NavItem[] {
         { label: 'Reserve equipment', to: '/equipment/reservations' },
       ]
     case 'attendee':
-      return [home, { label: 'Open events', to: '/events/open' }]
+      return [
+        home,
+        { label: 'Open events', to: '/events/open' },
+        { label: 'My registrations', to: '/registrations' },
+      ]
     case 'venue_staff':
       return [
         home,
