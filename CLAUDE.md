@@ -339,6 +339,8 @@ Reporting, analytics, recurring events, multi-session events, dashboards.
 - Confirmation email: AFTER INSERT trigger queues notification_outbox in the same transaction
   (existing US4 sender, unchanged). Queue failure rolls the registration back.
 - events.registration_prerequisites is shown to Attendees; no edit screen yet (US52).
-- Tests AC-015.1-7: 35 app tests, 34 SQL cases (44 checks) in event_registrations.sql, which
-  must stay after equipment_reservations.sql (reuses pg_temp.us14_race). Totals: 828 app
-  tests; 462 database checks. Next IDs: AC-015.6.13, AC-015.7.11. See docs/test-cases/US15_test_cases.md.
+- Tests AC-015.1-7: 36 app tests, 34 SQL cases (44 checks) in event_registrations.sql, which
+  must stay after equipment_reservations.sql (reuses pg_temp.us14_race). Totals: 831 app
+  tests; 462 database checks. Next IDs: AC-015.6.13, AC-015.7.12.
+- US29 Home defect (8 October): Attendees get their own Home (Browse events, My registrations).
+  Tests AC-029.4.11-12 and AC-015.7.11 in pages/__tests__/SignedInHome.test.tsx. See docs/test-cases/US15_test_cases.md.

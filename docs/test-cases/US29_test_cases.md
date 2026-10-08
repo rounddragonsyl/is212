@@ -188,8 +188,8 @@ Attendee accounts real but did not revisit Home, which shows different content p
   unchanged.
 - **Tests:** AC-029.4.11, written first and failing before the fix (commit `8e27447`);
   AC-029.4.12, a regression guard. 795 app tests pass after the fix.
-- **Follow-up:** add a My registrations link to the Attendee Home once US15 is merged (US15's
-  page does not exist on `main` yet). Venue staff and technical support still see the generic
+- **Follow-up:** the My registrations link was added on the US15 branch (AC-015.7.11), where
+  that page exists. Venue staff and technical support still see the generic
   message although they have their own pages; that is a separate, older issue to log on its own.
 - **Lesson (retrospective):** when a role is added or changed, check every screen that shows
   different content per role.

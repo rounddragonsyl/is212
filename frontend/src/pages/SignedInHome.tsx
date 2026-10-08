@@ -53,6 +53,11 @@ export function SignedInHome({ profile }: { profile: UserProfile }) {
           {isAttendee && (
             <Link to="/events/open" className={primaryButton}>Browse events</Link>
           )}
+          {isAttendee && (
+            <Link to="/registrations" className="text-sm font-medium text-indigo-700 hover:underline">
+              My registrations
+            </Link>
+          )}
           {isOrganiser && (
             <Link to="/events/new" className={primaryButton}>
               Start a new request

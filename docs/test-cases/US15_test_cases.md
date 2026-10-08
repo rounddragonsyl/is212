@@ -167,6 +167,7 @@ App tests (Vitest) mock Supabase, as the existing tests do.
 | AC-015.7.8 | 015.7 | Vitest | Failure: a load error is shown | mocked error | Render | none | Alert with the error; no list | **Pass** |
 | AC-015.7.9 | 015.7 | Vitest | Attendees are offered My registrations in the navigation; organisers are not | attendee, organiser profiles | Render the top navigation | none | Attendee sees "My registrations" → `/registrations`; organiser does not | **Pass** |
 | AC-015.7.10 | 015.7 | Vitest | After a load error, Try again loads the registrations | mocked error, then success | Render `/registrations`; click Try again | none | The registrations appear and the error goes | **Pass** (failed first, commit `3ade5a0`) |
+| AC-015.7.11 | 015.7 | Vitest | An Attendee's Home also links to My registrations | attendee profile | Render Home | attendee | "My registrations" links to `/registrations` | **Pass** (failed first, commit `4a1ecad`) |
 
 ---
 
@@ -183,6 +184,9 @@ App tests (Vitest) mock Supabase, as the existing tests do.
   tests were written and shown failing first (commit `3ade5a0`). Larger UX improvements (card
   redesign, details layout, form reassurance, Upcoming/Past split) were left for the product
   backlog to protect the sprint goal.
+
+- **AC-015.7.11 added (8 October):** follow-up to the US29 Attendee Home defect. Once US15's
+  My registrations page exists, the Attendee Home links to it as well as to Browse events.
 
 ## Regression and changes to existing tests (approved 7 October)
 
@@ -204,8 +208,8 @@ App tests (Vitest) mock Supabase, as the existing tests do.
 | AC-015.4 | .4.1–.4.4 | .4.5–.4.6 | 6 |
 | AC-015.5 | .5.1–.5.4 | .5.5–.5.7 | 7 |
 | AC-015.6 | .6.1–.6.5 | .6.6–.6.12 | 12 |
-| AC-015.7 | .7.1–.7.4 | .7.5–.7.10 | 10 |
-| **Total** | **34** | **35** | **69** |
+| AC-015.7 | .7.1–.7.4 | .7.5–.7.11 | 11 |
+| **Total** | **34** | **36** | **70** |
 
 Required categories, by test ID:
 
