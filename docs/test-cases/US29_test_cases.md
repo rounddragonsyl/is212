@@ -138,6 +138,8 @@ Supabase Auth itself. Vitest tests mock Supabase, as the existing tests do.
 | AC-029.4.8 | 029.4 | Vitest | Boundary: while the session loads, nothing redirects | session loading | Render `/events/open` | none | Loading message; no redirect | **Pass** |
 | AC-029.4.9 | 029.4 | Vitest | The Attendee navigation links to the events page | attendee profile | Render the top navigation | attendee, organiser | Attendee sees "Open events" → `/events/open`; organiser does not | **Pass** |
 | AC-029.4.10 | 029.4 | Manual | The confirmation link signs the Attendee in on the events page (A1, A2) | Shared app; redirect URL added (A2) | Sign up with a new email; open the confirmation email; click the link | new email | Lands on `/events/open`, signed in as Attendee; nav shows "Open events" | Not run yet (manual, shared Supabase) |
+| AC-029.4.11 | 029.4 | Vitest | Defect fix: a signed-in Attendee's Home points them to events | attendee profile | Render Home | attendee | "Browse events" links to `/events/open`; no "coordinator will be in touch" or "nothing for you to action" text | **Pass** (failed before fix, commit `8e27447`) |
+| AC-029.4.12 | 029.4 | Vitest | Regression: other roles' Home is unchanged | organiser and venue staff profiles | Render Home for each | organiser, venue_staff | Organiser still sees "Start a new request"; venue staff still see their existing message; neither sees "Browse events" | **Pass** |
 
 ---
 
@@ -171,6 +173,27 @@ Supabase Auth itself. Vitest tests mock Supabase, as the existing tests do.
   in-page sign-up mode that D7 removes. It was replaced by AC-029.3.16; AC-029.4.3 covers the
   confirm-your-email behaviour on `/signup`.
 
+## Defects found after completion
+
+**Attendee Home showed a staff message** (found 8 October 2026 by Yuanlong; fixed 8 October
+2026; linked to SCRUM-227).
+After signing in, an Attendee landed on Home and saw "There is nothing for you to action here
+right now. Your coordinator will be in touch when an event needs you." The message was written
+on 12 September for roles without a dashboard, before Attendees could use the app. US29 made
+Attendee accounts real but did not revisit Home, which shows different content per role.
+- **Severity:** Minor. No acceptance criterion failed and the nav still reached every page, but
+  every Attendee saw the wrong guidance on sign-in.
+- **Fix:** Attendees get their own Home text and a Browse events button to `/events/open`; Home no
+  longer asks for event requests on an Attendee's behalf (RLS returns none). Other roles are
+  unchanged.
+- **Tests:** AC-029.4.11, written first and failing before the fix (commit `8e27447`);
+  AC-029.4.12, a regression guard. 795 app tests pass after the fix.
+- **Follow-up:** add a My registrations link to the Attendee Home once US15 is merged (US15's
+  page does not exist on `main` yet). Venue staff and technical support still see the generic
+  message although they have their own pages; that is a separate, older issue to log on its own.
+- **Lesson (retrospective):** when a role is added or changed, check every screen that shows
+  different content per role.
+
 ## Coverage summary
 
 | AC | SQL | Vitest | Manual | Count |
@@ -178,8 +201,8 @@ Supabase Auth itself. Vitest tests mock Supabase, as the existing tests do.
 | AC-029.1 | .1.1–.1.3 | .1.4–.1.17 | .1.18 | 18 |
 | AC-029.2 | none (Supabase Auth owns email uniqueness) | .2.1–.2.4 | .2.5 | 5 |
 | AC-029.3 | .3.1, .3.4–.3.6, .3.13, .3.17 | .3.15–.3.16 | none | 8 (9 withdrawn) |
-| AC-029.4 | none | .4.1–.4.9 | .4.10 | 10 |
-| **Total** | **9** | **29** | **3** | **41** (9 withdrawn) |
+| AC-029.4 | none | .4.1–.4.9, .4.11–.4.12 | .4.10 | 12 |
+| **Total** | **9** | **31** | **3** | **43** (9 withdrawn) |
 
 Required categories, by test ID:
 
