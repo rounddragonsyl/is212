@@ -179,14 +179,27 @@ not replace the red/green process for this remaining slice.
 - Red (9 October 2026): the existing full SQL suite passed before this test was
   added. With this test appended last, the suite fails because assignment queues
   no emails: `received <NULL>`. The runner exits with code 3 at AC-017.5.1.
-- The expected in-app storage contract is `coordinator_assignment_notifications`,
-  with event and recipient IDs; migration 0046 has not been implemented yet.
-- Frontend verification is incomplete: both attempted full Vitest runs stalled at
-  startup and were stopped. No frontend files changed in this checkpoint.
-- Green: pending. Commit/CI evidence goes in the shared TDD record and PR.
+- Green (local): 0046 adds `coordinator_assignment_notifications` and its history
+  trigger, storing recipient notices and queuing email through the existing outbox.
+  The unchanged test and full SQL suite pass. No live email is sent by these tests.
+- At the red checkpoint, two frontend runs stalled at startup and were stopped.
+  Jaydon subsequently reported frontend CI green and database CI red. No frontend
+  files changed. The green checkpoint run with two workers completed five files, but
+  progressed very slowly and was stopped without a full result. Verify frontend CI
+  on the green commit; the earlier passing CI is not a result for this new commit.
+- Green CI evidence goes in the shared TDD record and PR once pushed and verified.
 
 This checkpoint adds one SQL test case (24 US17 cases in total: four frontend,
-20 SQL). No feature code, deployment or new non-TDD tests are included.
+20 SQL). The green checkpoint adds no tests and does not modify the red test.
+0046 remains undeployed. Shared delivery and inbox integration are still unverified.
+
+Implementation: notifications are keyed by history entry and recipient, with a linked
+email outbox ID. Both channels default on; administrator-only settings affect future
+entries. Browser reads require recipient identity and current event access; writes are
+revoked. Generic mail bodies avoid exposing event details after reassignment. No-email
+accounts retain the in-app record. Failed notification writes roll back assignment too.
+Reassignment/no-op behaviour and permission checks need explicit coverage in the next
+checkpoint; supporting code is not itself evidence that those cases were verified.
 
 Historical correction: Jaydon reported the slice 3 UI checks passed before its
 merge. The earlier pending-check wording above describes that slice's original
