@@ -918,12 +918,15 @@ follow-up adds AC-017.4.2 for the old coordinator retaining booking rights. It n
 passes unchanged with local migration 0047; the full SQL suite and 864 frontend
 tests passed (one TODO). 0047 is not deployed. It transfers booking/slot write
 authority to the assigned coordinator, retaining the requester fallback for
-legacy unassigned events. Frontend booking filters still need updating in a
-separate TDD checkpoint. Coordinate US11/US17 wording with Nicole
+legacy unassigned events. Frontend booking filters were updated in the next
+TDD checkpoint described below. Coordinate US11/US17 wording with Nicole
 before merging that follow-up. See [US17 assignment](docs/us17-assignment.md).
-Frontend checkpoint AC-017.4.3 is now intentionally red: the new coordinator's
-booking list is empty. The other 864 frontend tests and full SQL suite pass (one
-existing frontend TODO). No frontend implementation changes yet.
+Frontend checkpoint AC-017.4.3 now passes unchanged after its red CI run. Booking
+lists use current event assignment; submit/release rely on 0047's write policies
+instead of original-requester filters. The full frontend suite has 865 passes
+and one existing TODO, and the full SQL suite passes. Four existing venue test
+expectations were updated for the proposed rule. Green CI and live acceptance
+remain pending; 0047 is not deployed and Nicole's approval is still required.
 
 All migrations `0001`–`0025`, plus the `0019a` repair, were replayed in order on shared
 Supabase on 5 October 2026, one transaction per file. No file failed. Before the replay,

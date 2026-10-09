@@ -327,3 +327,31 @@ Next: capture red CI before replacing the obsolete original-requester filters.
 Lint passed. Local typecheck stalled without diagnostics both in the sandbox and
 on retry outside it; both attempts were stopped. Typecheck is unverified locally:
 confirm GitHub reaches the intended test assertion rather than failing earlier.
+
+### AC-017.4.3 — frontend green implementation
+
+Jaydon confirmed verify failed at the red checkpoint while database passed.
+`venueBookingService.ts` now lists bookings using an inner event join filtered by
+the signed-in coordinator's current assignment. Submit/release no longer exclude
+bookings created by someone else: database policies from 0047 decide write access.
+Status/expiry checks and release-before-slot-cleanup ordering remain in place.
+The original requester is never overwritten.
+
+The list intentionally excludes unassigned or unreadable events. 0047 retains the
+legacy unassigned-event requester fallback at database level, but the coordinator's
+assigned-bookings screen is scoped to current assignments.
+
+The red test AC-017.4.3 remains unchanged. Four existing expectations in
+`venueBookingService.test.ts` were aligned with the proposed handover rule:
+
+- AC-009.4.1: submit no longer filters by original requester.
+- AC-010.8.5: release no longer filters by original requester.
+- AC-009.9.2: list filters through the current event assignment with an inner join.
+- AC-009.9.5: missing venue details still have a fallback, but the event must be
+  visible and assigned (an unreadable event no longer qualifies for this list).
+
+No additional tests were added during green. Local full-suite results on 9 October:
+865 frontend tests passed, one TODO; full database suite, typecheck, lint and build
+passed. The existing large-bundle build warning remains. No visual redesign,
+commit, push, merge or shared migration application was performed by the assistant.
+Nicole's agreement and live acceptance still remain before completing this follow-up.

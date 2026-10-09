@@ -157,9 +157,12 @@ Draft saves in eventDraftService must never change an existing request's status.
   booking behaviour from 0036 is preserved via requester fallback only when no
   coordinator is assigned. Venue Staff/expired-hold cleanup remain unchanged.
   Jaydon confirmed database green CI. Frontend AC-017.4.3 is now red: new assignee
-  receives an empty booking list. One new grouped test, 864 existing tests passed,
-  one TODO; full SQL suite passed. Service code unchanged: capture red CI before
-  replacing requested_by filters. Next unused AC4 ID is .4. No extra regression cases.
+  received an empty booking list. Jaydon confirmed red CI, then service filters
+  changed: assigned-event inner join for listing, RLS for inherited submit/release.
+  Unchanged .4.3 now passes; full frontend 865 passed/one TODO and full SQL passed.
+  Four existing venue test expectations updated for the proposed rule; no new
+  tests in green. Next unused AC4 ID is .4. No extra regression cases. Nicole's
+  approval, green CI and live acceptance remain pending; 0047 is not deployed.
 
 - Slice 4 green checkpoint: 0046 (claimed by Jaydon, not deployed) adds recipient
   assignment notifications and queues mail through the unchanged US4 sender. Trigger
