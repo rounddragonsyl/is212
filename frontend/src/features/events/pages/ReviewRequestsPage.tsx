@@ -38,11 +38,10 @@ export function ReviewRequestsPage() {
         <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">
           {isLead ? 'Coordinator assignments' : isCoordinator || isManager ? 'Incoming requests' : 'Your requests'}
         </h1>
-        <p className="mt-3 text-sm leading-relaxed text-slate-600">
-          {isLead ? 'Assign submitted requests and manage coordinator assignments for active events.' : isManager ? 'View submitted events and their current progress.' : isCoordinator
-            ? 'Your assigned requests appear first, followed by other event requests. Each section shows the newest requests first.'
+        {!isCoordinator && <p className="mt-3 text-sm leading-relaxed text-slate-600">
+          {isLead ? 'Assign submitted requests and manage coordinator assignments for active events.' : isManager ? 'View submitted events and their current progress.'
             : 'Your event requests, including drafts. Status updates automatically every 30 seconds.'}
-        </p>
+        </p>}
       </div>
 
       <button type="button" onClick={refresh} className="mb-4 text-sm font-medium text-indigo-700 hover:underline">Refresh requests</button>
