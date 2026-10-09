@@ -901,13 +901,21 @@ combinations, preservation of earlier notices, and replay of 0046 with populated
 and non-default settings. The full SQL suite passed after correcting syntax in the
 new test, without feature changes; these are also regression coverage. Actual live
 delivery remains unverified.
-0046 is not deployed: review and merge before applying it through the team's migration
-process. Record actual email/in-app delivery separately from these queue assertions.
+Jaydon reported 0046 applied to shared Supabase. Record actual email/in-app delivery
+separately from these queue assertions.
 Jaydon previously reported slice 3's manual UI checks passed; repeat affected flows
 after this slice rather than treating the earlier pending-live wording as current.
 
 Tests: four frontend tests (profile, Lead queue, assignment and reassignment) and 24 SQL cases, with IDs, TDD cycles, additional
 coverage and deployment details in [US17 assignment](docs/us17-assignment.md).
+
+US17 equipment handover follow-up: migration `0048_equipment_booking_assignment_access.sql`
+makes legacy equipment booking/line permissions follow the current event coordinator,
+preserving original requesters and existing Technical Support workflows. It is pending
+equipment-owner review and deployment. AC-017.4.4 is the unchanged red/green handover
+test; AC-017.4.5 adds regression coverage for requester/reservation protection. Both
+run in the disposable database suite. This branch does not include the separate 0047
+venue-access PR.
 
 ## Shared Supabase state (5 October 2026)
 

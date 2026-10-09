@@ -91,4 +91,31 @@ begin
   end loop;
   raise notice 'PASS: AC-017.4.4: equipment booking and line management follows the current coordinator after reassignment';
 end $$;
+
+-- Additional regression coverage, not a separate red/green cycle.
+do $$
+declare operation text; denied boolean;
+begin
+  perform set_config('request.jwt.claim.sub', '17600000-0000-0000-0000-000000000004', true);
+  foreach operation in array array['rewrite_requester', 'rewrite_reservation'] loop
+    denied := false;
+    begin
+      if operation = 'rewrite_requester' then
+        update public.equipment_bookings set status = 'cancelled', requested_by = auth.uid()
+          where id = '17630000-0000-0000-0000-000000000001';
+      else
+        update public.equipment_booking_lines set status = 'pending', quantity_reserved = 1
+          where id = '17640000-0000-0000-0000-000000000002';
+      end if;
+      raise exception using errcode = 'P1701', message = 'rollback permission probe';
+    exception
+      when sqlstate 'P1701' then null;
+      when insufficient_privilege then denied := true;
+    end;
+    if not denied then
+      raise exception 'FAIL: AC-017.4.5: handover must not permit %', operation;
+    end if;
+  end loop;
+  raise notice 'PASS: AC-017.4.5: handover preserves requester identity and staff reservation quantities';
+end $$;
 rollback;

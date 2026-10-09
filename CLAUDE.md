@@ -1,5 +1,15 @@
 # ConnectSphere Event Planning System — Project Context
 
+## US17 equipment handover follow-up (9 October 2026)
+- 0048 changes legacy equipment booking/line coordinator policies to use
+  is_assigned_event_coordinator; requested_by remains historical attribution.
+- Direct coordinator updates change decision status only. The SECURITY INVOKER
+  guard checks current_user so existing SECURITY DEFINER equipment requirement and
+  reservation functions retain their checked internal updates.
+- AC-017.4.4 is the unchanged handover TDD test; AC-017.4.5 is additional regression
+  coverage. Full SQL suite passed locally; CI and equipment-owner review are pending.
+- No shared database deployment yet. Keep separate from the 0047 venue-access PR.
+
 ## What this is
 University project (SMU IS212). Event planning and venue booking for an events company.
 Roles: Event Organiser, Event Coordinator, Venue Staff, Technical Support Staff, Attendee.

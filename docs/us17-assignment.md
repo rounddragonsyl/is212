@@ -1,5 +1,31 @@
 # US17 - Assign / Reassign an Event Coordinator
 
+## Equipment access follow-up — us17-equipment-access
+
+Scope: AC4 / SCRUM-160, transferring legacy equipment booking and line management
+to the current coordinator. Yuanlong owns the equipment feature and should review
+before merge. Migration 0048 is claimed; it is not deployed. The separate 0047 venue
+PR is not part of this branch.
+
+- AC-017.4.4 (TDD): red allowed the previous coordinator to cancel after reassignment.
+  The unchanged test now verifies old/unrelated coordinators cannot cancel, respond
+  to alternatives, create bookings or add lines, while the current coordinator can.
+  Original requester attribution remains intact.
+- Green implementation: 0048 replaces six legacy RLS policies, reusing the existing
+  assigned-coordinator helper. Two triggers protect non-status fields from direct
+  coordinator edits. Technical Support/manager reads remain available; reservation
+  functions and stock-allocation rules are unchanged.
+- AC-017.4.5 (additional regression, not TDD): direct decisions cannot overwrite
+  the original requester or staff-reserved quantities.
+- Validation: full disposable SQL suite passed on 9 October 2026. An initial guard
+  also blocked US13's internal quantity update (AC-013.6.10); making it invoker-based
+  and limiting it to direct authenticated coordinator updates fixed that interaction.
+  Both new cases and existing equipment regressions pass. CI is pending; frontend
+  files are unchanged and frontend checks were not rerun locally for this DB change.
+
+Record AC-017.4.4 under TDD and AC-017.4.5 in the automated test-case documentation.
+Earlier totals below describe their historical checkpoints.
+
 Owner: Jaydon. Jira: SCRUM-61. Slice 1 branch: `us17slice1`.
 
 ## Slice 1 scope
