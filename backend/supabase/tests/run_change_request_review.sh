@@ -208,4 +208,5 @@ SQL
   cat "$repo_root/supabase/tests/coordinator_assignment_notifications_replay.sql"
   # US17/US11 handover coverage (integration agreement pending before merge).
   cat "$repo_root/supabase/tests/coordinator_assignment_venue_access.sql"
+  cat "$repo_root/supabase/tests/coordinator_assignment_equipment_access.sql"
 } | docker exec -i "$container" psql -X -U postgres -v ON_ERROR_STOP=1
