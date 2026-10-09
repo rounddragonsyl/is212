@@ -206,4 +206,5 @@ SQL
   cat "$repo_root/supabase/tests/coordinator_assignment_notifications.sql"
   cat "$repo_root/supabase/migrations/0046_coordinator_assignment_notifications.sql"
   cat "$repo_root/supabase/tests/coordinator_assignment_notifications_replay.sql"
+  cat "$repo_root/supabase/tests/coordinator_assignment_equipment_access.sql"
 } | docker exec -i "$container" psql -X -U postgres -v ON_ERROR_STOP=1
