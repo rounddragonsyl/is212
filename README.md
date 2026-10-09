@@ -914,8 +914,12 @@ coverage and deployment details in [US17 assignment](docs/us17-assignment.md).
 US17 update (9 October): slice 4 merged in PR #72, CI passed, and Jaydon confirmed
 0046 applied to shared Supabase. Earlier pending notes describe its development
 checkpoints. Live delivery remains unverified. A local-only US17 venue handover
-follow-up adds red test AC-017.4.2 for the old coordinator retaining booking rights;
-0047 is claimed but not implemented. Coordinate US11/US17 wording with Nicole
+follow-up adds AC-017.4.2 for the old coordinator retaining booking rights. It now
+passes unchanged with local migration 0047; the full SQL suite and 864 frontend
+tests passed (one TODO). 0047 is not deployed. It transfers booking/slot write
+authority to the assigned coordinator, retaining the requester fallback for
+legacy unassigned events. Frontend booking filters still need updating in a
+separate TDD checkpoint. Coordinate US11/US17 wording with Nicole
 before merging that follow-up. See [US17 assignment](docs/us17-assignment.md).
 
 All migrations `0001`–`0025`, plus the `0019a` repair, were replayed in order on shared

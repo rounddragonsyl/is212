@@ -280,5 +280,29 @@ for the fix but has not been created or applied.
 - Existing full frontend suite: 88 files passed, 864 tests passed and one TODO.
   No frontend tests were added or changed at this checkpoint.
 
-The red checkpoint is deliberately last in the runner. Do not merge a red
-checkpoint into main. Existing regression tests are unchanged.
+The checkpoint runs last in the runner. Existing regression tests are unchanged.
+
+### AC-017.4.2 — green implementation
+
+Jaydon reported the red branch CI had verify green and database red. Migration
+`0047_venue_booking_assignment_access.sql` now changes booking UPDATE and slot
+INSERT/DELETE permissions to follow the event's current coordinator. A guard
+prevents coordinator edits from rewriting the original requester or moving the
+booking to a different event/venue. No stored booking or slot data is rewritten.
+
+The first full regression run exposed the existing US12 unassigned-event fixture.
+0036 explicitly supports that path, so 0047 preserves original-requester authority
+only while the event has no assigned coordinator. An assigned event always uses its
+current coordinator. Venue Staff policies, calendar reading and shared lapsed-hold
+cleanup remain unchanged.
+
+Local green (9 October 2026): the unchanged AC-017.4.2 and full SQL suite passed.
+The full frontend suite passed: 88 files, 864 tests, one TODO. No new tests were
+added in this green step and no earlier assertions were weakened. The identity
+guard and slot-insert rule do not yet have dedicated additional negative tests;
+do not treat the grouped test as coverage of every write path.
+
+0047 is not deployed, and the green CI result is pending. Frontend submit/release/list
+filters still use the original requester, so the follow-up is not complete. Add a
+focused frontend red checkpoint next. Nicole's approval remains required before
+merging the proposed US11/US17 integration change.

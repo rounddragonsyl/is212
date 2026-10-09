@@ -151,9 +151,13 @@ Draft saves in eventDraftService must never change an existing request's status.
 - Latest: slice 4 merged in PR #72; Jaydon confirmed CI green and 0046 deployed.
   Treat 0046 as immutable. Follow-up venue handover is local-only pending Nicole's
   agreement: US11 AC8 original-placer wording conflicts with US17 AC4/SCRUM-160.
-  Jaydon claimed 0047, not yet created/applied. AC-017.4.2 is the new SQL red case:
-  previous coordinator can submit the existing hold after reassignment. Stop at
-  the red checkpoint before implementing. Next unused AC4 ID is .3.
+  Jaydon claimed 0047, now implemented locally but not deployed. AC-017.4.2 failed
+  because the old coordinator could submit a reassigned hold; unchanged test now
+  passes with the full SQL suite. Frontend: 864 passed, one TODO. Existing unassigned
+  booking behaviour from 0036 is preserved via requester fallback only when no
+  coordinator is assigned. Venue Staff/expired-hold cleanup remain unchanged.
+  Next: frontend filters still use requested_by; start a focused red cycle before
+  changing them. Next unused AC4 ID is .3. No new regression cases added this cycle.
 
 - Slice 4 green checkpoint: 0046 (claimed by Jaydon, not deployed) adds recipient
   assignment notifications and queues mail through the unchanged US4 sender. Trigger
