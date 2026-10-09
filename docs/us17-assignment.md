@@ -306,3 +306,24 @@ do not treat the grouped test as coverage of every write path.
 filters still use the original requester, so the follow-up is not complete. Add a
 focused frontend red checkpoint next. Nicole's approval remains required before
 merging the proposed US11/US17 integration change.
+
+### AC-017.4.3 — frontend handover, red checkpoint
+
+Jaydon confirmed green CI for the AC-017.4.2 database implementation. One grouped
+frontend test now checks that B can list, submit and release A's existing booking
+after reassignment, while A no longer lists or manages it. It also checks the
+original requester is preserved and slots are retained on submission and freed
+on release. File: `frontend/src/features/venues/__tests__/venueBookingAssignment.test.ts`.
+
+The service-boundary fake applies the query filters to a booking whose original
+requester differs from its current coordinator. It models the database's current
+assignee write rule; actual RLS is covered separately by AC-017.4.2 in PostgreSQL.
+It is not a browser end-to-end test.
+
+Local red (9 October 2026): expected booking `booking-17`, received an empty list
+for the new coordinator. Full frontend suite: one intended failure, 864 passed,
+one TODO. Full database suite passed. Production frontend code remains unchanged.
+Next: capture red CI before replacing the obsolete original-requester filters.
+Lint passed. Local typecheck stalled without diagnostics both in the sandbox and
+on retry outside it; both attempts were stopped. Typecheck is unverified locally:
+confirm GitHub reaches the intended test assertion rather than failing earlier.

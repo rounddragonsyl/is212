@@ -921,6 +921,9 @@ authority to the assigned coordinator, retaining the requester fallback for
 legacy unassigned events. Frontend booking filters still need updating in a
 separate TDD checkpoint. Coordinate US11/US17 wording with Nicole
 before merging that follow-up. See [US17 assignment](docs/us17-assignment.md).
+Frontend checkpoint AC-017.4.3 is now intentionally red: the new coordinator's
+booking list is empty. The other 864 frontend tests and full SQL suite pass (one
+existing frontend TODO). No frontend implementation changes yet.
 
 All migrations `0001`–`0025`, plus the `0019a` repair, were replayed in order on shared
 Supabase on 5 October 2026, one transaction per file. No file failed. Before the replay,

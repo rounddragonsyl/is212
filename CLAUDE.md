@@ -156,8 +156,10 @@ Draft saves in eventDraftService must never change an existing request's status.
   passes with the full SQL suite. Frontend: 864 passed, one TODO. Existing unassigned
   booking behaviour from 0036 is preserved via requester fallback only when no
   coordinator is assigned. Venue Staff/expired-hold cleanup remain unchanged.
-  Next: frontend filters still use requested_by; start a focused red cycle before
-  changing them. Next unused AC4 ID is .3. No new regression cases added this cycle.
+  Jaydon confirmed database green CI. Frontend AC-017.4.3 is now red: new assignee
+  receives an empty booking list. One new grouped test, 864 existing tests passed,
+  one TODO; full SQL suite passed. Service code unchanged: capture red CI before
+  replacing requested_by filters. Next unused AC4 ID is .4. No extra regression cases.
 
 - Slice 4 green checkpoint: 0046 (claimed by Jaydon, not deployed) adds recipient
   assignment notifications and queues mail through the unchanged US4 sender. Trigger
