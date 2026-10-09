@@ -1,5 +1,19 @@
 # US17 - Assign / Reassign an Event Coordinator
 
+## Coordinator request grouping — us17-assigned-requests-ui
+
+The coordinator Requests page separates **Assigned to me** from **Other event
+requests**, with personal assignments first and an **Assigned to you** label.
+Both groups preserve the service's ordering; refresh and normal polling update
+membership after reassignment. Empty sections show an explanatory message.
+Lead, organiser and Operations Manager views retain their existing presentation.
+This is a frontend presentation change, not a new access policy or migration.
+
+AC-017.4.6 is one grouped UI TDD case covering section order, stable request order,
+labels, links, reassignment after refresh and empty results. Jaydon confirmed the
+red CI stage; the green implementation keeps the test unchanged. Green validation
+is pending and must be recorded separately from the previous red evidence.
+
 ## Equipment access follow-up — us17-equipment-access
 
 Scope: AC4 / SCRUM-160, transferring legacy equipment booking and line management

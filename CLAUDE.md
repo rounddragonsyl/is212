@@ -1,5 +1,10 @@
 # ConnectSphere Event Planning System — Project Context
 
+- US17 coordinator Requests view groups readable requests by coordinatorId:
+  Assigned to me first, then Other event requests, preserving service order.
+  RequestListItem's optional assignedToYou label is presentation only. No RLS or
+  query changes. AC-017.4.6 covers grouping, refreshed assignments and empty states.
+
 ## US17 equipment handover follow-up (9 October 2026)
 - 0048 changes legacy equipment booking/line coordinator policies to use
   is_assigned_event_coordinator; requested_by remains historical attribution.

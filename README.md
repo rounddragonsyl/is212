@@ -856,6 +856,12 @@ and `frontend/src/components/layout/__tests__/TopNav.test.tsx`):
 
 ## US17 - Coordinator assignment
 
+Coordinators see **Assigned to me** first on the Requests page, followed by **Other
+event requests**. Assigned cards show **Assigned to you**. Refresh/polling updates
+the groups after reassignment, preserving ordering within each group. This is a
+display change only; database permissions still control access. AC-017.4.6 covers
+the grouping and refresh behaviour.
+
 Migration `0038_coordinator_lead_assignment.sql` adds the `coordinator_lead` role,
 non-draft event read access, and Lead-only assignment through the existing function
 and guard. Drafts, null targets and non-coordinator targets are refused; a coordinator
