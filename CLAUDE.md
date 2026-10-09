@@ -158,6 +158,22 @@ Draft saves in eventDraftService must never change an existing request's status.
 
 ## US17 slice 1 (current assignment rules)
 
+- Latest: slice 4 merged in PR #72; Jaydon confirmed CI green and 0046 deployed.
+  Treat 0046 as immutable. Follow-up venue handover is local-only pending Nicole's
+  agreement: US11 AC8 original-placer wording conflicts with US17 AC4/SCRUM-160.
+  Jaydon claimed 0047, now implemented locally but not deployed. AC-017.4.2 failed
+  because the old coordinator could submit a reassigned hold; unchanged test now
+  passes with the full SQL suite. Frontend: 864 passed, one TODO. Existing unassigned
+  booking behaviour from 0036 is preserved via requester fallback only when no
+  coordinator is assigned. Venue Staff/expired-hold cleanup remain unchanged.
+  Jaydon confirmed database green CI. Frontend AC-017.4.3 is now red: new assignee
+  received an empty booking list. Jaydon confirmed red CI, then service filters
+  changed: assigned-event inner join for listing, RLS for inherited submit/release.
+  Unchanged .4.3 now passes; full frontend 865 passed/one TODO and full SQL passed.
+  Four existing venue test expectations updated for the proposed rule; no new
+  tests in green. Next unused AC4 ID is .4. No extra regression cases. Nicole's
+  approval, green CI and live acceptance remain pending; 0047 is not deployed.
+
 - Slice 4 green checkpoint: 0046 (claimed by Jaydon, not deployed) adds recipient
   assignment notifications and queues mail through the unchanged US4 sender. Trigger
   runs from assignment-history insertion in the same transaction. Both channels default

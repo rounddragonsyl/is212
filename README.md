@@ -919,6 +919,23 @@ venue-access PR.
 
 ## Shared Supabase state (5 October 2026)
 
+US17 update (9 October): slice 4 merged in PR #72, CI passed, and Jaydon confirmed
+0046 applied to shared Supabase. Earlier pending notes describe its development
+checkpoints. Live delivery remains unverified. A local-only US17 venue handover
+follow-up adds AC-017.4.2 for the old coordinator retaining booking rights. It now
+passes unchanged with local migration 0047; the full SQL suite and 864 frontend
+tests passed (one TODO). 0047 is not deployed. It transfers booking/slot write
+authority to the assigned coordinator, retaining the requester fallback for
+legacy unassigned events. Frontend booking filters were updated in the next
+TDD checkpoint described below. Coordinate US11/US17 wording with Nicole
+before merging that follow-up. See [US17 assignment](docs/us17-assignment.md).
+Frontend checkpoint AC-017.4.3 now passes unchanged after its red CI run. Booking
+lists use current event assignment; submit/release rely on 0047's write policies
+instead of original-requester filters. The full frontend suite has 865 passes
+and one existing TODO, and the full SQL suite passes. Four existing venue test
+expectations were updated for the proposed rule. Green CI and live acceptance
+remain pending; 0047 is not deployed and Nicole's approval is still required.
+
 All migrations `0001`–`0025`, plus the `0019a` repair, were replayed in order on shared
 Supabase on 5 October 2026, one transaction per file. No file failed. Before the replay,
 every `public` table's data was copied to the private schema `backup_20261005`; drop it

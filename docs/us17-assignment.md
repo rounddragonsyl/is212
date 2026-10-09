@@ -278,3 +278,106 @@ Current US17 total: 28 cases (four frontend, 24 SQL), including five notificatio
 cases in slice 4. Actual delivery remains unverified. Whole-story completion also
 requires the outstanding cross-feature assignment-access and withdrawn-status
 checks described above.
+
+## Follow-up — venue booking access after reassignment
+
+Slice 4 merged in PR #72; Jaydon confirmed its final CI passed and migration 0046
+was applied to shared Supabase. This supersedes the earlier deployment/CI-pending
+notes. Live notification delivery has not yet been reported verified.
+
+Jaydon authorised local work on the venue handover adjustment, with Nicole's
+agreement required before it reaches main. US17 AC4 / SCRUM-160 requires access
+to follow the current assignment; US11 AC8 currently names the person who placed
+the hold, so the two stories need consistent wording. Migration **0047** is claimed
+for the fix but has not been created or applied.
+
+### AC-017.4.2 — venue booking management follows reassignment
+
+- File: `backend/supabase/tests/coordinator_assignment_venue_access.sql`.
+- One grouped SQL case creates a hold as Coordinator A and reassigns the event
+  to B through the real Lead function. A and an unrelated coordinator must not
+  submit/cancel the booking or delete its slots. B must be able to submit and
+  release it, preserving the original requester, event and venue.
+- Red, local (9 October 2026): the full database runner reaches this test after
+  the earlier suites, then exits 3: the previous coordinator can still perform
+  `pending_approval` on the reassigned booking.
+- No production code or migration changes yet. This is one new TDD case; the
+  frontend list/action adjustment will need its own focused coverage.
+- Existing full frontend suite: 88 files passed, 864 tests passed and one TODO.
+  No frontend tests were added or changed at this checkpoint.
+
+The checkpoint runs last in the runner. Existing regression tests are unchanged.
+
+### AC-017.4.2 — green implementation
+
+Jaydon reported the red branch CI had verify green and database red. Migration
+`0047_venue_booking_assignment_access.sql` now changes booking UPDATE and slot
+INSERT/DELETE permissions to follow the event's current coordinator. A guard
+prevents coordinator edits from rewriting the original requester or moving the
+booking to a different event/venue. No stored booking or slot data is rewritten.
+
+The first full regression run exposed the existing US12 unassigned-event fixture.
+0036 explicitly supports that path, so 0047 preserves original-requester authority
+only while the event has no assigned coordinator. An assigned event always uses its
+current coordinator. Venue Staff policies, calendar reading and shared lapsed-hold
+cleanup remain unchanged.
+
+Local green (9 October 2026): the unchanged AC-017.4.2 and full SQL suite passed.
+The full frontend suite passed: 88 files, 864 tests, one TODO. No new tests were
+added in this green step and no earlier assertions were weakened. The identity
+guard and slot-insert rule do not yet have dedicated additional negative tests;
+do not treat the grouped test as coverage of every write path.
+
+0047 is not deployed, and the green CI result is pending. Frontend submit/release/list
+filters still use the original requester, so the follow-up is not complete. Add a
+focused frontend red checkpoint next. Nicole's approval remains required before
+merging the proposed US11/US17 integration change.
+
+### AC-017.4.3 — frontend handover, red checkpoint
+
+Jaydon confirmed green CI for the AC-017.4.2 database implementation. One grouped
+frontend test now checks that B can list, submit and release A's existing booking
+after reassignment, while A no longer lists or manages it. It also checks the
+original requester is preserved and slots are retained on submission and freed
+on release. File: `frontend/src/features/venues/__tests__/venueBookingAssignment.test.ts`.
+
+The service-boundary fake applies the query filters to a booking whose original
+requester differs from its current coordinator. It models the database's current
+assignee write rule; actual RLS is covered separately by AC-017.4.2 in PostgreSQL.
+It is not a browser end-to-end test.
+
+Local red (9 October 2026): expected booking `booking-17`, received an empty list
+for the new coordinator. Full frontend suite: one intended failure, 864 passed,
+one TODO. Full database suite passed. Production frontend code remains unchanged.
+Next: capture red CI before replacing the obsolete original-requester filters.
+Lint passed. Local typecheck stalled without diagnostics both in the sandbox and
+on retry outside it; both attempts were stopped. Typecheck is unverified locally:
+confirm GitHub reaches the intended test assertion rather than failing earlier.
+
+### AC-017.4.3 — frontend green implementation
+
+Jaydon confirmed verify failed at the red checkpoint while database passed.
+`venueBookingService.ts` now lists bookings using an inner event join filtered by
+the signed-in coordinator's current assignment. Submit/release no longer exclude
+bookings created by someone else: database policies from 0047 decide write access.
+Status/expiry checks and release-before-slot-cleanup ordering remain in place.
+The original requester is never overwritten.
+
+The list intentionally excludes unassigned or unreadable events. 0047 retains the
+legacy unassigned-event requester fallback at database level, but the coordinator's
+assigned-bookings screen is scoped to current assignments.
+
+The red test AC-017.4.3 remains unchanged. Four existing expectations in
+`venueBookingService.test.ts` were aligned with the proposed handover rule:
+
+- AC-009.4.1: submit no longer filters by original requester.
+- AC-010.8.5: release no longer filters by original requester.
+- AC-009.9.2: list filters through the current event assignment with an inner join.
+- AC-009.9.5: missing venue details still have a fallback, but the event must be
+  visible and assigned (an unreadable event no longer qualifies for this list).
+
+No additional tests were added during green. Local full-suite results on 9 October:
+865 frontend tests passed, one TODO; full database suite, typecheck, lint and build
+passed. The existing large-bundle build warning remains. No visual redesign,
+commit, push, merge or shared migration application was performed by the assistant.
+Nicole's agreement and live acceptance still remain before completing this follow-up.
